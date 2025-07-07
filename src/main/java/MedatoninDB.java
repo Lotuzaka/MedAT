@@ -65,6 +65,7 @@ public class MedatoninDB extends JFrame {
     private boolean isEditMode = false; // Variable to check if edit mode is enabled
     private Point initialClickPoint; // Initial click point for the drag
     private JButton draggedButton; // Reference to the button being dragged
+    private JPanel draggedContainer; // Panel that contains the dragged button
     private int originalIndex = -1; // Original index of the dragged button
     private int dragThreshold = 5; // Threshold in pixels to start dragging
     private boolean isDragging = false; // Indicates if a drag operation is in progress
@@ -576,7 +577,9 @@ public class MedatoninDB extends JFrame {
             }
 
             subcategoryPanel.add(buttonContainer);
-            subcategoryPanel.add(Box.createVerticalStrut(5)); // Immer gleicher Abstand
+            if (spacing > 0) {
+                subcategoryPanel.add(Box.createVerticalStrut(spacing));
+            }
         }
 
         // "+" Button am Ende hinzufügen (nur im Bearbeitungsmodus)
@@ -633,6 +636,7 @@ public class MedatoninDB extends JFrame {
                     isDragging = false; // Not yet dragging
                     originalIndex = getButtonIndex(button);
                     draggedButton = button;
+                    draggedContainer = (JPanel) button.getParent();
                     lastTargetIndex = originalIndex; // Initialize lastTargetIndex
                 }
             }
@@ -643,6 +647,8 @@ public class MedatoninDB extends JFrame {
                     isDragging = false;
                     // Reset visual feedback
                     resetButtonAppearance(draggedButton);
+
+                    draggedContainer = null;
 
                     // Update subcategoryOrder
                     updateSubcategoryOrder();
@@ -682,8 +688,8 @@ public class MedatoninDB extends JFrame {
                         if (targetIndex != lastTargetIndex && targetIndex >= 0
                                 && targetIndex < subcategoryPanel.getComponentCount()) {
                             // Remove and re-add the button at the new index
-                            subcategoryPanel.remove(draggedButton);
-                            subcategoryPanel.add(draggedButton, targetIndex);
+                            subcategoryPanel.remove(draggedContainer);
+                            subcategoryPanel.add(draggedContainer, targetIndex);
 
                             lastTargetIndex = targetIndex;
 
@@ -709,8 +715,17 @@ public class MedatoninDB extends JFrame {
     private int getButtonIndex(JButton button) {
         Component[] components = subcategoryPanel.getComponents();
         for (int index = 0; index < components.length; index++) {
-            if (components[index] == button) {
+            Component comp = components[index];
+            if (comp == button) {
                 return index;
+            }
+            if (comp instanceof JPanel) {
+                JPanel panel = (JPanel) comp;
+                for (Component inner : panel.getComponents()) {
+                    if (inner == button) {
+                        return index;
+                    }
+                }
             }
         }
         return -1; // Should not happen
@@ -724,12 +739,20 @@ public class MedatoninDB extends JFrame {
         Component[] components = subcategoryPanel.getComponents();
         int index = 0;
         for (Component comp : components) {
-            if (comp == draggedButton) {
+            if (comp == draggedContainer) {
                 continue;
             }
-            if (comp instanceof JButton) {
-                JButton btn = (JButton) comp;
-                if (btn.getText().equals("+")) {
+            JButton btn = null;
+            if (comp instanceof JPanel) {
+                Component[] inner = ((JPanel) comp).getComponents();
+                if (inner.length > 0 && inner[0] instanceof JButton) {
+                    btn = (JButton) inner[0];
+                }
+            } else if (comp instanceof JButton) {
+                btn = (JButton) comp;
+            }
+            if (btn != null) {
+                if ("+".equals(btn.getText())) {
                     break; // Do not place before the '+' button
                 }
                 Rectangle bounds = comp.getBounds();
@@ -854,8 +877,7 @@ public class MedatoninDB extends JFrame {
                 JButton subButton = createModernButton(subcategory);
 
                 if (isEditMode) {
-                    addDragAndDropFunctionality(subButton, buttonContainer); // Achtung: buttonContainer statt
-                                                                             // subcategoryPanel
+                    addDragAndDropFunctionality(subButton, subcategoryPanel);
                 }
 
                 subButton.addActionListener(e -> {
@@ -898,7 +920,10 @@ public class MedatoninDB extends JFrame {
                 }
 
                 subcategoryPanel.add(buttonContainer);
-                subcategoryPanel.add(Box.createVerticalStrut(0));
+                int spacing = isEditMode ? 0 : 5;
+                if (spacing > 0) {
+                    subcategoryPanel.add(Box.createVerticalStrut(spacing));
+                }
             }
         }
 
