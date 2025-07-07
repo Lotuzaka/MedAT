@@ -560,7 +560,7 @@ public class MedatoninDB extends JFrame {
             if (isEditMode) {
                 buttonContainer.add(Box.createHorizontalStrut(5)); // Kleiner Abstand
 
-                JButton deleteButton = new JButton("-");
+                JButton deleteButton = createModernButton("-");
                 deleteButton.setPreferredSize(new Dimension(30, 25));
                 deleteButton.setMaximumSize(new Dimension(30, 25));
                 deleteButton.setBackground(new Color(211, 47, 47)); // Rot
@@ -881,7 +881,7 @@ public class MedatoninDB extends JFrame {
                 if (isEditMode) {
                     buttonContainer.add(Box.createHorizontalStrut(5));
 
-                    JButton deleteButton = new JButton("-");
+                    JButton deleteButton = createModernButton("-");
                     deleteButton.setPreferredSize(new Dimension(30, 25));
                     deleteButton.setMaximumSize(new Dimension(30, 25));
                     deleteButton.setMinimumSize(new Dimension(30, 25));
@@ -2149,6 +2149,16 @@ public class MedatoninDB extends JFrame {
                 if (button.getText().equals(subcategory)) {
                     return button;
                 }
+            } else if (component instanceof JPanel) {
+                JPanel panel = (JPanel) component;
+                for (Component innerComp : panel.getComponents()) {
+                    if (innerComp instanceof JButton) {
+                        JButton button = (JButton) innerComp;
+                        if (button.getText().equals(subcategory)) {
+                            return button;
+                        }
+                    }
+                }
             }
         }
         return null; // Return null if no matching button is found
@@ -3024,10 +3034,8 @@ public class MedatoninDB extends JFrame {
                 }
             } else if (editingColumn == 4 && editorComponent == difficultyCombo) {
                 return difficultyCombo.getSelectedItem(); // Das ist schon korrekt
-            } else if (editorComponent == defaultTextEditor) {
-                return defaultTextEditor.getCellEditorValue();
             }
-            return "";
+            return defaultTextEditor.getCellEditorValue();
         }
 
         @Override
