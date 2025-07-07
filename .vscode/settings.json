@@ -1,3 +1,11 @@
 {
-    "java.configuration.updateBuildConfiguration": "automatic"
+  "java.configuration.updateBuildConfiguration": "automatic",
+
+  // Run-on-Save: add → commit → push
+  "runOnSave.commands": [
+    {
+      "match": ".*",
+      "cmd": "git add .; git commit -m \"auto\"; git push"
+    }
+  ]
 }
