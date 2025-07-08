@@ -30,6 +30,9 @@ public class MedatoninDB extends JFrame {
             CLR_Q_ROW = new Color(178, 209, 255),
             CLR_ANS_OK = new Color(0, 153, 76, 75),
             CLR_BLUE_MED = new Color(1, 38, 65);
+
+            // Default vertical spacing between buttons (categories and subcategories)
+    private static final int BUTTON_SPACING = 5;
     private static final Font FONT_BASE = new Font("SansSerif", Font.PLAIN, 14),
             FONT_BOLD = FONT_BASE.deriveFont(Font.BOLD);
 
@@ -509,8 +512,8 @@ public class MedatoninDB extends JFrame {
             adjustSubcategoryButtonSpacing(0);
         } else {
             System.out.println("Normal mode enabled");
-            // Restore the normal spacing between subcategory buttons
-            adjustSubcategoryButtonSpacing(5); // Adjust the value as needed to match the normal spacing
+            // Restore the normal spacing using the shared spacing constant
+            adjustSubcategoryButtonSpacing(BUTTON_SPACING);
             updateSubcategoryOrder(); // Save the order when exiting edit mode
         }
     }
@@ -2668,7 +2671,7 @@ public class MedatoninDB extends JFrame {
                     c.setBackground(Color.RED);
                     c.setForeground(Color.WHITE);
                 } else {
-                    c.setBackground(new Color(178, 209, 255)); // Light blue for question rows
+                    c.setBackground(new Color(188, 188, 188)); // Light blue for question rows
                 }
             } else {
                 c.setBackground(Color.WHITE);
