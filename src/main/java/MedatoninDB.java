@@ -1445,7 +1445,7 @@ public class MedatoninDB extends JFrame {
         button.setMargin(new Insets(5, 10, 5, 10)); // Add vertical and horizontal spacing within the button
         button.setAlignmentX(Component.LEFT_ALIGNMENT); // Ensure left alignment
 
-        Dimension buttonSize = new Dimension(150, button.getPreferredSize().height);
+        Dimension buttonSize = new Dimension(180, button.getPreferredSize().height);
         // Fixed width
         button.setPreferredSize(buttonSize);
         button.setMaximumSize(buttonSize);
