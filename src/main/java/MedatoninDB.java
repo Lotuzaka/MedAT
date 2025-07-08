@@ -1,3 +1,4 @@
+
 import org.apache.poi.xwpf.usermodel.*;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.io.ParseException;
@@ -6,7 +7,6 @@ import org.locationtech.jts.io.WKTWriter;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import javax.swing.event.*;
 import javax.swing.plaf.basic.*;
 import javax.swing.table.*;
@@ -21,20 +21,18 @@ import java.util.List;
 
 public class MedatoninDB extends JFrame {
 
+
+
+
     /* ------------------------------------------------------------- CONSTANTS */
 
-    private static final Color CLR_BG = Color.WHITE,
-            CLR_BTN_DEFAULT = new Color(188, 188, 188),
-            CLR_BTN_ACCENT = new Color(0, 153, 76),
-            CLR_BTN_DELETE = new Color(166, 28, 60),
-            CLR_Q_ROW = new Color(178, 209, 255),
-            CLR_ANS_OK = new Color(0, 153, 76, 75),
-            CLR_BLUE_MED = new Color(1, 38, 65);
+    private static final Color CLR_BTN_DEFAULT = new Color(188, 188, 188);
+    private static final Color CLR_BLUE_MED = new Color(1, 38, 65);
 
     // Default vertical spacing between buttons (categories and subcategories)
     private static final int BUTTON_SPACING = 5;
-    private static final Font FONT_BASE = new Font("SansSerif", Font.PLAIN, 14),
-            FONT_BOLD = FONT_BASE.deriveFont(Font.BOLD);
+    private static final Font FONT_BASE = new Font("SansSerif", Font.PLAIN, 14);
+    private static final Font FONT_BOLD = FONT_BASE.deriveFont(Font.BOLD);
 
     /* ------------------------------------------------------------- FIELDS */
 
@@ -86,14 +84,76 @@ public class MedatoninDB extends JFrame {
     // Dropdown to select test simulations
     private JComboBox<String> simulationComboBox;
     private Map<String, Integer> simulationMap; // Maps simulation names to their IDs
+
     private Integer selectedSimulationId = null; // ID der ausgewählten Simulation
+
+    /**
+     * Utility to create a horizontal container for a subcategory button (with optional delete button).
+     * @param subcategory The subcategory name
+     * @param category The parent category
+     * @param isEditMode Whether edit mode is enabled
+     * @param deleteAction Action to perform on delete (can be null if not in edit mode)
+     * @return JPanel containing the button(s)
+     */
+    private JPanel createSubcategoryButtonContainer(String subcategory, String category, boolean isEditMode, Runnable deleteAction) {
+        JPanel buttonContainer = new JPanel();
+        buttonContainer.setLayout(new BoxLayout(buttonContainer, BoxLayout.X_AXIS));
+        buttonContainer.setBackground(backgroundColor);
+        buttonContainer.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JButton subButton = createModernButton(subcategory);
+        buttonContainer.setMaximumSize(new Dimension(Integer.MAX_VALUE, subButton.getPreferredSize().height));
+
+        if (isEditMode) {
+            addDragAndDropFunctionality(subButton, subcategoryPanel);
+        }
+
+        subButton.addActionListener(e -> {
+            if (!isEditMode) {
+                switchSubcategory(category, subcategory);
+            }
+        });
+
+        // Right-click to edit text (only in edit mode)
+        if (isEditMode) {
+            subButton.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mousePressed(MouseEvent e) {
+                    if (SwingUtilities.isRightMouseButton(e)) {
+                        showSubcategoryMenu(e, subButton, category);
+                    }
+                }
+            });
+        }
+
+        buttonContainer.add(subButton);
+
+        if (isEditMode) {
+            buttonContainer.add(Box.createHorizontalStrut(5));
+            JButton deleteButton = createModernButton("-");
+            deleteButton.setPreferredSize(new Dimension(30, 25));
+            deleteButton.setMaximumSize(new Dimension(30, 25));
+            deleteButton.setMinimumSize(new Dimension(30, 25));
+            deleteButton.setBackground(new Color(211, 47, 47));
+            deleteButton.setForeground(Color.WHITE);
+            deleteButton.setFont(new Font("Arial", Font.BOLD, 14));
+            deleteButton.setFocusPainted(false);
+            deleteButton.setBorderPainted(false);
+            deleteButton.setOpaque(true);
+            if (deleteAction != null) {
+                deleteButton.addActionListener(e -> deleteAction.run());
+            }
+            buttonContainer.add(deleteButton);
+        }
+        return buttonContainer;
+    }
 
     public MedatoninDB() throws SQLException {
         HikariConfig cfg = new HikariConfig();
         cfg.setJdbcUrl("jdbc:mysql://localhost:3306/medatonindb");
         cfg.setUsername("root");
         cfg.setPassword("288369Ma;");
-        HikariDataSource ds = new HikariDataSource(cfg);
+        HikariDataSource ds = new HikariDataSource(cfg); // TODO: Close this resource if not managed elsewhere
         conn = ds.getConnection();
         questionDAO = new QuestionDAO(conn);
         optionDAO = new OptionDAO(conn);
@@ -541,54 +601,18 @@ public class MedatoninDB extends JFrame {
     private void adjustSubcategoryButtonSpacing(int spacing) {
         subcategoryPanel.removeAll();
         subcategoryPanel.setLayout(new BoxLayout(subcategoryPanel, BoxLayout.Y_AXIS));
-
         for (String subcategory : subcategoryOrder.get(currentCategory)) {
-            // Panel für Button und Minus-Button
-            JPanel buttonContainer = new JPanel();
-            buttonContainer.setLayout(new BoxLayout(buttonContainer, BoxLayout.X_AXIS));
-            buttonContainer.setBackground(backgroundColor);
-            buttonContainer.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-            JButton subButton = createModernButton(subcategory);
-            addDragAndDropFunctionality(subButton, subcategoryPanel);
-
-            subButton.addActionListener(e -> {
-                if (!isEditMode) {
-                    switchSubcategory(currentCategory, subcategory);
-                }
-            });
-
-            buttonContainer.add(subButton);
-
-            // Minus-Button nur im Bearbeitungsmodus
-            if (isEditMode) {
-                buttonContainer.add(Box.createHorizontalStrut(5)); // Kleiner Abstand
-
-                JButton deleteButton = createModernButton("-");
-                deleteButton.setPreferredSize(new Dimension(30, 25));
-                deleteButton.setMaximumSize(new Dimension(30, 25));
-                deleteButton.setBackground(new Color(211, 47, 47)); // Rot
-                deleteButton.setForeground(Color.WHITE);
-                deleteButton.setFont(new Font("Arial", Font.BOLD, 16));
-                deleteButton.setFocusPainted(false);
-                deleteButton.setBorderPainted(false);
-                deleteButton.setOpaque(true);
-
-                deleteButton.addActionListener(e -> deleteSubcategory(currentCategory, subcategory));
-
-                buttonContainer.add(deleteButton);
-            }
-
-            // Limit growth so spacing stays consistent when resizing
-            buttonContainer.setMaximumSize(new Dimension(Integer.MAX_VALUE,
-                    buttonContainer.getPreferredSize().height));
-
+            JPanel buttonContainer = createSubcategoryButtonContainer(
+                subcategory,
+                currentCategory,
+                isEditMode,
+                isEditMode ? () -> deleteSubcategory(currentCategory, subcategory) : null
+            );
             subcategoryPanel.add(buttonContainer);
             if (spacing > 0) {
                 subcategoryPanel.add(Box.createVerticalStrut(spacing));
             }
         }
-
         // "+" Button am Ende hinzufügen (nur im Bearbeitungsmodus)
         if (isEditMode) {
             addSubcategoryButton = createModernButton("+");
@@ -596,7 +620,6 @@ public class MedatoninDB extends JFrame {
             addSubcategoryButton.addActionListener(e -> addNewSubcategory(currentCategory));
             subcategoryPanel.add(addSubcategoryButton);
         }
-
         subcategoryPanel.revalidate();
         subcategoryPanel.repaint();
     }
@@ -879,9 +902,12 @@ public class MedatoninDB extends JFrame {
                 buttonContainer.setLayout(new BoxLayout(buttonContainer, BoxLayout.X_AXIS));
                 buttonContainer.setBackground(backgroundColor);
                 buttonContainer.setAlignmentX(Component.LEFT_ALIGNMENT);
-                buttonContainer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 35));
-
                 JButton subButton = createModernButton(subcategory);
+
+                // Keep the container height consistent with the button height so
+                // spacing matches the main category buttons
+                buttonContainer.setMaximumSize(new Dimension(Integer.MAX_VALUE,
+                        subButton.getPreferredSize().height));
 
                 if (isEditMode) {
                     addDragAndDropFunctionality(subButton, subcategoryPanel);
@@ -1404,61 +1430,46 @@ public class MedatoninDB extends JFrame {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2d = (Graphics2D) g.create();
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-                // Draw background
                 if (getModel().isPressed()) {
                     g2d.setColor(getBackground().darker());
                 } else if (getModel().isRollover()) {
-                    g2d.setColor(adjustBrightness(getBackground(), 1.1f)); // Increase brightness by 10%
+                    g2d.setColor(adjustBrightness(getBackground(), 1.1f));
                 } else {
                     g2d.setColor(getBackground());
                 }
                 g2d.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, buttonBorderRadius, buttonBorderRadius);
-
-                // Draw text
                 g2d.setColor(getForeground());
                 g2d.setFont(getFont());
                 FontMetrics metrics = g2d.getFontMetrics(getFont());
                 int x = (getWidth() - metrics.stringWidth(getText())) / 2;
                 int y = ((getHeight() - metrics.getHeight()) / 2) + metrics.getAscent();
                 g2d.drawString(getText(), x, y);
-
                 g2d.dispose();
             }
-
             @Override
-            protected void paintBorder(Graphics g) {
-                // Do not paint a border
-            }
-
+            protected void paintBorder(Graphics g) {}
             @Override
-            public boolean isFocusPainted() {
-                return false; // Disable focus painting
-            }
-
+            public boolean isFocusPainted() { return false; }
             @Override
-            public boolean isContentAreaFilled() {
-                return false; // Prevent default content painting
-            }
+            public boolean isContentAreaFilled() { return false; }
         };
+        styleModernButton(button);
+        return button;
+    }
 
-        System.out.println("Button created with text: " + text); // Debug log
+    // Centralized styling for modern buttons
+    private void styleModernButton(JButton button) {
         button.setFocusPainted(false);
-        // padding to buttons
-        button.setBackground(new Color(188, 188, 188)); // Dark grey background
-        button.setForeground(Color.BLACK); // White text
-        button.setFont(new Font("SansSerif", Font.BOLD, 14));
-        button.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10)); // Padding
-        button.setMargin(new Insets(5, 10, 5, 10)); // Add vertical and horizontal spacing within the button
-        button.setAlignmentX(Component.LEFT_ALIGNMENT); // Ensure left alignment
-
+        button.setBackground(CLR_BTN_DEFAULT);
+        button.setForeground(Color.BLACK);
+        button.setFont(FONT_BOLD);
+        button.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+        button.setMargin(new Insets(5, 10, 5, 10));
+        button.setAlignmentX(Component.LEFT_ALIGNMENT);
         Dimension buttonSize = new Dimension(180, button.getPreferredSize().height);
-        // Fixed width
         button.setPreferredSize(buttonSize);
         button.setMaximumSize(buttonSize);
         button.setMinimumSize(buttonSize);
-
-        return button;
     }
 
     private Color adjustBrightness(Color color, float factor) {
@@ -1917,7 +1928,7 @@ public class MedatoninDB extends JFrame {
         });
 
         // Lese die assembledPieces direkt aus dem DissectedPieces-Objekt
-        List<Geometry> assembledPieces = dissectedPieces.getAssembledPieces();
+        // List<Geometry> assembledPieces = dissectedPieces.getAssembledPieces(); // Removed unused variable
         // Create FigurenOptionsData
         FigurenOptionsData figurenOptionsData = new FigurenOptionsData(options, dissectedPieces);
 
@@ -1953,7 +1964,7 @@ public class MedatoninDB extends JFrame {
             FigurenGenerator.DissectedPieces dissectedPieces) throws SQLException {
         // Define the question text and format
         String questionText = "Setzen Sie die Teile zusammen, um die ursprüngliche Figur zu erhalten.";
-        String format = "Lang"; // Adjust based on your requirement
+        // String format = "Lang"; // Removed unused variable
 
         // Get the shape type (ensure this method exists in FigurenGenerator)
         String shapeType = generator.getShapeType(); // e.g., "Hexagon"
@@ -1984,7 +1995,7 @@ public class MedatoninDB extends JFrame {
             dissectedPiecesWKT.setLength(dissectedPiecesWKT.length() - 1);
         }
 
-        Geometry fullShape = generator.getGeometry();
+        // Geometry fullShape = generator.getGeometry(); // Removed unused variable
         StringBuilder assembledPiecesWKT = new StringBuilder();
         for (Geometry p : dissectedPieces.originalPieces) { // **nicht der Union-Shape!**
             assembledPiecesWKT.append(wktWriter.write(p)).append(";");
@@ -2559,34 +2570,7 @@ public class MedatoninDB extends JFrame {
 
     // Custom renderer that handles the green and red highlighting
     class CustomRenderer extends DefaultTableCellRenderer {
-        private FigurenGenerator generator; // Add this field
-
-        public CustomRenderer(FigurenGenerator generator) {
-            this.generator = generator;
-        }
-
-        public CustomRenderer() {
-        }
-
-        /**
-         * Retrieves the assembled Geometry from the OptionDAO.
-         *
-         * @param option The OptionDAO instance.
-         * @return The Geometry object representing the assembled shape, or null if
-         *         parsing fails.
-         */
-        private Geometry getAssembledGeometry(OptionDAO option) {
-            if (option.isCorrect() && option.getShapeData() != null && !option.getShapeData().isEmpty()) {
-                try {
-                    WKTReader reader = new WKTReader();
-                    return reader.read(option.getShapeData());
-                } catch (ParseException e) {
-                    e.printStackTrace();
-                    // Optionally, display an error message or return a default geometry
-                }
-            }
-            return null;
-        }
+        public CustomRenderer() {}
 
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value,
@@ -2609,7 +2593,7 @@ public class MedatoninDB extends JFrame {
                 if (!isQuestionRow && value instanceof FigurenOptionsData) {
                     FigurenOptionsData data = (FigurenOptionsData) value;
                     List<OptionDAO> options = data.options;
-                    FigurenGenerator.DissectedPieces dissectedPieces = data.dissectedPieces;
+                    // FigurenGenerator.DissectedPieces dissectedPieces = data.dissectedPieces; // Removed unused variable
 
                     JPanel optionsPanel = new JPanel();
                     optionsPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 20, 10));
@@ -3368,7 +3352,7 @@ public class MedatoninDB extends JFrame {
         try {
             // Read the shape data from the question
             WKTReader wktReader = new WKTReader();
-            Geometry originalGeometry = wktReader.read(question.getShapeData());
+            // Geometry originalGeometry = wktReader.read(question.getShapeData()); // Removed unused variable
 
             // Read the dissected pieces data
             String[] piecesWKT = question.getDissectedPiecesData().split(";");
