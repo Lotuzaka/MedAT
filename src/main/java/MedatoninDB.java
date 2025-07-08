@@ -1131,10 +1131,11 @@ public class MedatoninDB extends JFrame {
             subcategoryTable.setShowGrid(false);
             subcategoryTable.setRowHeight(30);
             subcategoryTable.setFont(new Font("SansSerif", Font.PLAIN, 14));
-            subcategoryTable.setDefaultRenderer(Object.class, new CustomRenderer());
-            subcategoryTable.setDefaultRenderer(Boolean.class, new CustomRenderer());
-            subcategoryTable.setDefaultRenderer(Integer.class, new CustomRenderer());
-            subcategoryTable.setDefaultRenderer(String.class, new CustomRenderer());
+            CustomRenderer renderer = new CustomRenderer(currentSubcategory, pendingDeleteQuestions, gearIcon);
+            subcategoryTable.setDefaultRenderer(Object.class, renderer);
+            subcategoryTable.setDefaultRenderer(Boolean.class, renderer);
+            subcategoryTable.setDefaultRenderer(Integer.class, renderer);
+            subcategoryTable.setDefaultRenderer(String.class, renderer);
             subcategoryTable.setDefaultEditor(Object.class, new CustomEditor(subcategoryTable));
             adjustColumnWidths(subcategoryTable);
             model.addTableModelListener(e -> {
@@ -1559,10 +1560,11 @@ public class MedatoninDB extends JFrame {
         questionTable.setShowGrid(false);
         questionTable.setRowHeight(30);
         questionTable.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        questionTable.setDefaultRenderer(Object.class, new CustomRenderer());
-        questionTable.setDefaultRenderer(Boolean.class, new CustomRenderer());
-        questionTable.setDefaultRenderer(Integer.class, new CustomRenderer());
-        questionTable.setDefaultRenderer(String.class, new CustomRenderer());
+        CustomRenderer renderer = new CustomRenderer(currentSubcategory, pendingDeleteQuestions, gearIcon);
+        questionTable.setDefaultRenderer(Object.class, renderer);
+        questionTable.setDefaultRenderer(Boolean.class, renderer);
+        questionTable.setDefaultRenderer(Integer.class, renderer);
+        questionTable.setDefaultRenderer(String.class, renderer);
         questionTable.setDefaultEditor(Object.class, new CustomEditor(questionTable));
 
         // After initializing your questionTable
@@ -2095,26 +2097,31 @@ public class MedatoninDB extends JFrame {
     }
 
     // Method to hide the "Set" column
+
     private void hideSetColumn() {
-        if (questionTable == null)
-            return;
+        if (questionTable == null) return;
         TableColumnModel columnModel = questionTable.getColumnModel();
         int columnIndex = getColumnIndexByName("Set");
         if (columnIndex != -1) {
-            columnModel.removeColumn(columnModel.getColumn(columnIndex)); // Remove the "Set" column
+            TableColumn setColumn = columnModel.getColumn(columnIndex);
+            setColumn.setMinWidth(0);
+            setColumn.setMaxWidth(0);
+            setColumn.setPreferredWidth(0);
+            setColumn.setHeaderValue("");
         }
     }
 
     // Method to show the "Set" column
     private void showSetColumn() {
-        if (questionTable == null)
-            return;
+        if (questionTable == null) return;
         TableColumnModel columnModel = questionTable.getColumnModel();
-        if (getColumnIndexByName("Set") == -1) { // Ensure the column is not already present
-            TableColumn setColumn = new TableColumn(3, 35); // 35 is the width of the column
+        int columnIndex = getColumnIndexByName("Set");
+        if (columnIndex != -1) {
+            TableColumn setColumn = columnModel.getColumn(columnIndex);
+            setColumn.setMinWidth(35);
+            setColumn.setMaxWidth(35);
+            setColumn.setPreferredWidth(35);
             setColumn.setHeaderValue("Set");
-            setColumn.setCellRenderer(new CustomRenderer());
-            columnModel.addColumn(setColumn); // Add the "Set" column back
         }
     }
 
@@ -2513,187 +2520,7 @@ public class MedatoninDB extends JFrame {
     }
 
     // Custom renderer that handles the green and red highlighting
-    class CustomRenderer extends DefaultTableCellRenderer {
-        public CustomRenderer() {}
 
-        @Override
-        public Component getTableCellRendererComponent(JTable table, Object value,
-                boolean isSelected, boolean hasFocus, int row, int column) {
-            DefaultTableModel model = (DefaultTableModel) table.getModel();
-            boolean isQuestionRow = isFrageRow(row, model);
-
-            // Handle "Figuren" subcategory
-            if ("Figuren".equals(currentSubcategory)) {
-                // Handle the question row (dissected pieces)
-                if (isQuestionRow && value instanceof FigurenGenerator.DissectedPieces) {
-                    FigurenGenerator.DissectedPieces dissectedPieces = (FigurenGenerator.DissectedPieces) value;
-                    PolygonPanel panel = new PolygonPanel(dissectedPieces.rotatedPieces);
-                    panel.setAssembled(false); // Display dissected pieces
-                    panel.setPreferredSize(new Dimension(200, 200));
-                    return panel;
-                }
-
-                // Handle the options row (assembled shape and distractors)
-                if (!isQuestionRow && value instanceof FigurenOptionsData) {
-                    FigurenOptionsData data = (FigurenOptionsData) value;
-                    List<OptionDAO> options = data.options;
-                    // FigurenGenerator.DissectedPieces dissectedPieces = data.dissectedPieces; // Removed unused variable
-
-                    JPanel optionsPanel = new JPanel();
-                    optionsPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 20, 10));
-                    optionsPanel.setBackground(Color.WHITE);
-
-                    for (OptionDAO option : options) {
-                        JPanel optionPanel = new JPanel(new BorderLayout());
-                        optionPanel.setBackground(Color.WHITE);
-                        optionPanel.setOpaque(true);
-
-                        PolygonPanel shapePanel;
-
-                        if ("E".equalsIgnoreCase(option.getLabel())) {
-                            // Handle Option E separately as a label "X"
-                            JLabel optionELabel = new JLabel("Option E: X");
-                            optionELabel.setFont(optionELabel.getFont().deriveFont(Font.BOLD));
-                            optionsPanel.add(optionELabel);
-                            continue;
-                        } else if (option.isCorrect()) {
-                            // statt eines einzelnen Shapes: alle zusammengebauten Teilstücke verwenden
-                            List<Geometry> assembled = data.dissectedPieces.originalPieces;
-                            shapePanel = new PolygonPanel(assembled);
-                            shapePanel.setAssembled(true);
-                            optionPanel.setBackground(new Color(0, 153, 76, 75));
-                        } else {
-                            // Distractor option
-                            try {
-                                // → Distraktoren: nur je ein Teilstück
-                                shapePanel = new PolygonPanel(
-                                        Collections.singletonList(new WKTReader().read(option.getShapeData())));
-                                shapePanel.setAssembled(false);
-                            } catch (ParseException e) {
-                                e.printStackTrace();
-                                continue; // Skip this option if parsing fails
-                            }
-                        }
-
-                        shapePanel.setPreferredSize(new Dimension(100, 100));
-                        optionPanel.add(shapePanel, BorderLayout.CENTER);
-                        optionPanel.add(new JLabel("Option " + option.getLabel(), SwingConstants.CENTER),
-                                BorderLayout.SOUTH);
-
-                        optionsPanel.add(optionPanel);
-                    }
-
-                    return optionsPanel;
-                }
-            }
-
-            // Existing code for other cases...
-            Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-            // Reset foreground color to default
-            c.setForeground(Color.BLACK);
-
-            boolean isPendingDeletion = false;
-            if (isQuestionRow) {
-                String questionNumber = String.valueOf(model.getValueAt(row, 0)); // Treat value as a String
-                int questionNum = Integer.parseInt(questionNumber);
-                QuestionIdentifier identifier = new QuestionIdentifier(currentSubcategory, questionNum);
-                isPendingDeletion = pendingDeleteQuestions.contains(identifier);
-
-                if (isPendingDeletion) {
-                    c.setBackground(Color.RED);
-                    c.setForeground(Color.WHITE);
-                } else {
-                    c.setBackground(new Color(188, 188, 188)); // Light blue for question rows
-                }
-            } else {
-                c.setBackground(Color.WHITE);
-                // Check for green highlight (checkbox)
-                Boolean isChecked = (Boolean) model.getValueAt(row, 2);
-                if (isChecked != null && isChecked) {
-                    c.setBackground(new Color(0, 153, 76, 75)); // Light green background
-                }
-            }
-
-            if (column == 2) { // Customize rendering for the delete button and checkbox column
-                if (isQuestionRow) {
-                    // Return a JLabel with "X" instead of a JButton
-                    JLabel deleteLabel = new JLabel("X", SwingConstants.CENTER);
-                    deleteLabel.setForeground(isPendingDeletion ? Color.WHITE : Color.RED);
-                    deleteLabel.setBackground(c.getBackground());
-                    deleteLabel.setOpaque(true);
-                    return deleteLabel;
-                } else {
-                    // Create the checkbox
-                    Boolean checked = false;
-                    if (value instanceof Boolean) {
-                        checked = (Boolean) value;
-                    }
-                    JCheckBox checkBox = new JCheckBox();
-                    checkBox.setSelected(checked);
-                    checkBox.setHorizontalAlignment(SwingConstants.CENTER);
-                    checkBox.setEnabled(false); // Make checkbox non-editable in renderer
-                    checkBox.setBackground(c.getBackground());
-                    checkBox.setForeground(c.getForeground());
-                    return checkBox;
-                }
-            }
-
-            // Render the gear icon only on question rows in the "Set" column
-            if (column == 3 && isQuestionRow) {
-                JLabel gearLabel = new JLabel(gearIcon);
-                gearLabel.setHorizontalAlignment(SwingConstants.CENTER);
-                gearLabel.setBackground(c.getBackground());
-                gearLabel.setOpaque(true);
-                return gearLabel;
-            }
-
-            if (column == 3 && !isQuestionRow) {
-                return new JLabel(""); // Empty label for non-question rows
-            }
-
-            // Apply styling for question rows
-            if (isQuestionRow) {
-                c.setFont(c.getFont().deriveFont(Font.BOLD));
-            } else if (!isPendingDeletion) {
-                // Handle green highlighting for selected answers (only if not pending deletion)
-                Boolean isChecked = (Boolean) model.getValueAt(row, 2);
-                if (isChecked != null && isChecked) {
-                    c.setBackground(new Color(0, 153, 76, 75)); // Light green background
-                }
-            }
-
-            // Difficulty-Spalte rendern
-            if (column == 4 && isFrageRow(row, (DefaultTableModel) table.getModel())) {
-                String difficulty = (String) value;
-                if (difficulty != null && !difficulty.isEmpty()) {
-                    try {
-                        Difficulty diff = Difficulty.valueOf(difficulty.toUpperCase());
-
-                        JPanel panel = new JPanel(new GridBagLayout());
-                        panel.setOpaque(true);
-                        panel.setBackground(c.getBackground());
-
-                        // Größerer, zentrierter Badge
-                        JLabel badge = new JLabel(diff.symbol);
-                        badge.setForeground(diff.color);
-                        badge.setFont(new Font("Arial", Font.BOLD, 18)); // Größer: 18pt statt 14pt
-
-                        GridBagConstraints gbc = new GridBagConstraints();
-                        gbc.gridx = 0;
-                        gbc.gridy = 0;
-                        gbc.anchor = GridBagConstraints.CENTER;
-
-                        panel.add(badge, gbc);
-                        return panel;
-                    } catch (IllegalArgumentException e) {
-                        // Fallback bei ungültigem Difficulty-Wert
-                        return c;
-                    }
-                }
-            }
-            return c;
-        }
-    }
 
     private int getFrageRowForRow(int row, JTable table) {
         if (table == null) {
@@ -3541,28 +3368,11 @@ public class MedatoninDB extends JFrame {
     /**
      * Data holder for Figuren options and dissected pieces.
      */
-    public static class FigurenOptionsData {
-        public final List<OptionDAO> options;
-        public final FigurenGenerator.DissectedPieces dissectedPieces;
-        public FigurenOptionsData(List<OptionDAO> options, FigurenGenerator.DissectedPieces dissectedPieces) {
-            this.options = options;
-            this.dissectedPieces = dissectedPieces;
-        }
-    }
+
 
     // Schwierigkeitsgrad-Konstanten
     /**
      * Enum for question difficulty with color and symbol.
      */
-    public enum Difficulty {
-        EASY(new Color(46, 125, 50), "●"),
-        MEDIUM(new Color(239, 108, 0), "●●"),
-        HARD(new Color(211, 47, 47), "●●●");
-        public final Color color;
-        public final String symbol;
-        Difficulty(Color color, String symbol) {
-            this.color = color;
-            this.symbol = symbol;
-        }
-    }
+
 }
