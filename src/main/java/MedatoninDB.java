@@ -31,7 +31,7 @@ public class MedatoninDB extends JFrame {
             CLR_ANS_OK = new Color(0, 153, 76, 75),
             CLR_BLUE_MED = new Color(1, 38, 65);
 
-            // Default vertical spacing between buttons (categories and subcategories)
+    // Default vertical spacing between buttons (categories and subcategories)
     private static final int BUTTON_SPACING = 5;
     private static final Font FONT_BASE = new Font("SansSerif", Font.PLAIN, 14),
             FONT_BOLD = FONT_BASE.deriveFont(Font.BOLD);
@@ -579,6 +579,10 @@ public class MedatoninDB extends JFrame {
                 buttonContainer.add(deleteButton);
             }
 
+            // Limit growth so spacing stays consistent when resizing
+            buttonContainer.setMaximumSize(new Dimension(Integer.MAX_VALUE,
+                    buttonContainer.getPreferredSize().height));
+
             subcategoryPanel.add(buttonContainer);
             if (spacing > 0) {
                 subcategoryPanel.add(Box.createVerticalStrut(spacing));
@@ -813,7 +817,7 @@ public class MedatoninDB extends JFrame {
     // Method to add a button to the panel with spacing automatically
     private void addButtonWithSpacing(JPanel panel, JButton button) {
         panel.add(button);
-        panel.add(Box.createVerticalStrut(5)); // Automatically add spacing after each button
+        panel.add(Box.createVerticalStrut(BUTTON_SPACING)); // Automatically add spacing after each button
     }
 
     // Helper method to create a category with subcategories
@@ -923,7 +927,7 @@ public class MedatoninDB extends JFrame {
                 }
 
                 subcategoryPanel.add(buttonContainer);
-                int spacing = isEditMode ? 0 : 5;
+                int spacing = isEditMode ? 0 : BUTTON_SPACING;
                 if (spacing > 0) {
                     subcategoryPanel.add(Box.createVerticalStrut(spacing));
                 }
