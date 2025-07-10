@@ -144,7 +144,8 @@ public class SyllogismGenerator {
 
   private List<String> readWordList(String filename) throws IOException {
     List<String> wordList = new ArrayList<>();
-    try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
+    try (BufferedReader br = new BufferedReader(
+        new java.io.InputStreamReader(new java.io.FileInputStream(filename), java.nio.charset.StandardCharsets.UTF_8))) {
       String word;
       while ((word = br.readLine()) != null) {
         word = word.trim();

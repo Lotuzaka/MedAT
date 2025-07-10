@@ -16,8 +16,8 @@ public class WortfluessigkeitGenerator {
 
         Collections.shuffle(words);
 
-        try (FileWriter questionWriter = new FileWriter("WF_" + todayAsString + ".txt");
-             FileWriter answerWriter = new FileWriter("WF_lsg_" + todayAsString + ".txt")) {
+        try (Writer questionWriter = new OutputStreamWriter(new FileOutputStream("WF_" + todayAsString + ".txt"), java.nio.charset.StandardCharsets.UTF_8);
+             Writer answerWriter = new OutputStreamWriter(new FileOutputStream("WF_lsg_" + todayAsString + ".txt"), java.nio.charset.StandardCharsets.UTF_8)) {
 
             for (int i = 0; i < words.size(); i++) {
                 String word = words.get(i);
@@ -46,7 +46,7 @@ public class WortfluessigkeitGenerator {
     private static List<String> readWordsFromFile(String filename) {
         List<String> words = new ArrayList<>();
 
-        try (Scanner scanner = new Scanner(new File(filename))) {
+        try (Scanner scanner = new Scanner(new File(filename), "UTF-8")) {
             while (scanner.hasNextLine()) {
                 String word = scanner.nextLine().trim().toUpperCase();
                 if (isValidWord(word)) {

@@ -2,7 +2,7 @@
 
 import org.apache.poi.xwpf.usermodel.*;
 import org.locationtech.jts.geom.Geometry;
-import org.locationtech.jts.io.ParseException;
+// import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
 import org.locationtech.jts.io.WKTWriter;
 import com.zaxxer.hikari.HikariConfig;
@@ -104,7 +104,7 @@ public class MedatoninDB extends JFrame {
     JButton editToggleButton;
     private JButton addSubcategoryButton; // Declare this as a class member
     private Color backgroundColor = Color.WHITE;
-    private int buttonBorderRadius = 7;
+    private int buttonBorderRadius = 15; // Border radius for buttons
 
     // Dropdown to select test simulations
     private JComboBox<String> simulationComboBox;
@@ -175,7 +175,7 @@ public class MedatoninDB extends JFrame {
 
     public MedatoninDB() throws SQLException {
         HikariConfig cfg = new HikariConfig();
-        cfg.setJdbcUrl("jdbc:mysql://localhost:3306/medatonindb");
+        cfg.setJdbcUrl("jdbc:mysql://localhost:3306/medatonindb?useUnicode=true&characterEncoding=utf8");
         cfg.setUsername("root");
         cfg.setPassword("288369Ma;");
         HikariDataSource ds = new HikariDataSource(cfg); // TODO: Close this resource if not managed elsewhere
@@ -1637,26 +1637,34 @@ public class MedatoninDB extends JFrame {
 
         // Create buttons according to category and subcategory
         if ("KFF".equals(currentCategory) || "Figuren".equals(currentSubcategory)) {
-            // Create the text field for entering the number of questions
-            JTextField questionCountField = new JTextField("0"); // Default value is 0
-            questionCountField.setPreferredSize(new Dimension(40, 30)); // Set width of the text field
-            questionCountField.setForeground(Color.white);
-            questionCountField.setFont(new Font("SansSerif", Font.BOLD, 14));
-            questionCountField.setBackground(new Color(0, 153, 76));
-            questionCountField.setBorder(BorderFactory.createEmptyBorder());
-            questionCountField.setHorizontalAlignment(JTextField.CENTER); // Center the text
 
-            // Create "Generate" button
+            // Create the button first to get its height and style
             JButton generateButton = createModernButton("Generate");
             generateButton.setBackground(new Color(0, 153, 76)); // Green background
             generateButton.setForeground(Color.WHITE);
             generateButton.setFont(new Font("SansSerif", Font.BOLD, 14));
             generateButton.setFocusPainted(false);
             generateButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10)); // Padding for aesthetics
-
-            // Adjust button width to be as wide as possible
             generateButton.setPreferredSize(new Dimension(150, generateButton.getPreferredSize().height));
-            questionCountField.setPreferredSize(new Dimension(50, questionCountField.getPreferredSize().height));
+
+            // Match the border radius and font size to the button
+            int buttonBorderRadius = 16; // Match the button's roundness (see createModernButton)
+            int numberBoxHeight = generateButton.getPreferredSize().height;
+            // Font numberBoxFont = generateButton.getFont();
+            JTextField questionCountField = new RoundedTextField("0", buttonBorderRadius, new Color(0,153,76), Color.WHITE, numberBoxHeight);
+
+            // Fix: Set larger row height for FigurenOptionsData rows in KFF overview
+            if (questionTable != null) {
+                for (int row = 0; row < questionTable.getRowCount(); row++) {
+                    Object value = questionTable.getValueAt(row, 1);
+                    if (value != null && value.getClass().getSimpleName().equals("FigurenOptionsData")) {
+                        questionTable.setRowHeight(row, 150); // Make Figuren options panel less squished
+                    }
+                }
+            }
+
+            // Set number box width and height to match button
+            questionCountField.setPreferredSize(new Dimension(60, numberBoxHeight));
 
             // Set up action listeners
             if ("Figuren".equals(currentSubcategory)) {

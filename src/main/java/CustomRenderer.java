@@ -163,12 +163,26 @@ public class CustomRenderer extends DefaultTableCellRenderer {
             }
         }
 
-        if (column == 3 && isQuestionRow) {
-            JLabel gearLabel = new JLabel(gearIcon);
-            gearLabel.setHorizontalAlignment(SwingConstants.CENTER);
-            gearLabel.setBackground(c.getBackground());
-            gearLabel.setOpaque(true);
-            return gearLabel;
+        if (column == 3) {
+            if (isQuestionRow) {
+                // Only show gear icon on question rows
+                JLabel gearLabel = new JLabel(gearIcon);
+                gearLabel.setHorizontalAlignment(SwingConstants.CENTER);
+                gearLabel.setBackground(c.getBackground());
+                gearLabel.setOpaque(true);
+                return gearLabel;
+            } else {
+                // Option row: highlight cell green if correct
+                Boolean isChecked = (Boolean) model.getValueAt(row, 2);
+                JLabel empty = new JLabel();
+                empty.setOpaque(true);
+                if (isChecked != null && isChecked) {
+                    empty.setBackground(new Color(0, 153, 76, 75));
+                } else {
+                    empty.setBackground(c.getBackground());
+                }
+                return empty;
+            }
         }
 
         if (column == 3 && !isQuestionRow) {
