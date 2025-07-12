@@ -127,7 +127,7 @@ public class OptionDAO {
     // Insert a new Option
     public void insertOption(int questionId, String label, String optionText, boolean isCorrect) throws SQLException {
         String sql = "INSERT INTO options (question_id, label, text, is_correct) VALUES (?, ?, ?, ?)";
-        System.out.println("Executing SQL: " + sql);
+        MedatoninDB.debugLog("OptionDAO", MedatoninDB.LogLevel.DEBUG, "insertOption", "Executing SQL: " + sql);
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, questionId);
             stmt.setString(2, label);
@@ -275,8 +275,8 @@ public class OptionDAO {
             pstmt.setInt(3, questionId);
             pstmt.setObject(4, simulationId);
 
-            System.out.println("Option Text SQL: " + pstmt);
-            System.out.println("execute option:" + pstmt.executeUpdate());
+            MedatoninDB.debugLog("OptionDAO", MedatoninDB.LogLevel.DEBUG, "saveOption", "Option Text SQL: " + pstmt);
+            MedatoninDB.debugLog("OptionDAO", MedatoninDB.LogLevel.DEBUG, "saveOption", "execute option: " + pstmt.executeUpdate());
             pstmt.executeUpdate();
         }
     }

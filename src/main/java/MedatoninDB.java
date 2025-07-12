@@ -20,8 +20,27 @@ import java.sql.*;
 import java.util.*;
 import java.util.List;
 
+// import java.io.BufferedWriter; // No longer needed
+// import java.io.OutputStreamWriter; // No longer needed
+import java.io.FileOutputStream;
+
 public class MedatoninDB extends JFrame {
 
+    /**
+     * Ensures the JVM is running with UTF-8 as the default encoding.
+     * Logs a warning if not.
+     */
+    static {
+        String defaultCharset = java.nio.charset.Charset.defaultCharset().name();
+        if (!"UTF-8".equalsIgnoreCase(defaultCharset)) {
+            System.err.println("[WARNING] JVM default encoding is not UTF-8: " + defaultCharset + ". Please launch with -Dfile.encoding=UTF-8");
+        }
+    }
+
+    // Debug logger for categorized debug output
+    // [REMOVED] Old debugWriter and static block. Logging now handled by debugLog methods.
+
+    // [REMOVED] Old debugLog(String, String) method. Use new debugLog with log levels and context.
     // Utility to create a styled button panel for add/generate buttons
     private JPanel createButtonPanel(JButton... buttons) {
         JPanel panel = new JPanel();
@@ -174,8 +193,11 @@ public class MedatoninDB extends JFrame {
     }
 
     public MedatoninDB() throws SQLException {
+        // Debug: Print default charset at startup
+        debugLog("Startup", "Default charset: " + java.nio.charset.Charset.defaultCharset());
+
         HikariConfig cfg = new HikariConfig();
-        cfg.setJdbcUrl("jdbc:mysql://localhost:3306/medatonindb?useUnicode=true&characterEncoding=utf8");
+        cfg.setJdbcUrl("jdbc:mysql://localhost:3306/medatonindb?useUnicode=true&characterEncoding=UTF-8");
         cfg.setUsername("root");
         cfg.setPassword("288369Ma;");
         HikariDataSource ds = new HikariDataSource(cfg); // TODO: Close this resource if not managed elsewhere
@@ -186,7 +208,6 @@ public class MedatoninDB extends JFrame {
 
         // SwingUtilities.invokeLater(() -> createLoginWindow());
         createMainWindow();
-
     }
 
     // Method to create the login window
@@ -314,7 +335,7 @@ public class MedatoninDB extends JFrame {
             ImageIcon icon = new ImageIcon(imageUrl);
             setIconImage(icon.getImage());
         } else {
-            // System.out.println("Icon not found!");
+            debugLog("UI", "Icon not found!");
         }
 
         // Set up the frame
@@ -370,7 +391,7 @@ public class MedatoninDB extends JFrame {
                         selectedSimulationId = simulationId; // Speichere die ausgewählte Simulation
                     } else {
                         selectedSimulationId = null;
-                        // System.out.println("No simulation ID found for: " + selectedItem);
+                        debugLog("Simulation", "No simulation ID found for: " + selectedItem);
                     }
                 } else if ("+".equals(selectedItem)) {
                     // Prompt for new simulation name
@@ -592,11 +613,11 @@ public class MedatoninDB extends JFrame {
     private void setEditMode(boolean editMode) {
         isEditMode = editMode;
         if (isEditMode) {
-            // System.out.println("Edit mode enabled");
+            debugLog("EditMode", "Edit mode enabled");
             // Set the spacing between subcategory buttons to zero
             adjustSubcategoryButtonSpacing(0);
         } else {
-            // System.out.println("Normal mode enabled");
+            debugLog("EditMode", "Normal mode enabled");
             // Restore the normal spacing using the shared spacing constant
             adjustSubcategoryButtonSpacing(BUTTON_SPACING);
             updateSubcategoryOrder(); // Save the order when exiting edit mode
@@ -662,6 +683,7 @@ public class MedatoninDB extends JFrame {
                 // Remove the subcategory and update the order list
                 categoryModels.get(category).remove(subcategoryName);
                 orderList.remove(subcategoryName);
+                debugLog("Subcategory", "Deleted subcategory: " + subcategoryName + " from category: " + category);
 
                 // Remove from database
                 if (deleteSubcategoryFromDatabase(category, subcategoryName)) {
@@ -669,11 +691,13 @@ public class MedatoninDB extends JFrame {
                     JOptionPane.showMessageDialog(this, "Subcategory deleted successfully.",
                             "Success", JOptionPane.INFORMATION_MESSAGE);
                 } else {
+                    debugLog("Subcategory", "Failed to delete subcategory from database: " + subcategoryName);
                     JOptionPane.showMessageDialog(this, "Failed to delete subcategory from database.",
                             "Error", JOptionPane.ERROR_MESSAGE);
                 }
             }
         } else {
+            debugLog("Subcategory", "Attempted to delete last subcategory: " + subcategoryName);
             JOptionPane.showMessageDialog(this, "At least one subcategory must exist.",
                     "Error", JOptionPane.ERROR_MESSAGE);
         }
@@ -856,9 +880,9 @@ public class MedatoninDB extends JFrame {
                 stmt.addBatch();
             }
             stmt.executeBatch();
-        // System.out.println("Subcategory order updated in database for category: " + category);
+            debugLog("SubcategoryOrder", "Order updated for category: " + category + " -> " + orderList);
         } catch (SQLException e) {
-            e.printStackTrace();
+            debugLog("SubcategoryOrder", "Failed to update order for category: " + category + ": " + e.getMessage());
         }
     }
 
@@ -870,33 +894,33 @@ public class MedatoninDB extends JFrame {
 
     // Helper method to create a category with subcategories
     private void createCategoryModel(String category) {
-        // System.out.println("Creating category model for: " + category); // Debug log
+        debugLog("CategoryModel", "Creating category model for: " + category);
 
         if (category == null) {
-            // System.out.println("Error: Category is null");
+            debugLog("CategoryModel", "Error: Category is null");
             return;
         }
 
         int categoryId = getCategoryID(category);
         if (categoryId == -1) {
-            // System.out.println("Error: Invalid category ID for category: " + category);
+            debugLog("CategoryModel", "Error: Invalid category ID for category: " + category);
             return;
         }
 
         Map<String, DefaultTableModel> subcategories = loadSubcategoriesFromDatabase(categoryId);
         if (subcategories == null) {
-            // System.out.println("Error: Failed to load subcategories for category: " + category);
+            debugLog("CategoryModel", "Error: Failed to load subcategories for category: " + category);
             subcategories = new HashMap<>(); // Create an empty map to avoid null pointer exceptions
         }
 
         if (categoryModels == null) {
-            // System.out.println("Error: categoryModels is null");
+            debugLog("CategoryModel", "Error: categoryModels is null");
             categoryModels = new HashMap<>(); // Initialize if it's null
         }
         categoryModels.put(category, subcategories);
 
         if (subcategoryOrder == null) {
-            // System.out.println("Error: subcategoryOrder is null");
+            debugLog("CategoryModel", "Error: subcategoryOrder is null");
             subcategoryOrder = new HashMap<>(); // Initialize if it's null
         }
 
@@ -904,8 +928,8 @@ public class MedatoninDB extends JFrame {
         List<String> orderList = new ArrayList<>(subcategories.keySet());
         subcategoryOrder.put(category, orderList);
 
-        // System.out.println("Category model created for: " + category);
-        // System.out.println("subcategories: " + subcategories.keySet());
+        debugLog("CategoryModel", "Category model created for: " + category);
+        debugLog("CategoryModel", "subcategories: " + subcategories.keySet());
 
         // Load questions for all subcategories
         loadQuestionsFromDatabase(category, subcategories, selectedSimulationId);
@@ -1040,8 +1064,10 @@ public class MedatoninDB extends JFrame {
                 orderList.add(subcategoryName);// Add to the order list
                 // Save the new subcategory to the database
                 saveSubcategoryToDatabase(category, subcategoryName);
+                debugLog("Subcategory", "Added new subcategory: " + subcategoryName + " to category: " + category);
                 loadSubcategories(category); // Reload subcategories to reflect changes
             } else {
+                debugLog("Subcategory", "Attempted to add duplicate subcategory: " + subcategoryName + " to category: " + category);
                 JOptionPane.showMessageDialog(this, "Subcategory already exists.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
@@ -1371,9 +1397,9 @@ public class MedatoninDB extends JFrame {
             stmt.setString(3, category);
             int rowsAffected = stmt.executeUpdate();
             if (rowsAffected > 0) {
-                // System.out.println("Subcategory name updated in database: " + oldName + " -> " + newName);
+                debugLog("Subcategory", "Subcategory name updated in database: " + oldName + " -> " + newName);
             } else {
-                // System.out.println("Failed to update subcategory name in database");
+                debugLog("Subcategory", "Failed to update subcategory name in database");
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -1767,10 +1793,10 @@ public class MedatoninDB extends JFrame {
                                     questionTable.getCellRect(tableModel.getRowCount() - 1, 0, true));
                         }
                     } catch (SQLException ex) {
-                        // System.out.println(currentSubcategory + " not generated SQLException: " + ex.getMessage());
+                        debugLog("QuestionGen", currentSubcategory + " not generated SQLException: " + ex.getMessage());
                         ex.printStackTrace();
                     } catch (IOException e1) {
-                        // System.out.println(currentSubcategory + " not generated IOException: " + e1.getMessage());
+                        debugLog("QuestionGen", currentSubcategory + " not generated IOException: " + e1.getMessage());
                         e1.printStackTrace();
                     }
                 });
@@ -1869,7 +1895,7 @@ public class MedatoninDB extends JFrame {
             saveFigurenQuestionToDatabase(generator, dissectedPieces);
 
         } catch (SQLException ex) {
-            // System.out.println(currentSubcategory + " not added SQLException: " + ex.getMessage());
+            debugLog("QuestionAdd", currentSubcategory + " not added SQLException: " + ex.getMessage());
             ex.printStackTrace();
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -1914,7 +1940,7 @@ public class MedatoninDB extends JFrame {
 
         // Log rotated pieces for debugging
         for (Geometry geom : dissectedPieces.rotatedPieces) {
-            System.out.println("Rotated Geometry: " + geom.toText());
+            debugLog("Geometry", "Rotated Geometry: " + geom.toText());
         }
     }
 
@@ -1948,7 +1974,7 @@ public class MedatoninDB extends JFrame {
             String pieceWKT = wktWriter.write(piece);
             dissectedPiecesWKT.append(pieceWKT).append(";");
 
-            System.out.println("Saving dissected piece: " + piece.toText());
+            debugLog("Geometry", "Saving dissected piece: " + piece.toText());
         }
 
         StringBuilder originalPiecesWKT = new StringBuilder();
@@ -2079,7 +2105,7 @@ public class MedatoninDB extends JFrame {
                 }
             } else if (comp instanceof JButton) {
                 // If you need to do something with buttons, do it here
-                System.out.println("Button text: " + ((JButton) comp).getText());
+                debugLog("UI", "Button text: " + ((JButton) comp).getText());
             }
         }
         if (questionTable != null) {
@@ -2527,12 +2553,90 @@ public class MedatoninDB extends JFrame {
         }
     }
 
-    // Custom renderer that handles the green and red highlighting
+
+    // =====================
+    // Debug Logging Section
+    // =====================
+    public enum LogLevel { DEBUG, INFO, WARN, ERROR }
+    private static final String LOG_FILE = "debug.log";
+    private static final Set<String> VERBOSE_CATEGORIES = new HashSet<>(Arrays.asList("Geometry", "Table"));
+    private static LogLevel globalLogLevel = LogLevel.INFO;
+    private static boolean debugVerbose = false;
+
+    /**
+     * Set the global log level for debug output.
+     */
+    public static void setLogLevel(LogLevel level) {
+        globalLogLevel = level;
+    }
+
+    /**
+     * Enable or disable verbose debug output for certain categories.
+     */
+    public static void setDebugVerbose(boolean verbose) {
+        debugVerbose = verbose;
+    }
+
+    /**
+     * Centralized debug logger with log levels, categories, and method context.
+     * Only logs if the message level is >= globalLogLevel, or if the category is in VERBOSE_CATEGORIES and debugVerbose is true.
+     * @param category Category of the log (e.g., "Geometry", "UI", "DB")
+     * @param level LogLevel (DEBUG, INFO, WARN, ERROR)
+     * @param method Method context (e.g., "saveFigurenQuestionToDatabase")
+     * @param message The log message
+     */
+    public static void debugLog(String category, LogLevel level, String method, String message) {
+        if (level.ordinal() < globalLogLevel.ordinal() && !(debugVerbose && VERBOSE_CATEGORIES.contains(category))) {
+            return;
+        }
+        String logEntry = String.format("[%s] [%s] [%s] %s: %s\n",
+                new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date()),
+                level.name(), category, method, message);
+        try (java.io.OutputStreamWriter fw = new java.io.OutputStreamWriter(
+                new java.io.FileOutputStream(LOG_FILE, true), java.nio.charset.StandardCharsets.UTF_8)) {
+            fw.write(logEntry);
+        } catch (java.io.IOException e) {
+            // Fallback: print to stderr if logging fails
+            System.err.println("[LOGGING ERROR] " + logEntry);
+        }
+    }
+
+    /**
+     * Convenience overload for INFO level with automatic method context.
+     */
+    public static void debugLog(String category, String message) {
+        debugLog(category, LogLevel.INFO, inferCallingMethod(), message);
+    }
+
+    /**
+     * Convenience overload for custom level with automatic method context.
+     */
+    public static void debugLog(String category, LogLevel level, String message) {
+        debugLog(category, level, inferCallingMethod(), message);
+    }
+
+    /**
+     * Infers the calling method name for logging context.
+     */
+    private static String inferCallingMethod() {
+        StackTraceElement[] stack = Thread.currentThread().getStackTrace();
+        // stack[0] = getStackTrace, stack[1] = inferCallingMethod, stack[2] = debugLog, stack[3] = caller
+        if (stack.length > 4) {
+            return stack[4].getMethodName();
+        } else if (stack.length > 3) {
+            return stack[3].getMethodName();
+        }
+        return "unknown";
+    }
+
+    // =====================
+    // End Debug Logging Section
+    // =====================
 
 
     private int getFrageRowForRow(int row, JTable table) {
         if (table == null) {
-            System.out.println("Error: table is null in getFrageRowForRow");
+            debugLog("Table", "Error: table is null in getFrageRowForRow");
             return -1;
         }
         DefaultTableModel model = (DefaultTableModel) table.getModel();
@@ -2592,7 +2696,7 @@ public class MedatoninDB extends JFrame {
                     updateMenuHighlight(currentFormat, kurzItem, langItem);
                     formatMenu.show(actionButton, 0, actionButton.getHeight());
                 } else {
-                    System.out.println("Error: Invalid editing row index: " + editingRow);
+                    debugLog("UI", "Error: Invalid editing row index: " + editingRow);
                 }
             });
 
@@ -2678,14 +2782,14 @@ public class MedatoninDB extends JFrame {
         // Update the format for a specific question row and adjust rows if needed
         private void updateFormatForRow(int row, String newFormat) {
             if (table == null || table.getModel() == null) {
-                System.out.println("Error: Table or table model is null in updateFormatForRow.");
+                debugLog("UI", "Error: Table or table model is null in updateFormatForRow.");
                 return;
             }
 
             DefaultTableModel model = (DefaultTableModel) table.getModel();
 
             if (row < 0 || row >= model.getRowCount()) {
-                System.out.println("Error: Invalid row index in updateFormatForRow: " + row);
+                debugLog("UI", "Error: Invalid row index in updateFormatForRow: " + row);
                 return;
             }
 
@@ -2739,7 +2843,7 @@ public class MedatoninDB extends JFrame {
                     MedatoninDB.this.isAdjustingFormat = false; // Re-enable listeners
                 }
             } else {
-                System.out.println("Format is already " + newFormat + ". No changes needed.");
+                debugLog("UI", "Format is already " + newFormat + ". No changes needed.");
                 return; // Exit the method without making any changes
             }
 
@@ -3015,8 +3119,8 @@ public class MedatoninDB extends JFrame {
 
     private void loadQuestionsFromDatabase(String category, Map<String, DefaultTableModel> subcategories,
             Integer simulationId) {
-        System.out.println("Loading questions for category: " + category);
-        System.out.println("Number of subcategories: " + subcategories.size());
+        debugLog("DB", "Loading questions for category: " + category);
+        debugLog("DB", "Number of subcategories: " + subcategories.size());
 
         try {
             QuestionDAO questionDAO = new QuestionDAO(conn);
@@ -3025,16 +3129,16 @@ public class MedatoninDB extends JFrame {
             for (Map.Entry<String, DefaultTableModel> entry : subcategories.entrySet()) {
                 String subcategoryName = entry.getKey();
                 DefaultTableModel model = entry.getValue();
-                System.out.println("Processing subcategory: " + subcategoryName);
+                debugLog("DB", "Processing subcategory: " + subcategoryName);
 
                 int subcategoryId = getSubcategoryId(category, subcategoryName);
-                System.out.println("Subcategory ID: " + subcategoryId);
+                debugLog("DB", "Subcategory ID: " + subcategoryId);
 
                 if (subcategoryId != -1) {
                     List<QuestionDAO> questions;
 
                     questions = questionDAO.getQuestionsBySubcategoryAndSimulation(subcategoryId, simulationId);
-                    System.out.println("Number of questions loaded: " + questions.size());
+                    debugLog("DB", "Number of questions loaded: " + questions.size());
 
                     model.setRowCount(0); // Clear existing rows
                     for (QuestionDAO question : questions) {
@@ -3046,14 +3150,14 @@ public class MedatoninDB extends JFrame {
                             loadStandardQuestionIntoModel(model, question, optionDAO);
                         }
                     }
-                    System.out.println("Added " + questions.size() + " questions with options to the model for "
+                    debugLog("DB", "Added " + questions.size() + " questions with options to the model for "
                             + subcategoryName);
                 } else {
-                    System.out.println("Failed to get subcategory ID for: " + subcategoryName);
+                    debugLog("DB", "Failed to get subcategory ID for: " + subcategoryName);
                 }
             }
         } catch (SQLException e) {
-            System.out.println("Error loading questions and options: " + e.getMessage());
+            debugLog("DB", "Error loading questions and options: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -3085,7 +3189,7 @@ public class MedatoninDB extends JFrame {
                 }
             }
         } catch (SQLException e) {
-            System.out.println("Error loading options for question ID " + question.getId() + ": "
+            debugLog("DB", "Error loading options for question ID " + question.getId() + ": "
                     + e.getMessage());
         }
     }
@@ -3110,7 +3214,7 @@ public class MedatoninDB extends JFrame {
             FigurenOptionsData figurenOptionsData = new FigurenOptionsData(options, dissectedPieces);
             model.addRow(new Object[] { "", figurenOptionsData, false, "" });
         } catch (Exception e) {
-            System.out.println("Error loading Figuren question ID " + question.getId() + ": " + e.getMessage());
+            debugLog("DB", "Error loading Figuren question ID " + question.getId() + ": " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -3124,7 +3228,7 @@ public class MedatoninDB extends JFrame {
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     String subcategoryName = rs.getString("name");
-                    System.out.println("Loaded subcategory: " + subcategoryName);
+                    debugLog("DB", "Loaded subcategory: " + subcategoryName);
                     DefaultTableModel model = createTableModel();
                     subcategories.put(subcategoryName, model);
                 }
@@ -3134,7 +3238,7 @@ public class MedatoninDB extends JFrame {
         }
 
         if (subcategories.isEmpty()) {
-            System.out.println("Warning: No subcategories found for category ID: " + categoryId);
+            debugLog("DB", "Warning: No subcategories found for category ID: " + categoryId);
         }
 
         return subcategories;
@@ -3153,26 +3257,26 @@ public class MedatoninDB extends JFrame {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        System.out.println("Warning: No ID found for category: " + categoryName);
+        debugLog("DB", "Warning: No ID found for category: " + categoryName);
         return -1; // Return -1 if no ID is found
     }
 
     private int getSubcategoryId(String category, String subcategoryName) throws SQLException {
         String sql = "SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?";
-        System.out.println("Executing SQL: " + sql);
-        System.out.println("Category: " + category + ", Subcategory: " + subcategoryName);
+        debugLog("DB", "Executing SQL: " + sql);
+        debugLog("DB", "Category: " + category + ", Subcategory: " + subcategoryName);
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, subcategoryName);
             stmt.setString(2, category);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     int id = rs.getInt("id");
-                    System.out.println("Found subcategory ID: " + id);
+                    debugLog("DB", "Found subcategory ID: " + id);
                     return id;
                 }
             }
         }
-        System.out.println("Subcategory not found");
+        debugLog("DB", "Subcategory not found");
         return -1; // Return -1 if subcategory not found
     }
 

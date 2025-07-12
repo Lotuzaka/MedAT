@@ -7,10 +7,9 @@ public class WortfluessigkeitGenerator {
 
     public static void execute(String filename) {
         String todayAsString = new SimpleDateFormat("ddMMyy").format(new Date());
-
         List<String> words = readWordsFromFile(filename);
         if (words.isEmpty()) {
-            System.out.println("No valid words found in the file.");
+            MedatoninDB.debugLog("Wortfluessigkeit", "No valid words found in the file.");
             return;
         }
 
@@ -21,8 +20,17 @@ public class WortfluessigkeitGenerator {
 
             for (int i = 0; i < words.size(); i++) {
                 String word = words.get(i);
+                // Debug: Log word before scrambling
+                if (i < 5) {
+                    MedatoninDB.debugLog("Pipeline", "Word before scramble (index " + i + "): " + word);
+                }
                 String scrambledWord = scrambleString(word);
                 char[] answerChoices = generateAnswerChoices(word);
+                // Debug: Log scrambled word and answer choices
+                if (i < 5) {
+                    MedatoninDB.debugLog("Pipeline", "Scrambled word (index " + i + "): " + scrambledWord);
+                    MedatoninDB.debugLog("Pipeline", "Answer choices (index " + i + "): " + Arrays.toString(answerChoices));
+                }
 
                 // Write to question file
                 questionWriter.write((i + 1) + ".  " + scrambledWord + "\n\n");
@@ -32,11 +40,15 @@ public class WortfluessigkeitGenerator {
                 questionWriter.write("\tE. Keine Antwort ist richtig.\n\n");
 
                 // Write to answer file
+                // Debug: Log word before DB/output file write
+                if (i < 5) {
+                    MedatoninDB.debugLog("Pipeline", "Word before output (index " + i + "): " + word);
+                }
                 char correctOption = (char) ('A' + findCorrectOptionIndex(answerChoices, word.charAt(0)));
                 answerWriter.write((i + 1) + ".  " + correctOption + "  |  " + word + "\n");
             }
 
-            System.out.println("Questions and solutions successfully written.");
+            MedatoninDB.debugLog("Wortfluessigkeit", "Questions and solutions successfully written.");
         } catch (IOException e) {
             System.err.println("An error occurred while writing files.");
             e.printStackTrace();
@@ -45,17 +57,30 @@ public class WortfluessigkeitGenerator {
 
     private static List<String> readWordsFromFile(String filename) {
         List<String> words = new ArrayList<>();
-
-        try (Scanner scanner = new Scanner(new File(filename), "UTF-8")) {
+        try (Scanner scanner = new Scanner(new File(filename), java.nio.charset.StandardCharsets.UTF_8)) {
+            int lineNum = 0;
             while (scanner.hasNextLine()) {
-                String word = scanner.nextLine().trim().toUpperCase();
+                String originalWord = scanner.nextLine().trim();
+                // Debug: Log raw word as read from file
+                if (lineNum < 5) {
+                    MedatoninDB.debugLog("FileRead", "Raw word (line " + (lineNum+1) + "): " + originalWord);
+                }
+                String word = originalWord.toUpperCase(Locale.GERMAN);
+                // Debug: Log word after uppercase conversion
+                if (lineNum < 5) {
+                    MedatoninDB.debugLog("FileRead", "Uppercase word (line " + (lineNum+1) + "): " + word);
+                }
                 if (isValidWord(word)) {
                     words.add(word);
+                    // Log first 5 words for encoding check
+                    if (lineNum < 5) {
+                        MedatoninDB.debugLog("FileRead", "Accepted word (line " + (lineNum+1) + "): " + word);
+                    }
                 }
+                lineNum++;
             }
-        } catch (FileNotFoundException e) {
-            System.err.println("File not found: " + filename);
-            e.printStackTrace();
+        } catch (IOException e) {
+            MedatoninDB.debugLog("FileRead", "Error reading file: " + filename + " - " + e.getMessage());
         }
 
         return words;
@@ -64,7 +89,7 @@ public class WortfluessigkeitGenerator {
     private static boolean isValidWord(String word) {
         return word.length() > 4 && word.length() < 12
                 && word.chars().noneMatch(Character::isDigit)
-                && !word.matches(".*[ÄÖÜß].*")
+                // Allow umlauts and ß
                 && hasAtLeastFiveUniqueLetters(word);
     }
 

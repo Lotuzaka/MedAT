@@ -100,25 +100,25 @@ public class QuestionDAO {
 
     public int getSubcategoryId(String category, String subcategory) throws SQLException {
         if (subcategory == null || subcategory.isEmpty()) {
-            System.out.println("Subcategory is null or empty");
+            MedatoninDB.debugLog("QuestionDAO", MedatoninDB.LogLevel.WARN, "getSubcategoryId", "Subcategory is null or empty");
             return -1;
         }
 
         String sql = "SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?";
-        System.out.println("Executing SQL: " + sql);
-        System.out.println("Category: " + category + ", Subcategory: " + subcategory);
+        MedatoninDB.debugLog("QuestionDAO", MedatoninDB.LogLevel.DEBUG, "getSubcategoryId", "Executing SQL: " + sql);
+        MedatoninDB.debugLog("QuestionDAO", MedatoninDB.LogLevel.INFO, "getSubcategoryId", "Category: " + category + ", Subcategory: " + subcategory);
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, subcategory);
             stmt.setString(2, category);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     int id = rs.getInt("id");
-                    System.out.println("Found subcategory ID: " + id);
+                    MedatoninDB.debugLog("QuestionDAO", MedatoninDB.LogLevel.DEBUG, "getSubcategoryId", "Found subcategory ID: " + id);
                     return id;
                 }
             }
         }
-        System.out.println("Subcategory not found");
+        MedatoninDB.debugLog("QuestionDAO", MedatoninDB.LogLevel.WARN, "getSubcategoryId", "Subcategory not found");
         return -1;
     }
 
@@ -252,7 +252,7 @@ public class QuestionDAO {
         }
 
         String sql = "INSERT INTO questions (subcategory_id, question_number, text, format, test_simulation_id) VALUES (?, ?, ?, ?, ?)";
-        System.out.println("Executing SQL: " + sql);
+        MedatoninDB.debugLog("QuestionDAO", MedatoninDB.LogLevel.DEBUG, "insertQuestion", "Executing SQL: " + sql);
         try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setInt(1, subcategoryId);
             stmt.setInt(2, questionNumber);
@@ -403,8 +403,8 @@ public class QuestionDAO {
                 "FROM questions " +
                 "WHERE subcategory_id = ? " +
                 "ORDER BY question_number";
-        System.out.println("Executing SQL: " + sql);
-        System.out.println("Subcategory ID: " + subcategoryId);
+        MedatoninDB.debugLog("QuestionDAO", MedatoninDB.LogLevel.DEBUG, "getQuestionsBySubcategory", "Executing SQL: " + sql);
+        MedatoninDB.debugLog("QuestionDAO", MedatoninDB.LogLevel.INFO, "getQuestionsBySubcategory", "Subcategory ID: " + subcategoryId);
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, subcategoryId);
             try (ResultSet rs = stmt.executeQuery()) {
@@ -417,12 +417,12 @@ public class QuestionDAO {
                             rs.getString("format"),
                             rs.getInt("test_simulation_id"));
                     questions.add(question);
-                    System.out.println("Loaded question: ID=" + question.getId() + ", Number="
+                    MedatoninDB.debugLog("QuestionDAO", MedatoninDB.LogLevel.DEBUG, "getQuestionsBySubcategory", "Loaded question: ID=" + question.getId() + ", Number="
                             + question.getQuestionNumber() + ", Text=" + question.getText());
                 }
             }
         }
-        System.out.println("Loaded " + questions.size() + " questions for subcategory ID: " + subcategoryId);
+        MedatoninDB.debugLog("QuestionDAO", MedatoninDB.LogLevel.INFO, "getQuestionsBySubcategory", "Loaded " + questions.size() + " questions for subcategory ID: " + subcategoryId);
         return questions;
     }
 

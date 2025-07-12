@@ -121,6 +121,8 @@ public class SyllogismGenerator {
 
       // Create question text
       String questionText = majorPremise + "\n" + minorPremise;
+      // DEBUG: Print question text before DB insert
+      MedatoninDB.debugLog("Syllogism", "Question: " + questionText);
 
       // Insert question into database
       int questionId = questionDAO.insertQuestion(category, subcategory, questionText, nextQuestionNumber,
@@ -131,6 +133,8 @@ public class SyllogismGenerator {
         String optionLabel = getOptionLabel(j);
         String optionText = options.get(j);
         boolean isCorrect = (j == correctOptionIndex);
+        // DEBUG: Print option text before DB insert
+        MedatoninDB.debugLog("Syllogism", "Option: " + optionText);
         optionDAO.insertOption(questionId, optionLabel, optionText, isCorrect);
       }
 
@@ -147,10 +151,16 @@ public class SyllogismGenerator {
     try (BufferedReader br = new BufferedReader(
         new java.io.InputStreamReader(new java.io.FileInputStream(filename), java.nio.charset.StandardCharsets.UTF_8))) {
       String word;
+      int lineNum = 0;
       while ((word = br.readLine()) != null) {
         word = word.trim();
         if (!word.isEmpty()) {
           wordList.add(word);
+          // Log first 5 words for encoding check
+          if (lineNum < 5) {
+            MedatoninDB.debugLog("FileRead", "Line " + (lineNum+1) + ": " + word);
+          }
+          lineNum++;
         }
       }
     }

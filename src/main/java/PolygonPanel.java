@@ -80,11 +80,11 @@ public class PolygonPanel extends JPanel {
         g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
 
         if (shapes.isEmpty()) {
-            System.out.println("No shapes to render.");
+            // debugLog("PolygonPanel", "No shapes to render.");
             return;
         }
 
-        // System.out.println("Rendering " + shapes.size() + " shapes.");
+        // debugLog("PolygonPanel", "Rendering " + shapes.size() + " shapes.");
         int shapeIndexNonAssembled = 0;
 
         if (assembled) {
@@ -93,9 +93,9 @@ public class PolygonPanel extends JPanel {
             Envelope envelope = null;
             int shapeIndexAssembled = 0;
             for (Geometry geometry : shapes) {
-                // System.out.println("Rendering shape index: " + shapeIndexAssembled);
+                // debugLog("PolygonPanel", "Rendering shape index: " + shapeIndexAssembled);
                 Envelope geomEnvelope = geometry.getEnvelopeInternal();
-                System.out.println("Shape " + shapeIndexAssembled + " bounds: " + geomEnvelope);
+                // debugLog("PolygonPanel", "Shape " + shapeIndexAssembled + " bounds: " + geomEnvelope);
 
                 if (envelope == null) {
                     envelope = new Envelope(geomEnvelope);
@@ -106,7 +106,7 @@ public class PolygonPanel extends JPanel {
 
             }
 
-            System.out.println("Combined envelope: " + envelope);
+            // debugLog("PolygonPanel", "Combined envelope: " + envelope);
             if (envelope == null)
                 return;
 
@@ -150,7 +150,7 @@ public class PolygonPanel extends JPanel {
             int xOffset = spacing;
 
             for (Geometry geometry : shapes) {
-                // System.out.println("Rendering shape index: " + shapeIndexNonAssembled);
+                // debugLog("PolygonPanel", "Rendering shape index: " + shapeIndexNonAssembled);
                 Envelope geomEnvelope = geometry.getEnvelopeInternal();
                 double scaleX = (double) pieceWidth / geomEnvelope.getWidth();
                 double scaleY = (double) (totalHeight - 2 * spacing) / geomEnvelope.getHeight();
@@ -171,8 +171,8 @@ public class PolygonPanel extends JPanel {
                 shapeIndexNonAssembled++;
             }
         }
-        System.out.println("Assembled flag: " + assembled);
-        System.out.println("Shapes count: " + shapes.size());
+        // debugLog("PolygonPanel", "Assembled flag: " + assembled);
+        // debugLog("PolygonPanel", "Shapes count: " + shapes.size());
 
     }
 
