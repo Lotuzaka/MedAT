@@ -1,549 +1,53 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
-diff --git a/src/main/java/CustomRenderer.java b/src/main/java/CustomRenderer.java
-index 596b61c02fade2e7308d8a0c0b41b9feb63f8cd1..700219a2fb5a31d990cc2a7e773c76992f35c365 100644
---- a/src/main/java/CustomRenderer.java
-+++ b/src/main/java/CustomRenderer.java
-@@ -35,57 +35,67 @@ public class CustomRenderer extends DefaultTableCellRenderer {
-     private final String currentSubcategory;
-     private final Set<QuestionIdentifier> pendingDeleteQuestions;
-     private final Icon gearIcon;
+diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
+index 89de1713ffdecc19dda48d18ebd264107fd1dd2f..f80aa600c7f5136b0a1b44503643786a2a503198 100644
+--- a/src/main/java/MedatoninDB.java
++++ b/src/main/java/MedatoninDB.java
+@@ -1591,50 +1591,67 @@ public class MedatoninDB extends JFrame {
+         questionTable.setDefaultRenderer(Object.class, renderer);
+         questionTable.setDefaultRenderer(Boolean.class, renderer);
+         questionTable.setDefaultRenderer(Integer.class, renderer);
+         questionTable.setDefaultRenderer(String.class, renderer);
+         questionTable.setDefaultEditor(Object.class, new CustomEditor(questionTable));
  
-     public CustomRenderer(String currentSubcategory, Set<QuestionIdentifier> pendingDeleteQuestions, Icon gearIcon) {
-         this.currentSubcategory = currentSubcategory;
-         this.pendingDeleteQuestions = pendingDeleteQuestions;
-         this.gearIcon = gearIcon;
-     }
+         // After initializing your questionTable
+         TableColumn korrektColumn = questionTable.getColumnModel().getColumn(3);
+         korrektColumn.setCellEditor(new CustomEditor(questionTable));
  
-     private boolean isFrageRow(int row, DefaultTableModel model) {
-         // A row is a question row if the value in column 0 is a string of digits
-         if (row < 0 || row >= model.getRowCount()) return false;
-         Object value = model.getValueAt(row, 0);
-         if (value == null) return false;
-         String strValue = value.toString();
-         return strValue.matches("\\d+");
-     }
+         // Adjust the column widths after creating the table
+         adjustColumnWidths(questionTable);
  
-     @Override
-     public Component getTableCellRendererComponent(JTable table, Object value,
-             boolean isSelected, boolean hasFocus, int row, int column) {
-         DefaultTableModel model = (DefaultTableModel) table.getModel();
-         boolean isQuestionRow = isFrageRow(row, model);
- 
--        // Render dissected pieces for question rows (Figuren)
-+        // Render figures for question rows (Figuren)
-         if (isQuestionRow && value instanceof FigurenGenerator.DissectedPieces) {
-             FigurenGenerator.DissectedPieces dissectedPieces = (FigurenGenerator.DissectedPieces) value;
--            PolygonPanel panel = new PolygonPanel(dissectedPieces.rotatedPieces);
--            panel.setAssembled(false); // Display dissected pieces
--            panel.setPreferredSize(new Dimension(200, 200));
--            return panel;
-+            PolygonPanel panel;
-+            if (column == 1) {
-+                panel = new PolygonPanel(dissectedPieces.rotatedPieces);
-+                panel.setAssembled(false); // Display dissected pieces
-+            } else if (column == 2) {
-+                panel = new PolygonPanel(dissectedPieces.originalPieces);
-+                panel.setAssembled(true); // Display assembled figure as solution
-+            } else {
-+                panel = null;
-+            }
-+            if (panel != null) {
-+                panel.setPreferredSize(new Dimension(200, 200));
-+                return panel;
-+            }
-         }
- 
-         // Always render options panel for FigurenOptionsData, regardless of subcategory
-         if (!isQuestionRow && value instanceof FigurenOptionsData) {
-             FigurenOptionsData data = (FigurenOptionsData) value;
-             List<OptionDAO> options = data.options;
- 
-             JPanel optionsPanel = new JPanel();
-             optionsPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 20, 10));
-             optionsPanel.setBackground(Color.WHITE);
- 
-             for (OptionDAO option : options) {
-                 JPanel optionPanel = new JPanel(new BorderLayout());
-                 optionPanel.setBackground(Color.WHITE);
-                 optionPanel.setOpaque(true);
- 
-                 PolygonPanel shapePanel;
- 
-                 if ("E".equalsIgnoreCase(option.getLabel())) {
-                     // Handle Option E separately as a label "X"
-                     JLabel optionELabel = new JLabel("Option E: X");
-                     optionELabel.setFont(optionELabel.getFont().deriveFont(Font.BOLD));
-                     optionsPanel.add(optionELabel);
-                     continue;
-                 } else if (option.isCorrect()) {
-diff --git a/src/main/java/CustomRenderer.java b/src/main/java/CustomRenderer.java
-index 596b61c02fade2e7308d8a0c0b41b9feb63f8cd1..700219a2fb5a31d990cc2a7e773c76992f35c365 100644
---- a/src/main/java/CustomRenderer.java
-+++ b/src/main/java/CustomRenderer.java
-@@ -95,50 +105,63 @@ public class CustomRenderer extends DefaultTableCellRenderer {
-                     optionPanel.setBackground(new Color(127, 204, 165, 75));
-                 } else {
-                     // Distractor option
-                     try {
-                         shapePanel = new PolygonPanel(
-                                 Collections.singletonList(new WKTReader().read(option.getShapeData())));
-                         shapePanel.setAssembled(false);
-                     } catch (ParseException e) {
-                         e.printStackTrace();
-                         continue; // Skip this option if parsing fails
-                     }
+         if ("Figuren".equals(currentSubcategory)) {
+             questionTable.setRowHeight(150); // Default row height for question rows
+             for (int row = 0; row < questionTable.getRowCount(); row++) {
+                 Object value = questionTable.getValueAt(row, 1);
+                 if (value instanceof List<?>) {
+                     questionTable.setRowHeight(row, 50); // Adjust height for options row
                  }
- 
-                 shapePanel.setPreferredSize(new Dimension(100, 100));
-                 optionPanel.add(shapePanel, BorderLayout.CENTER);
-                 optionPanel.add(new JLabel("Option " + option.getLabel(), SwingConstants.CENTER),
-                         BorderLayout.SOUTH);
- 
-                 optionsPanel.add(optionPanel);
              }
- 
-             return optionsPanel;
+         } else {
+             questionTable.setRowHeight(30); // Default row height for other subcategories
          }
  
-         Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-+
-+        // Handle multiline text for Syllogism premises
-+        if (isQuestionRow && column == 1 && value instanceof String && ((String) value).contains("\n")) {
-+            JTextArea area = new JTextArea((String) value);
-+            area.setLineWrap(true);
-+            area.setWrapStyleWord(true);
-+            area.setOpaque(true);
-+            area.setBackground(c.getBackground());
-+            area.setForeground(Color.BLACK);
-+            area.setFont(c.getFont());
-+            return area;
++        // Adjust question row height based on text length for Implikationen
++        if ("Implikationen".equals(currentSubcategory)) {
++            FontMetrics fm = questionTable.getFontMetrics(questionTable.getFont());
++            int lineHeight = fm.getHeight();
++            DefaultTableModel m = (DefaultTableModel) questionTable.getModel();
++            for (int row = 0; row < m.getRowCount(); row++) {
++                if (isFrageRow(row, m)) {
++                    Object textObj = m.getValueAt(row, 1);
++                    if (textObj instanceof String) {
++                        int lines = ((String) textObj).split("\\n").length;
++                        int height = lineHeight * lines + 10;
++                        questionTable.setRowHeight(row, Math.max(30, height));
++                    }
++                }
++            }
 +        }
 +
-         c.setForeground(Color.BLACK);
- 
-         boolean isPendingDeletion = false;
-         if (isQuestionRow) {
-             String questionNumber = String.valueOf(model.getValueAt(row, 0));
-             if (questionNumber != null && questionNumber.matches("\\d+")) {
-                 int questionNum = Integer.parseInt(questionNumber);
-                 QuestionIdentifier identifier = new QuestionIdentifier(currentSubcategory, questionNum);
-                 isPendingDeletion = pendingDeleteQuestions.contains(identifier);
-             }
-             if (isPendingDeletion) {
-                 c.setBackground(Color.RED);
-                 c.setForeground(Color.WHITE);
-             } else {
-                 c.setBackground(new Color(221, 221, 221));
-             }
-         } else {
-             c.setBackground(Color.WHITE);
-             Boolean isChecked = (Boolean) model.getValueAt(row, 3);
-             if (isChecked != null && isChecked) {
-                 c.setBackground(new Color(127, 204, 165, 75));
-             }
-         }
- 
-         if (column == 3) {
- 
-EOF
-)
- (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
-diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
-index b5b06ad358bb8a4bd01177e3345905dd00677b00..89de1713ffdecc19dda48d18ebd264107fd1dd2f 100644
---- a/src/main/java/MedatoninDB.java
-+++ b/src/main/java/MedatoninDB.java
-@@ -157,51 +157,51 @@ public class MedatoninDB extends JFrame {
-                 switchSubcategory(category, subcategory);
-             }
-         });
- 
-         // Right-click to edit text (only in edit mode)
-         if (isEditMode) {
-             subButton.addMouseListener(new MouseAdapter() {
-                 @Override
-                 public void mousePressed(MouseEvent e) {
-                     if (SwingUtilities.isRightMouseButton(e)) {
-                         showSubcategoryMenu(e, subButton, category);
-                     }
-                 }
-             });
-         }
- 
-         buttonContainer.add(subButton);
- 
-         if (isEditMode) {
-             buttonContainer.add(Box.createHorizontalStrut(5));
-             JButton deleteButton = createModernButton("-");
-             deleteButton.setPreferredSize(new Dimension(30, 25));
-             deleteButton.setMaximumSize(new Dimension(30, 25));
-             deleteButton.setMinimumSize(new Dimension(30, 25));
-             deleteButton.setBackground(new Color(233, 151, 151));
--            deleteButton.setForeground(Color.WHITE);
-+            deleteButton.setForeground(Color.BLACK);
-             deleteButton.setFont(new Font("Arial", Font.BOLD, 14));
-             deleteButton.setFocusPainted(false);
-             deleteButton.setBorderPainted(false);
-             deleteButton.setOpaque(true);
-             if (deleteAction != null) {
-                 deleteButton.addActionListener(e -> deleteAction.run());
-             }
-             buttonContainer.add(deleteButton);
-         }
-         return buttonContainer;
-     }
- 
-     public MedatoninDB() throws SQLException {
-         // Debug: Print default charset at startup
-         debugLog("Startup", "Default charset: " + java.nio.charset.Charset.defaultCharset());
- 
-         HikariConfig cfg = new HikariConfig();
-         cfg.setJdbcUrl("jdbc:mysql://localhost:3306/medatonindb?useUnicode=true&characterEncoding=UTF-8");
-         cfg.setUsername("root");
-         cfg.setPassword("288369Ma;");
-         HikariDataSource ds = new HikariDataSource(cfg); // TODO: Close this resource if not managed elsewhere
-         conn = ds.getConnection();
-         questionDAO = new QuestionDAO(conn);
-         optionDAO = new OptionDAO(conn);
-         simulationDAO = new testSimulationDAO(conn);
-diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
-index b5b06ad358bb8a4bd01177e3345905dd00677b00..89de1713ffdecc19dda48d18ebd264107fd1dd2f 100644
---- a/src/main/java/MedatoninDB.java
-+++ b/src/main/java/MedatoninDB.java
-@@ -329,56 +329,56 @@ public class MedatoninDB extends JFrame {
-         penIcon = new ImageIcon(imageUrl);
-         imageUrl = getClass().getResource("/images/pen-icon-edit.png");
-         penEditIcon = new ImageIcon(imageUrl);
-         // Load and set the icon for the frame
-         imageUrl = getClass().getResource("/images/window-icon.png"); // Adjust the path as needed
-         if (imageUrl != null) {
-             ImageIcon icon = new ImageIcon(imageUrl);
-             setIconImage(icon.getImage());
-         } else {
-             debugLog("UI", "Icon not found!");
-         }
- 
-         // Set up the frame
-         setTitle("Medatonin-Datenbank");
-         setSize(1200, 600); // Adjusted size to accommodate the left panel
-         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-         setLayout(new BorderLayout());
- 
-         // Apply a modern font and padding to all components
-         Font modernFont = new Font("SansSerif", Font.PLAIN, 14);
-         UIManager.put("Button.font", modernFont);
-         UIManager.put("Table.font", modernFont);
-         UIManager.put("Label.font", modernFont);
-         UIManager.put("TableHeader.font", new Font("SansSerif", Font.BOLD, 14));
-         UIManager.put("Button.background", new Color(221, 221, 221));
--        UIManager.put("Button.foreground", Color.WHITE);
-+        UIManager.put("Button.foreground", Color.BLACK);
- 
-         // Custom button UI to make buttons look flat
-         printCategoryButton = createModernButton(currentCategory + " Print");
-         printCategoryButton.setBackground(new Color(128, 146, 160));
--        printCategoryButton.setForeground(Color.WHITE);
-+        printCategoryButton.setForeground(Color.BLACK);
-         JButton printAllButton = createModernButton("All Print");
- 
-         // Set up modern color theme for the frame
-         getContentPane().setBackground(backgroundColor);
- 
-         // Create the Haupt-Textfeld at the top
-         userTextField = new JLabel();
-         userTextField.setPreferredSize(new Dimension(800, 50));
-         userTextField.setFont(new Font("SansSerif", Font.BOLD, 16));
-         userTextField.setText("User: " + currentUsername);
- 
-         JButton logoutButton = createModernButton("Logout");
-         logoutButton.setBackground(new Color(210, 141, 157));
-         logoutButton.addActionListener(e -> logout());
- 
-         // In the constructor or initialization method
-         simulationComboBox = new ModernComboBox();
-         simulationComboBox.setOpaque(false);
-         simulationMap = new HashMap<>();
-         loadSimulationOptions(); // Load existing simulations from the database
- 
-         // Add ActionListener to handle simulation changes
-         simulationComboBox.addActionListener(new ActionListener() {
-             @Override
-             public void actionPerformed(ActionEvent e) {
-diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
-index b5b06ad358bb8a4bd01177e3345905dd00677b00..89de1713ffdecc19dda48d18ebd264107fd1dd2f 100644
---- a/src/main/java/MedatoninDB.java
-+++ b/src/main/java/MedatoninDB.java
-@@ -469,51 +469,51 @@ public class MedatoninDB extends JFrame {
-         addButtonWithSpacing(mainCategoryPanel, chemButton);
-         addButtonWithSpacing(mainCategoryPanel, physButton);
-         addButtonWithSpacing(mainCategoryPanel, mathButton);
-         addButtonWithSpacing(mainCategoryPanel, kffButton);
- 
-         // Create the toggle button with the pen icon
-         editToggleButton = createModernButton("Arbeitsmodus");
-         editToggleButton.setIcon(penIcon);
- 
-         // Create a panel for the toggle button
-         JPanel toggleButtonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-         toggleButtonPanel.setBackground(backgroundColor); // Match the panel background to existing layout
-         toggleButtonPanel.add(editToggleButton);
- 
-         editToggleButton.setPreferredSize(new Dimension(300, editToggleButton.getPreferredSize().height)); // Adjust the
-                                                                                                            // size as
-                                                                                                            // needed
-         // Add action listener to toggle button
-         editToggleButton.addActionListener(new ActionListener() {
-             @Override
-             public void actionPerformed(ActionEvent e) {
-                 if (!isEditMode) {
-                     editToggleButton.setIcon(penEditIcon); // Change to the edit icon
-                     editToggleButton.setText("Bearbeitungsmodus"); // Display the text next to the icon
-                     editToggleButton.setBackground(Color.red);
--                    editToggleButton.setForeground(Color.WHITE);
-+                    editToggleButton.setForeground(Color.BLACK);
-                     setEditMode(true);
-                     // Add any specific actions when edit mode is enabled
-                 } else {
-                     editToggleButton.setIcon(penIcon); // Change to the pen icon
-                     editToggleButton.setText("Arbeitsmodus"); // Remove text
-                     setEditMode(false);
-                     editToggleButton.setBackground(new Color(221, 221, 221));
-                     editToggleButton.setForeground(Color.BLACK);
-                     loadSubcategories(currentCategory);
-                     // Add any specific actions when edit mode is disabled
-                 }
-             }
-         });
- 
-         // Create the main panel to hold the category buttons and the toggle button
-         JPanel westPanel = new JPanel(new BorderLayout());
-         westPanel.setBackground(backgroundColor); // Match to your existing layout
- 
-         // Add some vertical spacing between the toggle button and the navigation
-         // buttons
-         Box box = Box.createVerticalBox();
-         box.add(toggleButtonPanel);
-         box.add(Box.createVerticalStrut(10)); // Adds vertical spacing
- 
-         // Create the subcategory panel on the right of the main categories
-diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
-index b5b06ad358bb8a4bd01177e3345905dd00677b00..89de1713ffdecc19dda48d18ebd264107fd1dd2f 100644
---- a/src/main/java/MedatoninDB.java
-+++ b/src/main/java/MedatoninDB.java
-@@ -930,137 +930,138 @@ public class MedatoninDB extends JFrame {
- 
-         debugLog("CategoryModel", "Category model created for: " + category);
-         debugLog("CategoryModel", "subcategories: " + subcategories.keySet());
- 
-         // Load questions for all subcategories
-         loadQuestionsFromDatabase(category, subcategories, selectedSimulationId);
-     }
- 
-     // Method to load subcategories and place buttons in the panel
-     private void loadSubcategories(String category) {
-         subcategoryPanel.removeAll();
-         subcategoryPanel.setLayout(new BoxLayout(subcategoryPanel, BoxLayout.Y_AXIS));
-         subcategoryPanel.setBackground(backgroundColor);
- 
-         List<String> orderList = subcategoryOrder.get(category);
-         Color subcategoryBackgroundColor = getCategoryButtonColor(category);
- 
-         if (orderList != null) {
-             for (String subcategory : orderList) {
-                 // Container für Button und Minus-Button"-
-                 JPanel buttonContainer = new JPanel();
-                 buttonContainer.setLayout(new BoxLayout(buttonContainer, BoxLayout.X_AXIS));
-                 buttonContainer.setBackground(backgroundColor);
-                 buttonContainer.setAlignmentX(Component.LEFT_ALIGNMENT);
-                 JButton subButton = createModernButton(subcategory);
-+                subButton.setBackground(subcategoryBackgroundColor);
- 
-                 // Keep the container height consistent with the button height so
-                 // spacing matches the main category buttons
-                 buttonContainer.setMaximumSize(new Dimension(Integer.MAX_VALUE,
-                         subButton.getPreferredSize().height));
- 
-                 if (isEditMode) {
-                     addDragAndDropFunctionality(subButton, subcategoryPanel);
-                 }
- 
-                 subButton.addActionListener(e -> {
-                     if (!isEditMode) {
-                         switchSubcategory(category, subcategory);
-                         subButton.setBackground(subcategoryBackgroundColor);
-                     }
-                 });
- 
-                 // Right-click to edit text
-                 subButton.addMouseListener(new MouseAdapter() {
-                     @Override
-                     public void mousePressed(MouseEvent e) {
-                         if (SwingUtilities.isRightMouseButton(e) && isEditMode) {
-                             showSubcategoryMenu(e, subButton, category);
-                         }
-                     }
-                 });
- 
-                 buttonContainer.add(subButton);
- 
-                 // Minus-Button nur im Bearbeitungsmodus
-                 if (isEditMode) {
-                     buttonContainer.add(Box.createHorizontalStrut(5));
- 
-                     JButton deleteButton = createModernButton("-");
-                     deleteButton.setPreferredSize(new Dimension(30, 25));
-                     deleteButton.setMaximumSize(new Dimension(30, 25));
-                     deleteButton.setMinimumSize(new Dimension(30, 25));
-                     deleteButton.setBackground(new Color(233, 151, 151));
--                    deleteButton.setForeground(Color.WHITE);
-+                    deleteButton.setForeground(Color.BLACK);
-                     deleteButton.setFont(new Font("Arial", Font.BOLD, 14));
-                     deleteButton.setFocusPainted(false);
-                     deleteButton.setBorderPainted(false);
-                     deleteButton.setOpaque(true);
- 
-                     deleteButton.addActionListener(e -> deleteSubcategory(category, subcategory));
- 
-                     buttonContainer.add(deleteButton);
-                 }
- 
-                 subcategoryPanel.add(buttonContainer);
-                 int spacing = isEditMode ? 0 : BUTTON_SPACING;
-                 if (spacing > 0) {
-                     subcategoryPanel.add(Box.createVerticalStrut(spacing));
-                 }
-             }
-         }
- 
-         // "+" Button nur im Bearbeitungsmodus
-         if (isEditMode) {
-             addSubcategoryButton = createModernButton("+");
-             addSubcategoryButton.setBackground(new Color(127, 204, 165));
-             addSubcategoryButton.addActionListener(e -> addNewSubcategory(category));
-             subcategoryPanel.add(addSubcategoryButton);
-         }
- 
-         subcategoryPanel.revalidate();
-         subcategoryPanel.repaint();
- 
-         displaySubcategoriesInMainContent(category);
-     }
- 
-     // Method to get the corresponding background color of the category buttons
-     private Color getCategoryButtonColor(String category) {
-         if (category == null) {
-             return new Color(221, 221, 221); // Default color when category is null
-         }
-         switch (category) {
-             case "Biologie":
-                 return new Color(243, 211, 135); // Orange background for Biologie
-             case "Chemie":
-                 return new Color(210, 141, 157); // Burgundi background for Chemie
-             case "Physik":
-                 return new Color(189, 226, 236); // Light Blue background for Physik
-             case "Mathematik":
-                 return new Color(128, 146, 160); // Blue background for Mathematik
-             case "KFF":
--                return Color.CYAN;
-+                return new Color(216, 232, 255); // Pastel blue for KFF
-             default:
-                 return new Color(221, 221, 221); // Default dark grey background
-         }
-     }
- 
-     // Method to add a new subcategory to the current category
-     private void addNewSubcategory(String category) {
-         String subcategoryName = JOptionPane.showInputDialog(this, "Enter the name of the new subcategory:");
-         if (subcategoryName != null && !subcategoryName.trim().isEmpty()) {
-             // Ensure the subcategory doesn't already exist
-             Map<String, DefaultTableModel> subcategories = categoryModels.get(category);
-             if (!subcategories.containsKey(subcategoryName)) {
-                 // Initialize the new subcategory with a DefaultTableModel
-                 DefaultTableModel newModel = createTableModel();
-                 subcategories.put(subcategoryName, newModel); // Add to the correct main category
- 
-                 // Update the subcategory order to include the new subcategory
-                 List<String> orderList = subcategoryOrder.get(category);
-                 if (orderList == null) {
-                     orderList = new ArrayList<>();
-                     subcategoryOrder.put(category, orderList);
-                 }
-                 orderList.add(subcategoryName);// Add to the order list
-                 // Save the new subcategory to the database
-                 saveSubcategoryToDatabase(category, subcategoryName);
-diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
-index b5b06ad358bb8a4bd01177e3345905dd00677b00..89de1713ffdecc19dda48d18ebd264107fd1dd2f 100644
---- a/src/main/java/MedatoninDB.java
-+++ b/src/main/java/MedatoninDB.java
-@@ -1172,62 +1173,62 @@ public class MedatoninDB extends JFrame {
-             addTableListeners(subcategoryTable);
- 
-             JScrollPane tableScrollPane = new JScrollPane(subcategoryTable) {
-                 @Override
-                 public Dimension getPreferredSize() {
-                     int rowCount = subcategoryTable.getRowCount();
-                     if (rowCount == 0) {
-                         return new Dimension(0, 0);
-                     }
-                     int rowHeight = subcategoryTable.getRowHeight();
-                     int headerHeight = subcategoryTable.getTableHeader().getPreferredSize().height;
-                     int totalHeight = headerHeight + (rowCount * rowHeight);
-                     int maxVisibleRows = 10;
-                     int maxHeight = headerHeight + (maxVisibleRows * rowHeight);
-                     if (totalHeight > maxHeight) {
-                         totalHeight = maxHeight;
-                     }
-                     Dimension size = super.getPreferredSize();
-                     size.height = totalHeight;
-                     return size;
-                 }
-             };
- 
-             JButton addQuestionButton = createModernButton("Add Question");
-             addQuestionButton.setBackground(new Color(127, 204, 165));
--            addQuestionButton.setForeground(Color.WHITE);
-+            addQuestionButton.setForeground(Color.BLACK);
-             addQuestionButton.setFont(new Font("SansSerif", Font.BOLD, 14));
-             addQuestionButton.setFocusPainted(false);
-             addQuestionButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
-             addQuestionButton.addActionListener(e -> addNewQuestionToSubcategory());
- 
-             JPanel buttonPanel;
- 
-             if ("KFF".equals(category)) {
-                 JButton generateButton = createModernButton("Generate");
-                 generateButton.setBackground(new Color(127, 204, 165));
--                generateButton.setForeground(Color.WHITE);
-+                generateButton.setForeground(Color.BLACK);
-                 generateButton.setFont(new Font("SansSerif", Font.BOLD, 14));
-                 generateButton.setFocusPainted(false);
-                 generateButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
- 
-                 JTextField questionCountField = createStyledTextField("0", 40, new Color(127, 204, 165), Color.WHITE);
- 
-                 JPanel generatePanel = new JPanel(new BorderLayout());
-                 generatePanel.setBackground(new Color(127, 204, 165));
-                 generatePanel.add(questionCountField, BorderLayout.EAST);
-                 generatePanel.add(generateButton, BorderLayout.CENTER);
- 
-                 generateButton.addActionListener(e -> {
-                     try {
-                         String input = questionCountField.getText().trim();
-                         int questionCount;
-                         try {
-                             questionCount = Integer.parseInt(input);
-                         } catch (NumberFormatException ex) {
-                             JOptionPane.showMessageDialog(null, "Please enter a valid number.", "Invalid Input", JOptionPane.ERROR_MESSAGE);
-                             return;
-                         }
-                         if ("Implikationen".equals(currentSubcategory)) {
-                             SyllogismGenerator generator = new SyllogismGenerator(conn, currentCategory, currentSubcategory, selectedSimulationId);
-                             generator.execute(questionCount);
-                             loadQuestionsFromDatabase(currentCategory, categoryModels.get(currentCategory), selectedSimulationId);
-diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
-index b5b06ad358bb8a4bd01177e3345905dd00677b00..89de1713ffdecc19dda48d18ebd264107fd1dd2f 100644
---- a/src/main/java/MedatoninDB.java
-+++ b/src/main/java/MedatoninDB.java
-@@ -1519,51 +1520,51 @@ public class MedatoninDB extends JFrame {
+         // Add listeners for synchronizing with text fields and other interactions
+         addTableListeners(questionTable);
  
          // Dynamically show or hide the "Set" column based on the category
          if (isSetColumnNotVisible(category)) {
@@ -552,55 +56,11 @@ index b5b06ad358bb8a4bd01177e3345905dd00677b00..89de1713ffdecc19dda48d18ebd26410
              showSetColumn(); // Show the "Set" column
          }
  
-         // Set the selected category button to blue and reset others
-         resetCategoryButtons();
-         updateCategoryButtonColors(category);
-     }
- 
-     // Update the selected category button colors
-     private void updateCategoryButtonColors(String category) {
-         resetCategoryButtons();
-         if (category.equals("Biologie")) {
-             bioButton.setBackground(new Color(243, 211, 135)); // Orange background for selected category
-         } else if (category.equals("Chemie")) {
-             chemButton.setBackground(new Color(210, 141, 157)); // Burgundi background
-         } else if (category.equals("Physik")) {
-             physButton.setBackground(new Color(189, 226, 236)); // Light Blue background
-         } else if (category.equals("Mathematik")) {
-             mathButton.setBackground(new Color(128, 146, 160)); // Blue background
-         } else if (category.equals("KFF")) {
--            kffButton.setBackground(Color.CYAN); // Blue background
-+            kffButton.setBackground(new Color(216, 232, 255)); // Pastel blue
-         }
-     }
- 
-     // Adjust the print button width based on text length
-     private void adjustPrintButtonWidth(JButton button, String text) {
-         FontMetrics metrics = button.getFontMetrics(button.getFont());
-         int width = metrics.stringWidth(text) + 20; // Add some padding
-         button.setPreferredSize(new Dimension(width, button.getPreferredSize().height));
-         button.setMaximumSize(new Dimension(width, button.getPreferredSize().height));
-     }
- 
-     private void switchSubcategory(String category, String subcategory) {
- 
-         currentCategory = category;
-         currentSubcategory = subcategory;
- 
-         // Remove all components from mainContentPanel
-         mainContentPanel.removeAll();
-         mainContentPanel.setLayout(new BorderLayout());
- 
-         // Create a panel to hold the content
-         JPanel subcategoryContentPanel = new JPanel();
-         subcategoryContentPanel.setLayout(new BorderLayout());
- 
-         // Create a panel for the buttons
-diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
-index b5b06ad358bb8a4bd01177e3345905dd00677b00..89de1713ffdecc19dda48d18ebd264107fd1dd2f 100644
---- a/src/main/java/MedatoninDB.java
-+++ b/src/main/java/MedatoninDB.java
-@@ -1630,66 +1631,66 @@ public class MedatoninDB extends JFrame {
+         questionTable.addMouseListener(new MouseAdapter() {
+             @Override
+             public void mousePressed(MouseEvent e) {
+                 int row = questionTable.rowAtPoint(e.getPoint());
+                 int col = questionTable.columnAtPoint(e.getPoint());
  
                  if (col != 3 || !isFrageRow(row, (DefaultTableModel) questionTable.getModel())) {
                      pendingDeleteQuestions.clear();
@@ -611,283 +71,64 @@ index b5b06ad358bb8a4bd01177e3345905dd00677b00..89de1713ffdecc19dda48d18ebd26410
  
          // Add TableModelListener to repaint the table when checkbox changes
          tableModel.addTableModelListener(e -> {
-             if (e.getColumn() == 3) {
-                 // Force repaint to show green highlight as soon as checkbox changes
-                 SwingUtilities.invokeLater(questionTable::repaint);
-             }
-         });
- 
-         // Add the table in a scroll pane to the content panel
-         JScrollPane subScrollPane = new JScrollPane(questionTable);
- 
-         // Add components to subcategoryContentPanel
-         subcategoryContentPanel.add(subScrollPane, BorderLayout.CENTER);
- 
-         // For other categories and subcategories, only add "Add Question" button
-         JButton addQuestionButton = createModernButton("Add Question");
-         addQuestionButton.setBackground(new Color(127, 204, 165)); // Green background
--        addQuestionButton.setForeground(Color.WHITE);
-+        addQuestionButton.setForeground(Color.BLACK);
-         addQuestionButton.setFont(new Font("SansSerif", Font.BOLD, 14));
-         addQuestionButton.setFocusPainted(false);
-         addQuestionButton.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // Button padding
-         addQuestionButton.setAlignmentX(Component.LEFT_ALIGNMENT);
- 
-         // Adjust button width
-         addQuestionButton.setPreferredSize(new Dimension(150, addQuestionButton.getPreferredSize().height));
- 
-         // Create buttons according to category and subcategory
-         if ("KFF".equals(currentCategory) || "Figuren".equals(currentSubcategory)) {
- 
-             // Create the button first to get its height and style
-             JButton generateButton = createModernButton("Generate");
-             generateButton.setBackground(new Color(127, 204, 165)); // Green background
--            generateButton.setForeground(Color.WHITE);
-+            generateButton.setForeground(Color.BLACK);
-             generateButton.setFont(new Font("SansSerif", Font.BOLD, 14));
-             generateButton.setFocusPainted(false);
-             generateButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10)); // Padding for aesthetics
-             generateButton.setPreferredSize(new Dimension(150, generateButton.getPreferredSize().height));
- 
-             // Match the border radius and font size to the button
-             int buttonBorderRadius = 16; // Match the button's roundness (see createModernButton)
-             int numberBoxHeight = generateButton.getPreferredSize().height;
-             // Font numberBoxFont = generateButton.getFont();
-             JTextField questionCountField = new RoundedTextField("0", buttonBorderRadius, new Color(127,204,165), Color.WHITE, numberBoxHeight);
- 
-             // Fix: Set larger row height for FigurenOptionsData rows in KFF overview
-             if (questionTable != null) {
-                 for (int row = 0; row < questionTable.getRowCount(); row++) {
-                     Object value = questionTable.getValueAt(row, 1);
-                     if (value != null && value.getClass().getSimpleName().equals("FigurenOptionsData")) {
-                         questionTable.setRowHeight(row, 150); // Make Figuren options panel less squished
-                     }
-                 }
-             }
- 
-             // Set number box width and height to match button
-             questionCountField.setPreferredSize(new Dimension(60, numberBoxHeight));
- 
-             // Set up action listeners
 diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
-index b5b06ad358bb8a4bd01177e3345905dd00677b00..89de1713ffdecc19dda48d18ebd264107fd1dd2f 100644
+index 89de1713ffdecc19dda48d18ebd264107fd1dd2f..f80aa600c7f5136b0a1b44503643786a2a503198 100644
 --- a/src/main/java/MedatoninDB.java
 +++ b/src/main/java/MedatoninDB.java
-@@ -1802,89 +1803,89 @@ public class MedatoninDB extends JFrame {
-                         ex.printStackTrace();
-                     } catch (IOException e1) {
-                         debugLog("QuestionGen", currentSubcategory + " not generated IOException: " + e1.getMessage());
-                         e1.printStackTrace();
-                     }
-                 });
-             }
- 
- 
-         } else {
-             // Add button to buttonPanel
-             buttonPanel.add(addQuestionButton);
- 
-             // Set up action listener for "Add Question" button
-             addQuestionButton.addActionListener(e -> {
-                 addNewQuestionToSubcategory();
-                 if (questionTable != null && tableModel != null) {
-                     questionTable.scrollRectToVisible(questionTable.getCellRect(tableModel.getRowCount() - 1, 0, true));
-                 }
-             });
-         }
- 
-         // Buttons for deleting questions
-         JButton deleteMarkedButton = createModernButton("Delete Marked");
-         deleteMarkedButton.setBackground(new Color(233, 151, 151));
--        deleteMarkedButton.setForeground(Color.WHITE);
-+        deleteMarkedButton.setForeground(Color.BLACK);
-         deleteMarkedButton.addActionListener(e -> deleteSelectedQuestions());
- 
-         JButton deleteAllButton = createModernButton("Delete All");
-         deleteAllButton.setBackground(new Color(233, 151, 151));
--        deleteAllButton.setForeground(Color.WHITE);
-+        deleteAllButton.setForeground(Color.BLACK);
-         deleteAllButton.addActionListener(e -> {
-             int res = JOptionPane.showConfirmDialog(this,
-                     "Delete all questions in this subcategory?", "Confirm Delete",
-                     JOptionPane.YES_NO_OPTION);
-             if (res == JOptionPane.YES_OPTION) {
-                 deleteAllQuestions();
-             }
-         });
- 
-         buttonPanel.add(deleteMarkedButton);
-         buttonPanel.add(deleteAllButton);
- 
-         // Add buttonPanel to subcategoryContentPanel
-         subcategoryContentPanel.add(buttonPanel, BorderLayout.SOUTH);
- 
-         // Add subcategoryContentPanel to mainContentPanel
-         mainContentPanel.add(subcategoryContentPanel, BorderLayout.CENTER);
- 
-         // Ensure safe UI updates
-         mainContentPanel.revalidate();
-         mainContentPanel.repaint();
- 
-         // Update the print button label immediately when switching subcategories
-         updatePrintButtonLabel();
- 
-         // Highlight the selected subcategory button and reset others
-         resetSubcategoryButtons();
- 
-         // Find the button corresponding to the selected subcategory
-         JButton newSelectedButton = getSubcategoryButton(subcategory);
-         if (newSelectedButton != null) {
-             // Set the background color of the new selected button
--            newSelectedButton.setBackground(new Color(128, 146, 160));
-+            newSelectedButton.setBackground(getCategoryButtonColor(category));
-             selectedSubcategoryButton = newSelectedButton;
-         }
- 
-         // Load questions from the database
-         loadQuestionsFromDatabase(category, categoryModels.get(category), selectedSimulationId);
- 
-         // Add TableModelListener to handle updates
-         questionTable.getModel().addTableModelListener(new TableModelListener() {
-             @Override
-             public void tableChanged(TableModelEvent e) {
-                 if (isAdjustingFormat) {
-                     return; // Ignore events during format adjustments
-                 }
-                 if ((e.getType() == TableModelEvent.UPDATE || e.getType() == TableModelEvent.INSERT)) {
-                     int row = e.getFirstRow();
-                     int column = e.getColumn();
-                     if (row == -1 || column == -1) {
-                         // The event is not related to a specific cell; ignore or handle appropriately
-                         return;
-                     }
-                     TableModel model = (TableModel) e.getSource();
- 
-                     if (row >= 0 && row < model.getRowCount() && column >= 0 && column < model.getColumnCount()) {
-                         Object data = model.getValueAt(row, column);
- 
-diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
-index b5b06ad358bb8a4bd01177e3345905dd00677b00..89de1713ffdecc19dda48d18ebd264107fd1dd2f 100644
---- a/src/main/java/MedatoninDB.java
-+++ b/src/main/java/MedatoninDB.java
-@@ -3251,97 +3252,110 @@ public class MedatoninDB extends JFrame {
-                     debugLog("DB", "Number of questions loaded: " + questions.size());
- 
-                     model.setRowCount(0); // Clear existing rows
-                     for (QuestionDAO question : questions) {
-                         if ("Figuren".equals(subcategoryName)) {
-                             // Handle "Figuren" subcategory differently
-                             loadFigurenQuestionIntoModel(model, question, optionDAO);
-                         } else {
-                             // Handle other subcategories
-                             loadStandardQuestionIntoModel(model, question, optionDAO);
-                         }
-                     }
-                     debugLog("DB", "Added " + questions.size() + " questions with options to the model for "
-                             + subcategoryName);
-                 } else {
-                     debugLog("DB", "Failed to get subcategory ID for: " + subcategoryName);
+@@ -3399,50 +3416,53 @@ public class MedatoninDB extends JFrame {
+                     debugLog("DB", "Found subcategory ID: " + id);
+                     return id;
                  }
              }
-         } catch (SQLException e) {
-             debugLog("DB", "Error loading questions and options: " + e.getMessage());
-             e.printStackTrace();
          }
+         debugLog("DB", "Subcategory not found");
+         return -1; // Return -1 if subcategory not found
      }
  
-     private void loadStandardQuestionIntoModel(DefaultTableModel model, QuestionDAO question, OptionDAO optionDAO) {
--        // Add question row
-+        int questionRowIndex = model.getRowCount();
-         model.addRow(new Object[] {
-                 String.valueOf(question.getQuestionNumber()),
-                 question.getText(),
--                question.getShapeData(),
--                false, // Checkbox state
-+                "",
-+                false,
-                 question.getFormat(),
--                question.getDifficulty() // Neue Spalte
-+                question.getDifficulty()
-         });
- 
--        // Load and add options
-         try {
-             List<OptionDAO> options = optionDAO.getOptionsForQuestion(question.getId());
-             boolean isLang = "Lang".equals(question.getFormat());
--            // Sort options
-+            String correctText = null;
-             Collections.sort(options, Comparator.comparing(OptionDAO::getLabel));
-             for (OptionDAO option : options) {
-+                if (option.isCorrect()) {
-+                    correctText = option.getText();
-+                }
-                 String label = option.getLabel();
-                 if (isLang && label.matches("\\d+\\.")) {
-                     model.addRow(new Object[] { label, option.getText(), "", option.isCorrect(), "" });
-                 } else if (isLang && label.matches("[A-E]")) {
-                     model.addRow(new Object[] { label, option.getText(), "", option.isCorrect(), "" });
-                 } else if (!isLang && label.matches("[A-E]")) {
-                     model.addRow(new Object[] { label + ")", option.getText(), "", option.isCorrect(), "" });
-                 }
-             }
-+
-+            if ("Zahlenfolgen".equals(currentSubcategory) && correctText != null) {
-+                model.setValueAt(correctText, questionRowIndex, 2);
-+            } else {
-+                model.setValueAt(question.getShapeData(), questionRowIndex, 2);
-+            }
-         } catch (SQLException e) {
-             debugLog("DB", "Error loading options for question ID " + question.getId() + ": "
-                     + e.getMessage());
-         }
-     }
- 
-     private void loadFigurenQuestionIntoModel(DefaultTableModel model, QuestionDAO question, OptionDAO optionDAO) {
-         try {
-             WKTReader wktReader = new WKTReader();
-             List<Geometry> dissectedPiecesList = new ArrayList<>();
-             for (String pieceWKT : question.getDissectedPiecesData().split(";")) {
-                 dissectedPiecesList.add(wktReader.read(pieceWKT));
-             }
-             List<Geometry> assembledPiecesList = new ArrayList<>();
-             for (String wkt : question.getAssembledPiecesData().split(";")) {
-                 if (!wkt.trim().isEmpty()) assembledPiecesList.add(wktReader.read(wkt));
-             }
-             FigurenGenerator.DissectedPieces dissectedPieces = new FigurenGenerator.DissectedPieces(
-                 dissectedPiecesList, dissectedPiecesList, assembledPiecesList);
-             model.addRow(new Object[] {
--                String.valueOf(question.getQuestionNumber()), dissectedPieces, "", false, "Kurz", "MEDIUM"
-+                String.valueOf(question.getQuestionNumber()),
-+                dissectedPieces,
-+                dissectedPieces,
-+                false,
-+                "Kurz",
-+                "MEDIUM"
-             });
-             List<OptionDAO> options = optionDAO.getOptionsForQuestion(question.getId());
-             FigurenOptionsData figurenOptionsData = new FigurenOptionsData(options, dissectedPieces);
-             model.addRow(new Object[] { "", figurenOptionsData, "", false, "" });
-         } catch (Exception e) {
-             debugLog("DB", "Error loading Figuren question ID " + question.getId() + ": " + e.getMessage());
-             e.printStackTrace();
-         }
-     }
- 
-     private Map<String, DefaultTableModel> loadSubcategoriesFromDatabase(int categoryId) {
-         Map<String, DefaultTableModel> subcategories = new LinkedHashMap<>();
-         String sql = "SELECT name FROM subcategories WHERE category_id = ? ORDER BY order_index";
- 
+     private void saveSubcategoryToDatabase(String category, String subcategoryName) {
+         String sql = "INSERT INTO subcategories (name, category_id, order_index) VALUES (?, ?, ?)";
          try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-             stmt.setInt(1, categoryId);
-             try (ResultSet rs = stmt.executeQuery()) {
-                 while (rs.next()) {
-                     String subcategoryName = rs.getString("name");
-                     debugLog("DB", "Loaded subcategory: " + subcategoryName);
-                     DefaultTableModel model = createTableModel();
-                     subcategories.put(subcategoryName, model);
-                 }
-             }
+             int categoryId = getCategoryID(category);
+             int orderIndex = subcategoryOrder.get(category).size() - 1; // New subcategory is added at the end
+             stmt.setString(1, subcategoryName);
+             stmt.setInt(2, categoryId);
+             stmt.setInt(3, orderIndex);
+             stmt.executeUpdate();
+             System.out.println("Saved new subcategory to database: " + subcategoryName);
          } catch (SQLException e) {
+             e.printStackTrace();
+         }
+     }
+ 
+     private void updateQuestion(int row, int column, Object data) {
++        if (row < 0 || row >= questionTable.getRowCount()) {
++            return; // Safety check
++        }
+         Object questionNumberObj = questionTable.getValueAt(row, 0);
+         int questionNumber;
+         try {
+             questionNumber = Integer.parseInt(questionNumberObj.toString());
+         } catch (NumberFormatException e) {
+             System.out.println("Error parsing question number in updateQuestion.");
+             return;
+         }
+         try {
+             switch (column) {
+                 case 1: // Question text
+                     questionDAO.updateQuestionText(currentCategory, currentSubcategory, questionNumber, (String) data,
+                             selectedSimulationId);
+                     break;
+                 case 2: // Checkbox state (if applicable)
+                     // Implement if needed
+                     break;
+                 case 4: // Difficulty
+                     questionDAO.updateQuestionDifficulty(
+                             getSubcategoryId(currentCategory, currentSubcategory),
+                             questionNumber,
+                             (String) data,
+                             selectedSimulationId);
+                     break;
+             }
  
 EOF
 )

@@ -1613,6 +1613,23 @@ public class MedatoninDB extends JFrame {
             questionTable.setRowHeight(30); // Default row height for other subcategories
         }
 
+        // Adjust question row height based on text length for Implikationen
+        if ("Implikationen".equals(currentSubcategory)) {
+            FontMetrics fm = questionTable.getFontMetrics(questionTable.getFont());
+            int lineHeight = fm.getHeight();
+            DefaultTableModel m = (DefaultTableModel) questionTable.getModel();
+            for (int row = 0; row < m.getRowCount(); row++) {
+                if (isFrageRow(row, m)) {
+                    Object textObj = m.getValueAt(row, 1);
+                    if (textObj instanceof String) {
+                        int lines = ((String) textObj).split("\\n").length;
+                        int height = lineHeight * lines + 10;
+                        questionTable.setRowHeight(row, Math.max(30, height));
+                    }
+                }
+            }
+        }
+
         // Add listeners for synchronizing with text fields and other interactions
         addTableListeners(questionTable);
 
@@ -3421,6 +3438,9 @@ public class MedatoninDB extends JFrame {
     }
 
     private void updateQuestion(int row, int column, Object data) {
+        if (row < 0 || row >= questionTable.getRowCount()) {
+            return; // Safety check
+        }
         Object questionNumberObj = questionTable.getValueAt(row, 0);
         int questionNumber;
         try {
