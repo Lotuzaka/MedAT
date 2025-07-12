@@ -1,130 +1,77 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
-diff --git a/src/main/java/CustomRenderer.java b/src/main/java/CustomRenderer.java
-index d11614160ff22ad20226ae0231dd3055f97deafa..596b61c02fade2e7308d8a0c0b41b9feb63f8cd1 100644
---- a/src/main/java/CustomRenderer.java
-+++ b/src/main/java/CustomRenderer.java
-@@ -113,114 +113,114 @@ public class CustomRenderer extends DefaultTableCellRenderer {
-                 optionsPanel.add(optionPanel);
-             }
+diff --git a/src/main/java/WortfluessigkeitGenerator.java b/src/main/java/WortfluessigkeitGenerator.java
+index 9401f1aa5158ec9c29383803a2ccf98ec2e5e0c3..75f380eb63e75ab768bff93e3b40a136b213c8f0 100644
+--- a/src/main/java/WortfluessigkeitGenerator.java
++++ b/src/main/java/WortfluessigkeitGenerator.java
+@@ -74,57 +74,65 @@ public class WortfluessigkeitGenerator {
+                         category,
+                         subcategory,
+                         nextNr++,
+                         questionText,
+                         simulationId,
+                         word,
+                         "WORD",
+                         null,
+                         null);
  
-             return optionsPanel;
-         }
- 
-         Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-         c.setForeground(Color.BLACK);
- 
-         boolean isPendingDeletion = false;
-         if (isQuestionRow) {
-             String questionNumber = String.valueOf(model.getValueAt(row, 0));
-             if (questionNumber != null && questionNumber.matches("\\d+")) {
-                 int questionNum = Integer.parseInt(questionNumber);
-                 QuestionIdentifier identifier = new QuestionIdentifier(currentSubcategory, questionNum);
-                 isPendingDeletion = pendingDeleteQuestions.contains(identifier);
-             }
-             if (isPendingDeletion) {
-                 c.setBackground(Color.RED);
-                 c.setForeground(Color.WHITE);
-             } else {
-                 c.setBackground(new Color(221, 221, 221));
-             }
-         } else {
-             c.setBackground(Color.WHITE);
--            Boolean isChecked = (Boolean) model.getValueAt(row, 2);
-+            Boolean isChecked = (Boolean) model.getValueAt(row, 3);
-             if (isChecked != null && isChecked) {
-                 c.setBackground(new Color(127, 204, 165, 75));
-             }
-         }
- 
--        if (column == 2) {
-+        if (column == 3) {
-             if (isQuestionRow) {
-                 JLabel deleteLabel = new JLabel("X", SwingConstants.CENTER);
-                 deleteLabel.setForeground(isPendingDeletion ? Color.WHITE : Color.RED);
-                 deleteLabel.setBackground(c.getBackground());
-                 deleteLabel.setOpaque(true);
-                 return deleteLabel;
-             } else {
-                 Boolean checked = false;
-                 if (value instanceof Boolean) {
-                     checked = (Boolean) value;
-                 }
-                 JCheckBox checkBox = new JCheckBox();
-                 checkBox.setSelected(checked);
-                 checkBox.setHorizontalAlignment(SwingConstants.CENTER);
-                 checkBox.setEnabled(false);
-                 checkBox.setBackground(c.getBackground());
-                 checkBox.setForeground(c.getForeground());
-                 return checkBox;
-             }
-         }
- 
--        if (column == 3) {
-+        if (column == 4) {
-             if (isQuestionRow) {
-                 // Only show gear icon on question rows
-                 JLabel gearLabel = new JLabel(gearIcon);
-                 gearLabel.setHorizontalAlignment(SwingConstants.CENTER);
-                 gearLabel.setBackground(c.getBackground());
-                 gearLabel.setOpaque(true);
-                 return gearLabel;
-             } else {
-                 // Option row: highlight cell green if correct
--                Boolean isChecked = (Boolean) model.getValueAt(row, 2);
-+                Boolean isChecked = (Boolean) model.getValueAt(row, 3);
-                 JLabel empty = new JLabel();
-                 empty.setOpaque(true);
-                 if (isChecked != null && isChecked) {
-                     empty.setBackground(new Color(127, 204, 165, 75));
-                 } else {
-                     empty.setBackground(c.getBackground());
-                 }
-                 return empty;
-             }
-         }
- 
--        if (column == 3 && !isQuestionRow) {
-+        if (column == 4 && !isQuestionRow) {
-             return new JLabel("");
-         }
- 
-         if (isQuestionRow) {
-             c.setFont(c.getFont().deriveFont(Font.BOLD));
-         } else if (!isPendingDeletion) {
--            Boolean isChecked = (Boolean) model.getValueAt(row, 2);
-+            Boolean isChecked = (Boolean) model.getValueAt(row, 3);
-             if (isChecked != null && isChecked) {
-                 c.setBackground(new Color(127, 204, 165, 75));
-             }
-         }
- 
--        if (column == 4 && isFrageRow(row, (DefaultTableModel) table.getModel())) {
-+        if (column == 5 && isFrageRow(row, (DefaultTableModel) table.getModel())) {
-             String difficulty = (String) value;
-             if (difficulty != null && !difficulty.isEmpty()) {
-                 try {
-                     Difficulty diff = Difficulty.valueOf(difficulty.toUpperCase());
- 
-                     JPanel panel = new JPanel(new GridBagLayout());
-                     panel.setOpaque(true);
-                     panel.setBackground(c.getBackground());
- 
-                     JLabel badge = new JLabel(diff.symbol);
-                     badge.setForeground(diff.color);
-                     badge.setFont(new Font("Arial", Font.BOLD, 18));
- 
-                     GridBagConstraints gbc = new GridBagConstraints();
-                     gbc.gridx = 0;
-                     gbc.gridy = 0;
-                     gbc.anchor = GridBagConstraints.CENTER;
- 
-                     panel.add(badge, gbc);
-                     return panel;
-                 } catch (IllegalArgumentException e) {
-                     return c;
+                 for (int j = 0; j < 5; j++) {
+                     String label = (j == 4) ? "E" : String.valueOf((char) ('A' + j));
+                     String text = (j == 4) ? "Keine Antwort ist richtig." :
+                             "Anfangsbuchstabe: " + optionLetters[j];
+                     boolean correct = j == correctIndex;
+                     optionDAO.insertOption(qId, label, text, correct);
                  }
              }
+             conn.commit();
+         } finally {
+             conn.setAutoCommit(autoCommit);
          }
+     }
+ 
+     /**
+-     * Reads all valid words from the given UTF-8 file. Only words with a length
+-     * between 7 and 9 characters are considered.
++     * Reads all valid words from the given list file.
++     *
++     * <p>The word list distributed with the project is encoded in
++     * ISO-8859-1. When reading it using UTF-8 the umlaut bytes become
++     * replacement characters, which bypasses the {@link #INVALID_CHARS}
++     * check. To ensure words containing umlauts are filtered out, we
++     * read the file using the correct encoding.</p>
++     *
++     * <p>Only words with a length between 7 and 9 characters are
++     * considered.</p>
+      */
+     List<String> readWordList(String path) throws IOException {
+         List<String> raw = new ArrayList<>();
+         try (BufferedReader br = new BufferedReader(new InputStreamReader(
+-                new java.io.FileInputStream(path), StandardCharsets.UTF_8))) {
++                new java.io.FileInputStream(path), StandardCharsets.ISO_8859_1))) {
+             String line;
+             while ((line = br.readLine()) != null) {
+                 raw.add(line.trim());
+             }
+         }
+ 
+         Set<String> rawUpper = new HashSet<>();
+         for (String r : raw) {
+             rawUpper.add(r.toUpperCase(Locale.GERMAN));
+         }
+ 
+         List<String> out = new ArrayList<>();
+         for (String w : raw) {
+             String upper = w.toUpperCase(Locale.GERMAN);
+             int len = upper.codePointCount(0, upper.length());
+             if (len >= 7 && len <= 9 && isValidWord(upper, rawUpper)) {
+                 out.add(upper);
+             }
+         }
+         return out;
+     }
+ 
+     private static final Pattern INVALID_CHARS = Pattern.compile(".*[ÄÖÜäöüß].*");
+     private static final Pattern DIMINUTIVE = Pattern.compile(".*(CHEN|LEIN)$", Pattern.CASE_INSENSITIVE);
+     private static final Set<String> PROPER_NAMES = Set.of("ALDI", "DM", "BUNDESLIGA", "BUNDESREPUBLIK");
  
 EOF
 )
