@@ -1,16 +1,15 @@
 
 // Java program to do level order traversal
 // of a generic tree
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 
 public class SyllogismGenerator {
 
@@ -34,10 +33,11 @@ public class SyllogismGenerator {
     this.syllogismModels = initializeSyllogismModels();
   }
 
+  private static final String WORDLIST_PATH = "src/main/resources/lists/wortliste.docx";
+
   public void execute(int numberOfQuestions) throws SQLException, IOException {
     // Read word list from file
-    List<String> wordList = readWordList(
-        "C:\\Users\\mahmo\\Desktop\\medatonin\\medatonin-datenbank\\src\\main\\resources\\lists\\wortliste.txt");
+    List<String> wordList = readWordList(WORDLIST_PATH);
     Collections.shuffle(wordList);
 
     int subcategoryId = questionDAO.getSubcategoryId(category, subcategory);
@@ -148,19 +148,17 @@ public class SyllogismGenerator {
 
   private List<String> readWordList(String filename) throws IOException {
     List<String> wordList = new ArrayList<>();
-    try (BufferedReader br = new BufferedReader(
-        new java.io.InputStreamReader(new java.io.FileInputStream(filename), java.nio.charset.StandardCharsets.UTF_8))) {
-      String word;
-      int lineNum = 0;
-      while ((word = br.readLine()) != null) {
-        word = word.trim();
-        if (!word.isEmpty()) {
-          wordList.add(word);
-          // Log first 5 words for encoding check
-          if (lineNum < 5) {
-            MedatoninDB.debugLog("FileRead", "Line " + (lineNum+1) + ": " + word);
+    try (InputStream is = new java.io.FileInputStream(filename);
+         XWPFDocument doc = new XWPFDocument(is)) {
+      for (XWPFParagraph para : doc.getParagraphs()) {
+        String text = para.getText();
+        if (text != null) {
+          for (String t : text.split("\\s+")) {
+            t = t.trim();
+            if (!t.isEmpty()) {
+              wordList.add(t);
+            }
           }
-          lineNum++;
         }
       }
     }
