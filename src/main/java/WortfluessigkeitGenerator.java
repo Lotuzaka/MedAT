@@ -1,148 +1,202 @@
-import java.io.*;
-import java.text.SimpleDateFormat;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Random;
+import java.util.Set;
 
+/**
+ * Generator for the "Wortflüssigkeit" subtest. It creates questions
+ * consisting of scrambled words and multiple choice options. The class follows
+ * the same DAO based architecture as the other generators.
+ */
 public class WortfluessigkeitGenerator {
-    private static final Random RANDOM = new Random();
+    private static final String WORDLIST_PATH = "src/main/resources/wortliste.txt";
+    private static final char[] FILLER = {'S', 'T', 'N', 'R', 'L'};
 
-    public static void execute(String filename) {
-        String todayAsString = new SimpleDateFormat("ddMMyy").format(new Date());
-        List<String> words = readWordsFromFile(filename);
-        if (words.isEmpty()) {
-            MedatoninDB.debugLog("Wortfluessigkeit", "No valid words found in the file.");
-            return;
-        }
+    private final Connection conn;
+    private final QuestionDAO questionDAO;
+    private final OptionDAO optionDAO;
+    private final String category;
+    private final String subcategory;
+    private final Integer simulationId;
+    private final Random random = new Random();
 
-        Collections.shuffle(words);
+    public WortfluessigkeitGenerator(Connection conn,
+                                     String category,
+                                     String subcategory,
+                                     Integer simulationId) {
+        this.conn = conn;
+        this.category = category;
+        this.subcategory = subcategory;
+        this.simulationId = simulationId;
+        this.questionDAO = new QuestionDAO(conn);
+        this.optionDAO = new OptionDAO(conn);
+    }
 
-        try (Writer questionWriter = new OutputStreamWriter(new FileOutputStream("WF_" + todayAsString + ".txt"), java.nio.charset.StandardCharsets.UTF_8);
-             Writer answerWriter = new OutputStreamWriter(new FileOutputStream("WF_lsg_" + todayAsString + ".txt"), java.nio.charset.StandardCharsets.UTF_8)) {
+    /**
+     * Generates {@code numQuestions} items and persists them to the database.
+     */
+    public void execute(int numQuestions) throws IOException, SQLException {
+        List<String> words = readWordList(WORDLIST_PATH);
+        Collections.shuffle(words, random);
 
-            for (int i = 0; i < words.size(); i++) {
-                String word = words.get(i);
-                // Debug: Log word before scrambling
+        int subId = questionDAO.getSubcategoryId(category, subcategory);
+        int nextNr = questionDAO.getNextQuestionNumber(simulationId, subId);
+
+        boolean autoCommit = conn.getAutoCommit();
+        conn.setAutoCommit(false);
+        try {
+            for (int i = 0; i < numQuestions && i < words.size(); i++) {
+                String word = words.get(i).toUpperCase(Locale.GERMAN);
+                String scrambled = scramble(word);
+                char[] optionLetters = new char[4];
+                int correctIndex = fillOptions(word, optionLetters);
+                String questionText = toSpacedString(scrambled);
+
                 if (i < 5) {
-                    MedatoninDB.debugLog("Pipeline", "Word before scramble (index " + i + "): " + word);
-                }
-                String scrambledWord = scrambleString(word);
-                char[] answerChoices = generateAnswerChoices(word);
-                // Debug: Log scrambled word and answer choices
-                if (i < 5) {
-                    MedatoninDB.debugLog("Pipeline", "Scrambled word (index " + i + "): " + scrambledWord);
-                    MedatoninDB.debugLog("Pipeline", "Answer choices (index " + i + "): " + Arrays.toString(answerChoices));
+                    MedatoninDB.debugLog("Wortfluessigkeit",
+                            "ID " + nextNr + " | Word = \"" + word +
+                                    "\" | Scramble = \"" + questionText +
+                                    "\" | Correct = \"" + optionLetters[correctIndex] +
+                                    "\" | Distraktoren = \"" + distractorString(optionLetters, correctIndex) + "\"");
                 }
 
-                // Write to question file
-                questionWriter.write((i + 1) + ".  " + scrambledWord + "\n\n");
-                for (int j = 0; j < answerChoices.length - 1; j++) {
-                    questionWriter.write("\t" + (char) ('A' + j) + ". Anfangsbuchstabe: " + answerChoices[j] + "\n");
-                }
-                questionWriter.write("\tE. Keine Antwort ist richtig.\n\n");
+                int qId = questionDAO.insertQuestion(category, subcategory,
+                        questionText, nextNr++, simulationId);
 
-                // Write to answer file
-                // Debug: Log word before DB/output file write
-                if (i < 5) {
-                    MedatoninDB.debugLog("Pipeline", "Word before output (index " + i + "): " + word);
+                for (int j = 0; j < 5; j++) {
+                    String label = (j == 4) ? "E" : String.valueOf((char) ('A' + j));
+                    String text = (j == 4) ? "Keine Antwort ist richtig." :
+                            "Anfangsbuchstabe: " + optionLetters[j];
+                    boolean correct = j == correctIndex;
+                    optionDAO.insertOption(qId, label, text, correct);
                 }
-                char correctOption = (char) ('A' + findCorrectOptionIndex(answerChoices, word.charAt(0)));
-                answerWriter.write((i + 1) + ".  " + correctOption + "  |  " + word + "\n");
             }
-
-            MedatoninDB.debugLog("Wortfluessigkeit", "Questions and solutions successfully written.");
-        } catch (IOException e) {
-            System.err.println("An error occurred while writing files.");
-            e.printStackTrace();
+            conn.commit();
+        } finally {
+            conn.setAutoCommit(autoCommit);
         }
     }
 
-    private static List<String> readWordsFromFile(String filename) {
-        List<String> words = new ArrayList<>();
-        try (Scanner scanner = new Scanner(new File(filename), java.nio.charset.StandardCharsets.UTF_8)) {
-            int lineNum = 0;
-            while (scanner.hasNextLine()) {
-                String originalWord = scanner.nextLine().trim();
-                // Debug: Log raw word as read from file
-                if (lineNum < 5) {
-                    MedatoninDB.debugLog("FileRead", "Raw word (line " + (lineNum+1) + "): " + originalWord);
+    /**
+     * Reads all valid words from the given UTF-8 file. Only words with a length
+     * between 7 and 9 characters are considered.
+     */
+    List<String> readWordList(String path) throws IOException {
+        List<String> out = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(
+                new java.io.FileInputStream(path), StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String w = line.trim();
+                int len = w.codePointCount(0, w.length());
+                if (len >= 7 && len <= 9) {
+                    out.add(w.toUpperCase(Locale.GERMAN));
                 }
-                String word = originalWord.toUpperCase(Locale.GERMAN);
-                // Debug: Log word after uppercase conversion
-                if (lineNum < 5) {
-                    MedatoninDB.debugLog("FileRead", "Uppercase word (line " + (lineNum+1) + "): " + word);
-                }
-                if (isValidWord(word)) {
-                    words.add(word);
-                    // Log first 5 words for encoding check
-                    if (lineNum < 5) {
-                        MedatoninDB.debugLog("FileRead", "Accepted word (line " + (lineNum+1) + "): " + word);
-                    }
-                }
-                lineNum++;
             }
-        } catch (IOException e) {
-            MedatoninDB.debugLog("FileRead", "Error reading file: " + filename + " - " + e.getMessage());
         }
-
-        return words;
+        return out;
     }
 
-    private static boolean isValidWord(String word) {
-        return word.length() > 4 && word.length() < 12
-                && word.chars().noneMatch(Character::isDigit)
-                // Allow umlauts and ß
-                && hasAtLeastFiveUniqueLetters(word);
-    }
-
-    private static boolean hasAtLeastFiveUniqueLetters(String word) {
-        return word.chars().distinct().count() >= 5;
-    }
-
-    private static String scrambleString(String input) {
-        char[] chars = input.toCharArray();
-        for (int i = chars.length - 1; i > 0; i--) {
-            int j = RANDOM.nextInt(i + 1);
-            // Swap letters
-            char temp = chars[i];
-            chars[i] = chars[j];
-            chars[j] = temp;
+    /**
+     * Scrambles the characters of {@code word} using Fisher–Yates.
+     * The result is guaranteed not to equal the input.
+     */
+    String scramble(String word) {
+        char[] arr = word.toCharArray();
+        for (int attempt = 0; attempt < 20; attempt++) {
+            for (int i = arr.length - 1; i > 0; i--) {
+                int j = random.nextInt(i + 1);
+                char tmp = arr[i];
+                arr[i] = arr[j];
+                arr[j] = tmp;
+            }
+            String result = new String(arr);
+            if (!result.equals(word)) {
+                return result;
+            }
         }
-        return new String(chars);
+        return new StringBuilder(word).reverse().toString();
     }
 
-    private static char[] generateAnswerChoices(String word) {
-        char[] answerChoices = new char[5];
-        Arrays.fill(answerChoices, '\0');
-        int correctIndex = RANDOM.nextInt(5);
-        answerChoices[correctIndex] = word.charAt(0);
+    /**
+     * Checks whether the two strings consist of the same multiset of
+     * code points.
+     */
+    boolean isPermutation(String a, String b) {
+        if (a.codePointCount(0, a.length()) != b.codePointCount(0, b.length())) {
+            return false;
+        }
+        int[] counts = new int[Character.MAX_CODE_POINT + 1];
+        a.codePoints().forEach(cp -> counts[cp]++);
+        b.codePoints().forEach(cp -> counts[cp]--);
+        for (int c : counts) {
+            if (c != 0) {
+                return false;
+            }
+        }
+        return true;
+    }
 
-        int index = 0;
+    /**
+     * Populates {@code target} with four option letters and returns the index of
+     * the correct one.
+     */
+    private int fillOptions(String word, char[] target) {
+        char correct = Character.toUpperCase(word.charAt(0));
+        Set<Character> unique = new HashSet<>();
         for (char c : word.toCharArray()) {
-            if (!containsChar(answerChoices, c) && index < answerChoices.length - 1) {
-                if (answerChoices[index] == '\0') {
-                    answerChoices[index] = c;
-                    index++;
-                }
+            char u = Character.toUpperCase(c);
+            if (u != correct) {
+                unique.add(u);
             }
         }
-
-        return answerChoices;
+        List<Character> distractors = new ArrayList<>(unique);
+        Collections.shuffle(distractors, random);
+        List<Character> letters = new ArrayList<>();
+        letters.add(correct);
+        for (int i = 0; i < distractors.size() && letters.size() < 4; i++) {
+            letters.add(distractors.get(i));
+        }
+        for (char filler : FILLER) {
+            if (letters.size() >= 4) break;
+            if (!letters.contains(filler)) {
+                letters.add(filler);
+            }
+        }
+        Collections.shuffle(letters, random);
+        for (int i = 0; i < 4; i++) {
+            target[i] = letters.get(i);
+        }
+        return letters.indexOf(correct);
     }
 
-    private static boolean containsChar(char[] array, char c) {
-        for (char x : array) {
-            if (x == c) {
-                return true;
-            }
+    private static String toSpacedString(String word) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < word.length(); i++) {
+            if (i > 0) sb.append(' ');
+            sb.append(word.charAt(i));
         }
-        return false;
+        return sb.toString();
     }
 
-    private static int findCorrectOptionIndex(char[] answerChoices, char correctChar) {
-        for (int i = 0; i < answerChoices.length; i++) {
-            if (answerChoices[i] == correctChar) {
-                return i;
-            }
+    private static String distractorString(char[] options, int correctIndex) {
+        StringBuilder sb = new StringBuilder();
+        boolean first = true;
+        for (int i = 0; i < 4; i++) {
+            if (i == correctIndex) continue;
+            if (!first) sb.append(", ");
+            first = false;
+            sb.append(options[i]);
         }
-        return -1; // Should not happen
+        return sb.toString();
     }
 }

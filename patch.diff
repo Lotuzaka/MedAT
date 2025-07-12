@@ -1,68 +1,60 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
-diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
-index 4d04e9e928f2f178282a91e564e94a56474c6b2d..e0194160e3ebd3e75e83e8b9f2fb833f92c2033e 100644
---- a/src/main/java/MedatoninDB.java
-+++ b/src/main/java/MedatoninDB.java
-@@ -857,54 +857,57 @@ public class MedatoninDB extends JFrame {
-         subcategoryOrder.put(category, orderList);
- 
-         System.out.println("Category model created for: " + category);
-         System.out.println("subcategories: " + subcategories.keySet());
- 
-         // Load questions for all subcategories
-         loadQuestionsFromDatabase(category, subcategories, selectedSimulationId);
-     }
- 
-     // Method to load subcategories and place buttons in the panel
-     private void loadSubcategories(String category) {
-         subcategoryPanel.removeAll();
-         subcategoryPanel.setLayout(new BoxLayout(subcategoryPanel, BoxLayout.Y_AXIS));
-         subcategoryPanel.setBackground(backgroundColor);
- 
-         List<String> orderList = subcategoryOrder.get(category);
-         Color subcategoryBackgroundColor = getCategoryButtonColor(category);
- 
-         if (orderList != null) {
-             for (String subcategory : orderList) {
-                 // Container für Button und Minus-Button"-
-                 JPanel buttonContainer = new JPanel();
-                 buttonContainer.setLayout(new BoxLayout(buttonContainer, BoxLayout.X_AXIS));
-                 buttonContainer.setBackground(backgroundColor);
-                 buttonContainer.setAlignmentX(Component.LEFT_ALIGNMENT);
--                buttonContainer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 35));
--
-                 JButton subButton = createModernButton(subcategory);
- 
-+                // Keep the container height consistent with the button height so
-+                // spacing matches the main category buttons
-+                buttonContainer.setMaximumSize(new Dimension(Integer.MAX_VALUE,
-+                        subButton.getPreferredSize().height));
+diff --git a/src/test/java/WortfluessigkeitGeneratorPropertyTest.java b/src/test/java/WortfluessigkeitGeneratorPropertyTest.java
+new file mode 100644
+index 0000000..5cddb03771ca40dbdf13632709878a270c9e06b7
+--- /dev/null
++++ b/src/test/java/WortfluessigkeitGeneratorPropertyTest.java
+@@ -0,0 +1,50 @@
++import static org.junit.jupiter.api.Assertions.assertEquals;
 +
-                 if (isEditMode) {
-                     addDragAndDropFunctionality(subButton, subcategoryPanel);
-                 }
- 
-                 subButton.addActionListener(e -> {
-                     if (!isEditMode) {
-                         switchSubcategory(category, subcategory);
-                         subButton.setBackground(subcategoryBackgroundColor);
-                     }
-                 });
- 
-                 // Right-click to edit text
-                 subButton.addMouseListener(new MouseAdapter() {
-                     @Override
-                     public void mousePressed(MouseEvent e) {
-                         if (SwingUtilities.isRightMouseButton(e) && isEditMode) {
-                             showSubcategoryMenu(e, subButton, category);
-                         }
-                     }
-                 });
- 
-                 buttonContainer.add(subButton);
- 
-                 // Minus-Button nur im Bearbeitungsmodus
-                 if (isEditMode) {
++import java.sql.Connection;
++import java.sql.DriverManager;
++import java.sql.SQLException;
++import java.sql.Statement;
++import java.util.List;
++
++import net.jqwik.api.ForAll;
++import net.jqwik.api.Property;
++import net.jqwik.api.Provide;
++import net.jqwik.api.arbitraries.Integers;
++import net.jqwik.api.Arbitrary;
++
++public class WortfluessigkeitGeneratorPropertyTest {
++
++    private Connection createDb() throws SQLException {
++        Connection c = DriverManager.getConnection("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1");
++        try (Statement st = c.createStatement()) {
++            st.execute("CREATE TABLE categories(id INT PRIMARY KEY AUTO_INCREMENT, name VARCHAR(255))");
++            st.execute("CREATE TABLE subcategories(id INT PRIMARY KEY AUTO_INCREMENT, category_id INT, name VARCHAR(255), order_index INT)");
++            st.execute("CREATE TABLE questions(id INT PRIMARY KEY AUTO_INCREMENT, subcategory_id INT, question_number INT, text VARCHAR(255), format VARCHAR(10), test_simulation_id INT, difficulty VARCHAR(10), shape_data VARCHAR(255), shape_type VARCHAR(255), dissected_pieces_data VARCHAR(255), assembled_pieces_data VARCHAR(255))");
++            st.execute("CREATE TABLE options(id INT PRIMARY KEY AUTO_INCREMENT, question_id INT, label VARCHAR(5), text VARCHAR(255), is_correct BOOLEAN, shape_data VARCHAR(255))");
++            st.execute("INSERT INTO categories(id,name) VALUES(1,'KFF')");
++            st.execute("INSERT INTO subcategories(id,category_id,name,order_index) VALUES(1,1,'Wortflüssigkeit',1)");
++        }
++        return c;
++    }
++
++    @Property
++    void oneCorrectOptionPerQuestion(@ForAll("ids") int simId) throws Exception {
++        try (Connection conn = createDb()) {
++            WortfluessigkeitGenerator gen = new WortfluessigkeitGenerator(conn, "KFF", "Wortflüssigkeit", simId);
++            gen.execute(1);
++            QuestionDAO qDao = new QuestionDAO(conn);
++            int subId = qDao.getSubcategoryId("KFF", "Wortflüssigkeit");
++            List<QuestionDAO> qs = qDao.getQuestionsBySubcategoryAndSimulation(subId, simId);
++            assertEquals(1, qs.size());
++            OptionDAO oDao = new OptionDAO(conn);
++            List<OptionDAO> opts = oDao.getOptionsByQuestionId(qs.get(0).getId());
++            long count = opts.stream().filter(OptionDAO::isCorrect).count();
++            assertEquals(1, count);
++        }
++    }
++
++    @Provide
++    Arbitrary<Integer> ids() {
++        return Integers.between(1, 1000);
++    }
++}
  
 EOF
 )

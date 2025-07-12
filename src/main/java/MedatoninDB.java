@@ -1766,7 +1766,12 @@ public class MedatoninDB extends JFrame {
                         }
 
                         if ("Wortflüssigkeit".equals(currentSubcategory)) {
-                            WortfluessigkeitGenerator.execute("path_to_wortliste.txt");
+                            WortfluessigkeitGenerator gen = new WortfluessigkeitGenerator(conn, currentCategory,
+                                    currentSubcategory, selectedSimulationId);
+                            gen.execute(questionCount);
+                            loadQuestionsFromDatabase(currentCategory, categoryModels.get(currentCategory),
+                                    selectedSimulationId);
+                            switchSubcategory(currentCategory, currentSubcategory);
                         } else if ("Implikationen".equals(currentSubcategory)) {
                             SyllogismGenerator generator = new SyllogismGenerator(conn, currentCategory,
                                     currentSubcategory,
