@@ -1807,6 +1807,7 @@ public class MedatoninDB extends JFrame {
                 });
             }
 
+
         } else {
             // Add button to buttonPanel
             buttonPanel.add(addQuestionButton);
@@ -1814,12 +1815,32 @@ public class MedatoninDB extends JFrame {
             // Set up action listener for "Add Question" button
             addQuestionButton.addActionListener(e -> {
                 addNewQuestionToSubcategory();
-                // Scroll to the newly added question if needed
                 if (questionTable != null && tableModel != null) {
                     questionTable.scrollRectToVisible(questionTable.getCellRect(tableModel.getRowCount() - 1, 0, true));
                 }
             });
         }
+
+        // Buttons for deleting questions
+        JButton deleteMarkedButton = createModernButton("Delete Marked");
+        deleteMarkedButton.setBackground(new Color(211, 47, 47));
+        deleteMarkedButton.setForeground(Color.WHITE);
+        deleteMarkedButton.addActionListener(e -> deleteSelectedQuestions());
+
+        JButton deleteAllButton = createModernButton("Delete All");
+        deleteAllButton.setBackground(new Color(211, 47, 47));
+        deleteAllButton.setForeground(Color.WHITE);
+        deleteAllButton.addActionListener(e -> {
+            int res = JOptionPane.showConfirmDialog(this,
+                    "Delete all questions in this subcategory?", "Confirm Delete",
+                    JOptionPane.YES_NO_OPTION);
+            if (res == JOptionPane.YES_OPTION) {
+                deleteAllQuestions();
+            }
+        });
+
+        buttonPanel.add(deleteMarkedButton);
+        buttonPanel.add(deleteAllButton);
 
         // Add buttonPanel to subcategoryContentPanel
         subcategoryContentPanel.add(buttonPanel, BorderLayout.SOUTH);
@@ -2116,6 +2137,91 @@ public class MedatoninDB extends JFrame {
         if (questionTable != null) {
             questionTable.repaint(); // Ensure the main question table is also repainted
         }
+    }
+
+    // Delete all questions currently marked for deletion
+    private void deleteSelectedQuestions() {
+        if (pendingDeleteQuestions.isEmpty()) {
+            return;
+        }
+
+        List<Integer> toDelete = new ArrayList<>();
+        for (QuestionIdentifier id : pendingDeleteQuestions) {
+            if (currentSubcategory.equals(id.subcategory)) {
+                toDelete.add(id.questionNumber);
+            }
+        }
+        toDelete.sort(Comparator.reverseOrder());
+
+        try {
+            conn.setAutoCommit(false);
+            for (int num : toDelete) {
+                if (questionDAO.deleteQuestion(currentCategory, currentSubcategory, num, selectedSimulationId)) {
+                    renumberQuestionsInDatabaseAndUI(num);
+                } else {
+                    conn.rollback();
+                    JOptionPane.showMessageDialog(this, "Failed to delete question", "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+            }
+            conn.commit();
+        } catch (SQLException e) {
+            try {
+                conn.rollback();
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+            JOptionPane.showMessageDialog(this, "Error deleting questions: " + e.getMessage(), "Error",
+                    JOptionPane.ERROR_MESSAGE);
+        } finally {
+            try {
+                conn.setAutoCommit(true);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        pendingDeleteQuestions.clear();
+        reloadQuestionsAfterDeletion();
+    }
+
+    // Delete every question in the current subcategory
+    private void deleteAllQuestions() {
+        try {
+            int subId = getSubcategoryId(currentCategory, currentSubcategory);
+            List<QuestionDAO> qs = questionDAO.getQuestionsBySubcategoryAndSimulation(subId, selectedSimulationId);
+            List<Integer> nums = new ArrayList<>();
+            for (QuestionDAO q : qs) {
+                nums.add(q.getQuestionNumber());
+            }
+            pendingDeleteQuestions.clear();
+            nums.sort(Comparator.reverseOrder());
+
+            conn.setAutoCommit(false);
+            for (int num : nums) {
+                if (questionDAO.deleteQuestion(currentCategory, currentSubcategory, num, selectedSimulationId)) {
+                    renumberQuestionsInDatabaseAndUI(num);
+                }
+            }
+            conn.commit();
+        } catch (SQLException e) {
+            try {
+                conn.rollback();
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+            JOptionPane.showMessageDialog(this, "Error deleting all questions: " + e.getMessage(), "Error",
+                    JOptionPane.ERROR_MESSAGE);
+        } finally {
+            try {
+                conn.setAutoCommit(true);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        reloadQuestionsAfterDeletion();
     }
 
     // Reset the background color of all subcategory buttons to default
@@ -3019,10 +3125,6 @@ public class MedatoninDB extends JFrame {
                     renumberQuestionsInDatabaseAndUI(Integer.parseInt(questionNumber));
 
                     conn.commit(); // Commit transaction
-                    // Reload questions to ensure correct synchronization between UI and database
-                    reloadQuestionsAfterDeletion();
-                    JOptionPane.showMessageDialog(MedatoninDB.this, "Question deleted successfully", "Success",
-                            JOptionPane.INFORMATION_MESSAGE);
 
                 } else {
                     conn.rollback(); // Rollback if deletion fails
