@@ -1,14 +1,14 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
 diff --git a/src/main/java/WortfluessigkeitGenerator.java b/src/main/java/WortfluessigkeitGenerator.java
-index 75f380eb63e75ab768bff93e3b40a136b213c8f0..0a72a16e58a58db5cd2f6d8865b5f057ceeae56b 100644
+index 0a72a16e58a58db5cd2f6d8865b5f057ceeae56b..da2893b2f0b7df1a44cafea1a60f66b64f973e1b 100644
 --- a/src/main/java/WortfluessigkeitGenerator.java
 +++ b/src/main/java/WortfluessigkeitGenerator.java
-@@ -1,47 +1,51 @@
- import java.io.BufferedReader;
+@@ -1,30 +1,27 @@
+-import java.io.BufferedReader;
  import java.io.IOException;
-+import java.io.InputStream;
- import java.io.InputStreamReader;
- import java.nio.charset.StandardCharsets;
+ import java.io.InputStream;
+-import java.io.InputStreamReader;
+-import java.nio.charset.StandardCharsets;
  import java.sql.Connection;
  import java.sql.SQLException;
  import java.util.ArrayList;
@@ -20,131 +20,20 @@ index 75f380eb63e75ab768bff93e3b40a136b213c8f0..0a72a16e58a58db5cd2f6d8865b5f057
  import java.util.Random;
  import java.util.Set;
  
-+import org.apache.poi.xwpf.usermodel.XWPFDocument;
-+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
-+
+ import org.apache.poi.xwpf.usermodel.XWPFDocument;
+ import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+ 
  /**
   * Generator for the "Wortflüssigkeit" subtest. It creates questions
   * consisting of scrambled words and multiple choice options. The class follows
   * the same DAO based architecture as the other generators.
   */
  public class WortfluessigkeitGenerator {
--    private static final String WORDLIST_PATH = "src/main/resources/wortliste.txt";
-+    private static final String WORDLIST_PATH = "src/main/resources/lists/wortliste.docx";
+     private static final String WORDLIST_PATH = "src/main/resources/lists/wortliste.docx";
      private static final char[] FILLER = {'S', 'T', 'N', 'R', 'L'};
  
      private final Connection conn;
      private final QuestionDAO questionDAO;
-     private final OptionDAO optionDAO;
-     private final String category;
-     private final String subcategory;
-     private final Integer simulationId;
-     private final Random random = new Random();
- 
-     public WortfluessigkeitGenerator(Connection conn,
-                                      String category,
-                                      String subcategory,
-                                      Integer simulationId) {
-         this.conn = conn;
-         this.category = category;
-         this.subcategory = subcategory;
-         this.simulationId = simulationId;
-         this.questionDAO = new QuestionDAO(conn);
-         this.optionDAO = new OptionDAO(conn);
-     }
- 
-     /**
-      * Generates {@code numQuestions} items and persists them to the database.
-      */
-diff --git a/src/main/java/WortfluessigkeitGenerator.java b/src/main/java/WortfluessigkeitGenerator.java
-index 75f380eb63e75ab768bff93e3b40a136b213c8f0..0a72a16e58a58db5cd2f6d8865b5f057ceeae56b 100644
---- a/src/main/java/WortfluessigkeitGenerator.java
-+++ b/src/main/java/WortfluessigkeitGenerator.java
-@@ -74,68 +78,71 @@ public class WortfluessigkeitGenerator {
-                         category,
-                         subcategory,
-                         nextNr++,
-                         questionText,
-                         simulationId,
-                         word,
-                         "WORD",
-                         null,
-                         null);
- 
-                 for (int j = 0; j < 5; j++) {
-                     String label = (j == 4) ? "E" : String.valueOf((char) ('A' + j));
-                     String text = (j == 4) ? "Keine Antwort ist richtig." :
-                             "Anfangsbuchstabe: " + optionLetters[j];
-                     boolean correct = j == correctIndex;
-                     optionDAO.insertOption(qId, label, text, correct);
-                 }
-             }
-             conn.commit();
-         } finally {
-             conn.setAutoCommit(autoCommit);
-         }
-     }
- 
-     /**
--     * Reads all valid words from the given list file.
-+     * Reads all valid words from the given Word file.
-      *
--     * <p>The word list distributed with the project is encoded in
--     * ISO-8859-1. When reading it using UTF-8 the umlaut bytes become
--     * replacement characters, which bypasses the {@link #INVALID_CHARS}
--     * check. To ensure words containing umlauts are filtered out, we
--     * read the file using the correct encoding.</p>
-+     * <p>The file is parsed using Apache POI. All text is extracted and split
-+     * on whitespace.</p>
-      *
--     * <p>Only words with a length between 7 and 9 characters are
--     * considered.</p>
-+     * <p>Only words with a length between 7 and 9 characters are considered.</p>
-      */
-     List<String> readWordList(String path) throws IOException {
-         List<String> raw = new ArrayList<>();
--        try (BufferedReader br = new BufferedReader(new InputStreamReader(
--                new java.io.FileInputStream(path), StandardCharsets.ISO_8859_1))) {
--            String line;
--            while ((line = br.readLine()) != null) {
--                raw.add(line.trim());
-+        try (InputStream is = new java.io.FileInputStream(path);
-+             XWPFDocument doc = new XWPFDocument(is)) {
-+            for (XWPFParagraph para : doc.getParagraphs()) {
-+                String text = para.getText();
-+                if (text != null) {
-+                    for (String t : text.split("\\s+")) {
-+                        t = t.trim();
-+                        if (!t.isEmpty()) {
-+                            raw.add(t);
-+                        }
-+                    }
-+                }
-             }
-         }
- 
-         Set<String> rawUpper = new HashSet<>();
-         for (String r : raw) {
-             rawUpper.add(r.toUpperCase(Locale.GERMAN));
-         }
- 
-         List<String> out = new ArrayList<>();
-         for (String w : raw) {
-             String upper = w.toUpperCase(Locale.GERMAN);
-             int len = upper.codePointCount(0, upper.length());
-             if (len >= 7 && len <= 9 && isValidWord(upper, rawUpper)) {
-                 out.add(upper);
-             }
-         }
-         return out;
-     }
- 
-     private static final Pattern INVALID_CHARS = Pattern.compile(".*[ÄÖÜäöüß].*");
-     private static final Pattern DIMINUTIVE = Pattern.compile(".*(CHEN|LEIN)$", Pattern.CASE_INSENSITIVE);
-     private static final Set<String> PROPER_NAMES = Set.of("ALDI", "DM", "BUNDESLIGA", "BUNDESREPUBLIK");
- 
-     private static boolean isValidWord(String word, Set<String> words) {
-         if (INVALID_CHARS.matcher(word).matches()) {
  
 EOF
 )

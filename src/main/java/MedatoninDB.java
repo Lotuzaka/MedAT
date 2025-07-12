@@ -2318,7 +2318,7 @@ public class MedatoninDB extends JFrame {
         setColumnWidth(table, 2, 120, 150, 130); // Solution
         setColumnWidth(table, 3, 40, 50, 50); // ✓
         setColumnWidth(table, 4, 35, 35, 35); // Set
-        setColumnWidth(table, 5, 88, 100, 90); // Diff
+        setColumnWidth(table, 5, 35, 100, 60); // Diff
     }
 
     /**
