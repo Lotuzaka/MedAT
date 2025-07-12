@@ -1,294 +1,71 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
-diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
-index c767323a0fdc71b7c137020531afba16d040a4be..4243c42b05e020f359c77d3e469650df3377011a 100644
---- a/src/main/java/MedatoninDB.java
-+++ b/src/main/java/MedatoninDB.java
-@@ -1785,64 +1785,85 @@ public class MedatoninDB extends JFrame {
-                         } else if ("Zahlenfolgen".equals(currentSubcategory)) {
-                             ZahlenfolgenGenerator generator = new ZahlenfolgenGenerator(conn, currentCategory,
-                                     currentSubcategory, selectedSimulationId);
-                             generator.execute(questionCount);
+diff --git a/src/main/java/WortfluessigkeitGenerator.java b/src/main/java/WortfluessigkeitGenerator.java
+index 708cb4b6f675a2275e763bd0bdd4d0c267ebaafb..9401f1aa5158ec9c29383803a2ccf98ec2e5e0c3 100644
+--- a/src/main/java/WortfluessigkeitGenerator.java
++++ b/src/main/java/WortfluessigkeitGenerator.java
+@@ -48,52 +48,60 @@ public class WortfluessigkeitGenerator {
+     public void execute(int numQuestions) throws IOException, SQLException {
+         List<String> words = readWordList(WORDLIST_PATH);
+         Collections.shuffle(words, random);
  
-                             // Reload questions and refresh UI
-                             loadQuestionsFromDatabase(currentCategory, categoryModels.get(currentCategory),
-                                     selectedSimulationId);
-                             tableModel.fireTableDataChanged();
-                         }
+         int subId = questionDAO.getSubcategoryId(category, subcategory);
+         int nextNr = questionDAO.getNextQuestionNumber(simulationId, subId);
  
-                         if (questionTable != null && tableModel != null) {
-                             questionTable.scrollRectToVisible(
-                                     questionTable.getCellRect(tableModel.getRowCount() - 1, 0, true));
-                         }
-                     } catch (SQLException ex) {
-                         debugLog("QuestionGen", currentSubcategory + " not generated SQLException: " + ex.getMessage());
-                         ex.printStackTrace();
-                     } catch (IOException e1) {
-                         debugLog("QuestionGen", currentSubcategory + " not generated IOException: " + e1.getMessage());
-                         e1.printStackTrace();
-                     }
-                 });
-             }
+         boolean autoCommit = conn.getAutoCommit();
+         conn.setAutoCommit(false);
+         try {
+             for (int i = 0; i < numQuestions && i < words.size(); i++) {
+                 String word = words.get(i).toUpperCase(Locale.GERMAN);
+                 String scrambled = scramble(word);
+                 char[] optionLetters = new char[4];
+                 int correctIndex = fillOptions(word, optionLetters);
+                 String questionText = toSpacedString(scrambled);
  
-+
-         } else {
-             // Add button to buttonPanel
-             buttonPanel.add(addQuestionButton);
- 
-             // Set up action listener for "Add Question" button
-             addQuestionButton.addActionListener(e -> {
-                 addNewQuestionToSubcategory();
--                // Scroll to the newly added question if needed
-                 if (questionTable != null && tableModel != null) {
-                     questionTable.scrollRectToVisible(questionTable.getCellRect(tableModel.getRowCount() - 1, 0, true));
+                 if (i < 5) {
+                     MedatoninDB.debugLog("Wortfluessigkeit",
+                             "ID " + nextNr + " | Word = \"" + word +
+                                     "\" | Scramble = \"" + questionText +
+                                     "\" | Correct = \"" + optionLetters[correctIndex] +
+                                     "\" | Distraktoren = \"" + distractorString(optionLetters, correctIndex) + "\"");
                  }
-             });
-         }
  
-+        // Buttons for deleting questions
-+        JButton deleteMarkedButton = createModernButton("Delete Marked");
-+        deleteMarkedButton.setBackground(new Color(211, 47, 47));
-+        deleteMarkedButton.setForeground(Color.WHITE);
-+        deleteMarkedButton.addActionListener(e -> deleteSelectedQuestions());
-+
-+        JButton deleteAllButton = createModernButton("Delete All");
-+        deleteAllButton.setBackground(new Color(211, 47, 47));
-+        deleteAllButton.setForeground(Color.WHITE);
-+        deleteAllButton.addActionListener(e -> {
-+            int res = JOptionPane.showConfirmDialog(this,
-+                    "Delete all questions in this subcategory?", "Confirm Delete",
-+                    JOptionPane.YES_NO_OPTION);
-+            if (res == JOptionPane.YES_OPTION) {
-+                deleteAllQuestions();
-+            }
-+        });
-+
-+        buttonPanel.add(deleteMarkedButton);
-+        buttonPanel.add(deleteAllButton);
-+
-         // Add buttonPanel to subcategoryContentPanel
-         subcategoryContentPanel.add(buttonPanel, BorderLayout.SOUTH);
+-                int qId = questionDAO.insertQuestion(category, subcategory,
+-                        questionText, nextNr++, simulationId);
++                int qId = questionDAO.insertQuestionWithShape(
++                        category,
++                        subcategory,
++                        nextNr++,
++                        questionText,
++                        simulationId,
++                        word,
++                        "WORD",
++                        null,
++                        null);
  
-         // Add subcategoryContentPanel to mainContentPanel
-         mainContentPanel.add(subcategoryContentPanel, BorderLayout.CENTER);
- 
-         // Ensure safe UI updates
-         mainContentPanel.revalidate();
-         mainContentPanel.repaint();
- 
-         // Update the print button label immediately when switching subcategories
-         updatePrintButtonLabel();
- 
-         // Highlight the selected subcategory button and reset others
-         resetSubcategoryButtons();
- 
-         // Find the button corresponding to the selected subcategory
-         JButton newSelectedButton = getSubcategoryButton(subcategory);
-         if (newSelectedButton != null) {
-             // Set the background color of the new selected button
-             newSelectedButton.setBackground(new Color(1, 38, 65));
-             selectedSubcategoryButton = newSelectedButton;
-         }
- 
-         // Load questions from the database
-diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
-index c767323a0fdc71b7c137020531afba16d040a4be..4243c42b05e020f359c77d3e469650df3377011a 100644
---- a/src/main/java/MedatoninDB.java
-+++ b/src/main/java/MedatoninDB.java
-@@ -2096,50 +2117,135 @@ public class MedatoninDB extends JFrame {
- 
-     // Repaint all tables in the main content panel to clear highlights
-     private void repaintAllTables() {
-         for (Component comp : mainContentPanel.getComponents()) {
-             if (comp instanceof JPanel) {
-                 JPanel subPanel = (JPanel) comp;
-                 for (Component subComp : subPanel.getComponents()) {
-                     if (subComp instanceof JScrollPane) {
-                         JScrollPane scrollPane = (JScrollPane) subComp;
-                         if (scrollPane.getViewport().getView() instanceof JTable) {
-                             JTable table = (JTable) scrollPane.getViewport().getView();
-                             table.repaint();
-                         }
-                     }
+                 for (int j = 0; j < 5; j++) {
+                     String label = (j == 4) ? "E" : String.valueOf((char) ('A' + j));
+                     String text = (j == 4) ? "Keine Antwort ist richtig." :
+                             "Anfangsbuchstabe: " + optionLetters[j];
+                     boolean correct = j == correctIndex;
+                     optionDAO.insertOption(qId, label, text, correct);
                  }
-             } else if (comp instanceof JButton) {
-                 // If you need to do something with buttons, do it here
-                 debugLog("UI", "Button text: " + ((JButton) comp).getText());
              }
-         }
-         if (questionTable != null) {
-             questionTable.repaint(); // Ensure the main question table is also repainted
+             conn.commit();
+         } finally {
+             conn.setAutoCommit(autoCommit);
          }
      }
  
-+    // Delete all questions currently marked for deletion
-+    private void deleteSelectedQuestions() {
-+        if (pendingDeleteQuestions.isEmpty()) {
-+            return;
-+        }
-+
-+        List<Integer> toDelete = new ArrayList<>();
-+        for (QuestionIdentifier id : pendingDeleteQuestions) {
-+            if (currentSubcategory.equals(id.subcategory)) {
-+                toDelete.add(id.questionNumber);
-+            }
-+        }
-+        toDelete.sort(Comparator.reverseOrder());
-+
-+        try {
-+            conn.setAutoCommit(false);
-+            for (int num : toDelete) {
-+                if (questionDAO.deleteQuestion(currentCategory, currentSubcategory, num, selectedSimulationId)) {
-+                    renumberQuestionsInDatabaseAndUI(num);
-+                } else {
-+                    conn.rollback();
-+                    JOptionPane.showMessageDialog(this, "Failed to delete question", "Error",
-+                            JOptionPane.ERROR_MESSAGE);
-+                    return;
-+                }
-+            }
-+            conn.commit();
-+        } catch (SQLException e) {
-+            try {
-+                conn.rollback();
-+            } catch (SQLException ex) {
-+                ex.printStackTrace();
-+            }
-+            JOptionPane.showMessageDialog(this, "Error deleting questions: " + e.getMessage(), "Error",
-+                    JOptionPane.ERROR_MESSAGE);
-+        } finally {
-+            try {
-+                conn.setAutoCommit(true);
-+            } catch (SQLException e) {
-+                e.printStackTrace();
-+            }
-+        }
-+
-+        pendingDeleteQuestions.clear();
-+        reloadQuestionsAfterDeletion();
-+    }
-+
-+    // Delete every question in the current subcategory
-+    private void deleteAllQuestions() {
-+        try {
-+            int subId = getSubcategoryId(currentCategory, currentSubcategory);
-+            List<QuestionDAO> qs = questionDAO.getQuestionsBySubcategoryAndSimulation(subId, selectedSimulationId);
-+            List<Integer> nums = new ArrayList<>();
-+            for (QuestionDAO q : qs) {
-+                nums.add(q.getQuestionNumber());
-+            }
-+            pendingDeleteQuestions.clear();
-+            nums.sort(Comparator.reverseOrder());
-+
-+            conn.setAutoCommit(false);
-+            for (int num : nums) {
-+                if (questionDAO.deleteQuestion(currentCategory, currentSubcategory, num, selectedSimulationId)) {
-+                    renumberQuestionsInDatabaseAndUI(num);
-+                }
-+            }
-+            conn.commit();
-+        } catch (SQLException e) {
-+            try {
-+                conn.rollback();
-+            } catch (SQLException ex) {
-+                ex.printStackTrace();
-+            }
-+            JOptionPane.showMessageDialog(this, "Error deleting all questions: " + e.getMessage(), "Error",
-+                    JOptionPane.ERROR_MESSAGE);
-+        } finally {
-+            try {
-+                conn.setAutoCommit(true);
-+            } catch (SQLException e) {
-+                e.printStackTrace();
-+            }
-+        }
-+
-+        reloadQuestionsAfterDeletion();
-+    }
-+
-     // Reset the background color of all subcategory buttons to default
-     private void resetSubcategoryButtons() {
-         // Check if there is a currently selected button before resetting
-         if (selectedSubcategoryButton != null) {
-             selectedSubcategoryButton.setBackground(new Color(188, 188, 188)); // Reset to default color
-             selectedSubcategoryButton = null; // Clear the reference to ensure no stale selection remains
-         }
-     }
- 
-     // Method to check if the "Set" column should be visible for the current
-     // category
-     private boolean isSetColumnNotVisible(String category) {
-         // Define which categories should have the "Set" column visible
-         List<String> categoriesWithSetColumn = Arrays.asList("KFF"); // Add more categories as needed
-         return categoriesWithSetColumn.contains(category);
-     }
- 
-     // Method to hide the "Set" column
- 
-     private void hideSetColumn() {
-         if (questionTable == null) return;
-         TableColumnModel columnModel = questionTable.getColumnModel();
-         int columnIndex = getColumnIndexByName("Set");
-         if (columnIndex != -1) {
-             TableColumn setColumn = columnModel.getColumn(columnIndex);
-diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
-index c767323a0fdc71b7c137020531afba16d040a4be..4243c42b05e020f359c77d3e469650df3377011a 100644
---- a/src/main/java/MedatoninDB.java
-+++ b/src/main/java/MedatoninDB.java
-@@ -2997,54 +3103,50 @@ public class MedatoninDB extends JFrame {
- 
-         private void deleteQuestionAtRow(JTable table, int row) {
-             if (table == null || questionTable == null) {
-                 JOptionPane.showMessageDialog(MedatoninDB.this, "Error: Table not initialized", "Error",
-                         JOptionPane.ERROR_MESSAGE);
-                 return;
-             }
-             if (row < 0 || row >= table.getRowCount()) {
-                 return;
-             }
-             DefaultTableModel model = (DefaultTableModel) table.getModel();
-             String questionNumber = String.valueOf(model.getValueAt(row, 0)); // Get the current question number
-             int deletedQuestionNumber = Integer.parseInt(questionNumber);
- 
-             try {
-                 conn.setAutoCommit(false); // Start transaction
- 
-                 // Delete the question from the database using the original question number
-                 if (questionDAO.deleteQuestion(currentCategory, currentSubcategory, deletedQuestionNumber,
-                         selectedSimulationId)) {
- 
-                     // Renumber the remaining questions in both the UI and the database
-                     renumberQuestionsInDatabaseAndUI(Integer.parseInt(questionNumber));
- 
-                     conn.commit(); // Commit transaction
--                    // Reload questions to ensure correct synchronization between UI and database
--                    reloadQuestionsAfterDeletion();
--                    JOptionPane.showMessageDialog(MedatoninDB.this, "Question deleted successfully", "Success",
--                            JOptionPane.INFORMATION_MESSAGE);
- 
-                 } else {
-                     conn.rollback(); // Rollback if deletion fails
-                     JOptionPane.showMessageDialog(MedatoninDB.this, "Failed to delete question", "Error",
-                             JOptionPane.ERROR_MESSAGE);
-                 }
-             } catch (SQLException e) {
-                 try {
-                     conn.rollback(); // Rollback if an error occurs
-                 } catch (SQLException ex) {
-                     ex.printStackTrace();
-                 }
-                 e.printStackTrace();
-                 JOptionPane.showMessageDialog(MedatoninDB.this, "Error deleting question: " + e.getMessage(),
-                         "Error",
-                         JOptionPane.ERROR_MESSAGE);
-             } finally {
-                 try {
-                     conn.setAutoCommit(true); // Reset to auto-commit mode
-                 } catch (SQLException e) {
-                     e.printStackTrace();
-                 }
-             }
- 
-             // Clear pending delete state
+     /**
+      * Reads all valid words from the given UTF-8 file. Only words with a length
+      * between 7 and 9 characters are considered.
+      */
+     List<String> readWordList(String path) throws IOException {
+         List<String> raw = new ArrayList<>();
+         try (BufferedReader br = new BufferedReader(new InputStreamReader(
+                 new java.io.FileInputStream(path), StandardCharsets.UTF_8))) {
+             String line;
+             while ((line = br.readLine()) != null) {
  
 EOF
 )

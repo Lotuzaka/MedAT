@@ -20,9 +20,9 @@ class FigurenOptionsData {
 
 // Enum for question difficulty (copied from MedatoninDB)
 enum Difficulty {
-    EASY(new Color(46, 125, 50), "●"),
-    MEDIUM(new Color(239, 108, 0), "●●"),
-    HARD(new Color(211, 47, 47), "●●●");
+    EASY(new Color(150, 190, 152), "●"),
+    MEDIUM(new Color(247, 181, 127), "●●"),
+    HARD(new Color(233, 151, 151), "●●●");
     public final Color color;
     public final String symbol;
     Difficulty(Color color, String symbol) {
@@ -92,7 +92,7 @@ public class CustomRenderer extends DefaultTableCellRenderer {
                     List<Geometry> assembled = data.dissectedPieces.originalPieces;
                     shapePanel = new PolygonPanel(assembled);
                     shapePanel.setAssembled(true);
-                    optionPanel.setBackground(new Color(0, 153, 76, 75));
+                    optionPanel.setBackground(new Color(127, 204, 165, 75));
                 } else {
                     // Distractor option
                     try {
@@ -131,13 +131,13 @@ public class CustomRenderer extends DefaultTableCellRenderer {
                 c.setBackground(Color.RED);
                 c.setForeground(Color.WHITE);
             } else {
-                c.setBackground(new Color(188, 188, 188));
+                c.setBackground(new Color(221, 221, 221));
             }
         } else {
             c.setBackground(Color.WHITE);
             Boolean isChecked = (Boolean) model.getValueAt(row, 2);
             if (isChecked != null && isChecked) {
-                c.setBackground(new Color(0, 153, 76, 75));
+                c.setBackground(new Color(127, 204, 165, 75));
             }
         }
 
@@ -177,7 +177,7 @@ public class CustomRenderer extends DefaultTableCellRenderer {
                 JLabel empty = new JLabel();
                 empty.setOpaque(true);
                 if (isChecked != null && isChecked) {
-                    empty.setBackground(new Color(0, 153, 76, 75));
+                    empty.setBackground(new Color(127, 204, 165, 75));
                 } else {
                     empty.setBackground(c.getBackground());
                 }
@@ -194,7 +194,7 @@ public class CustomRenderer extends DefaultTableCellRenderer {
         } else if (!isPendingDeletion) {
             Boolean isChecked = (Boolean) model.getValueAt(row, 2);
             if (isChecked != null && isChecked) {
-                c.setBackground(new Color(0, 153, 76, 75));
+                c.setBackground(new Color(127, 204, 165, 75));
             }
         }
 

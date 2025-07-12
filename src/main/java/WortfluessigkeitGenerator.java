@@ -70,8 +70,16 @@ public class WortfluessigkeitGenerator {
                                     "\" | Distraktoren = \"" + distractorString(optionLetters, correctIndex) + "\"");
                 }
 
-                int qId = questionDAO.insertQuestion(category, subcategory,
-                        questionText, nextNr++, simulationId);
+                int qId = questionDAO.insertQuestionWithShape(
+                        category,
+                        subcategory,
+                        nextNr++,
+                        questionText,
+                        simulationId,
+                        word,
+                        "WORD",
+                        null,
+                        null);
 
                 for (int j = 0; j < 5; j++) {
                     String label = (j == 4) ? "E" : String.valueOf((char) ('A' + j));
