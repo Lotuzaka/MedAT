@@ -57,13 +57,23 @@ public class CustomRenderer extends DefaultTableCellRenderer {
         DefaultTableModel model = (DefaultTableModel) table.getModel();
         boolean isQuestionRow = isFrageRow(row, model);
 
-        // Render dissected pieces for question rows (Figuren)
+        // Render figures for question rows (Figuren)
         if (isQuestionRow && value instanceof FigurenGenerator.DissectedPieces) {
             FigurenGenerator.DissectedPieces dissectedPieces = (FigurenGenerator.DissectedPieces) value;
-            PolygonPanel panel = new PolygonPanel(dissectedPieces.rotatedPieces);
-            panel.setAssembled(false); // Display dissected pieces
-            panel.setPreferredSize(new Dimension(200, 200));
-            return panel;
+            PolygonPanel panel;
+            if (column == 1) {
+                panel = new PolygonPanel(dissectedPieces.rotatedPieces);
+                panel.setAssembled(false); // Display dissected pieces
+            } else if (column == 2) {
+                panel = new PolygonPanel(dissectedPieces.originalPieces);
+                panel.setAssembled(true); // Display assembled figure as solution
+            } else {
+                panel = null;
+            }
+            if (panel != null) {
+                panel.setPreferredSize(new Dimension(200, 200));
+                return panel;
+            }
         }
 
         // Always render options panel for FigurenOptionsData, regardless of subcategory
@@ -117,6 +127,19 @@ public class CustomRenderer extends DefaultTableCellRenderer {
         }
 
         Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+
+        // Handle multiline text for Syllogism premises
+        if (isQuestionRow && column == 1 && value instanceof String && ((String) value).contains("\n")) {
+            JTextArea area = new JTextArea((String) value);
+            area.setLineWrap(true);
+            area.setWrapStyleWord(true);
+            area.setOpaque(true);
+            area.setBackground(c.getBackground());
+            area.setForeground(Color.BLACK);
+            area.setFont(c.getFont());
+            return area;
+        }
+
         c.setForeground(Color.BLACK);
 
         boolean isPendingDeletion = false;

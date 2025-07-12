@@ -179,7 +179,7 @@ public class MedatoninDB extends JFrame {
             deleteButton.setMaximumSize(new Dimension(30, 25));
             deleteButton.setMinimumSize(new Dimension(30, 25));
             deleteButton.setBackground(new Color(233, 151, 151));
-            deleteButton.setForeground(Color.WHITE);
+            deleteButton.setForeground(Color.BLACK);
             deleteButton.setFont(new Font("Arial", Font.BOLD, 14));
             deleteButton.setFocusPainted(false);
             deleteButton.setBorderPainted(false);
@@ -351,12 +351,12 @@ public class MedatoninDB extends JFrame {
         UIManager.put("Label.font", modernFont);
         UIManager.put("TableHeader.font", new Font("SansSerif", Font.BOLD, 14));
         UIManager.put("Button.background", new Color(221, 221, 221));
-        UIManager.put("Button.foreground", Color.WHITE);
+        UIManager.put("Button.foreground", Color.BLACK);
 
         // Custom button UI to make buttons look flat
         printCategoryButton = createModernButton(currentCategory + " Print");
         printCategoryButton.setBackground(new Color(128, 146, 160));
-        printCategoryButton.setForeground(Color.WHITE);
+        printCategoryButton.setForeground(Color.BLACK);
         JButton printAllButton = createModernButton("All Print");
 
         // Set up modern color theme for the frame
@@ -491,7 +491,7 @@ public class MedatoninDB extends JFrame {
                     editToggleButton.setIcon(penEditIcon); // Change to the edit icon
                     editToggleButton.setText("Bearbeitungsmodus"); // Display the text next to the icon
                     editToggleButton.setBackground(Color.red);
-                    editToggleButton.setForeground(Color.WHITE);
+                    editToggleButton.setForeground(Color.BLACK);
                     setEditMode(true);
                     // Add any specific actions when edit mode is enabled
                 } else {
@@ -952,6 +952,7 @@ public class MedatoninDB extends JFrame {
                 buttonContainer.setBackground(backgroundColor);
                 buttonContainer.setAlignmentX(Component.LEFT_ALIGNMENT);
                 JButton subButton = createModernButton(subcategory);
+                subButton.setBackground(subcategoryBackgroundColor);
 
                 // Keep the container height consistent with the button height so
                 // spacing matches the main category buttons
@@ -990,7 +991,7 @@ public class MedatoninDB extends JFrame {
                     deleteButton.setMaximumSize(new Dimension(30, 25));
                     deleteButton.setMinimumSize(new Dimension(30, 25));
                     deleteButton.setBackground(new Color(233, 151, 151));
-                    deleteButton.setForeground(Color.WHITE);
+                    deleteButton.setForeground(Color.BLACK);
                     deleteButton.setFont(new Font("Arial", Font.BOLD, 14));
                     deleteButton.setFocusPainted(false);
                     deleteButton.setBorderPainted(false);
@@ -1038,7 +1039,7 @@ public class MedatoninDB extends JFrame {
             case "Mathematik":
                 return new Color(128, 146, 160); // Blue background for Mathematik
             case "KFF":
-                return Color.CYAN;
+                return new Color(216, 232, 255); // Pastel blue for KFF
             default:
                 return new Color(221, 221, 221); // Default dark grey background
         }
@@ -1194,7 +1195,7 @@ public class MedatoninDB extends JFrame {
 
             JButton addQuestionButton = createModernButton("Add Question");
             addQuestionButton.setBackground(new Color(127, 204, 165));
-            addQuestionButton.setForeground(Color.WHITE);
+            addQuestionButton.setForeground(Color.BLACK);
             addQuestionButton.setFont(new Font("SansSerif", Font.BOLD, 14));
             addQuestionButton.setFocusPainted(false);
             addQuestionButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
@@ -1205,7 +1206,7 @@ public class MedatoninDB extends JFrame {
             if ("KFF".equals(category)) {
                 JButton generateButton = createModernButton("Generate");
                 generateButton.setBackground(new Color(127, 204, 165));
-                generateButton.setForeground(Color.WHITE);
+                generateButton.setForeground(Color.BLACK);
                 generateButton.setFont(new Font("SansSerif", Font.BOLD, 14));
                 generateButton.setFocusPainted(false);
                 generateButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
@@ -1541,7 +1542,7 @@ public class MedatoninDB extends JFrame {
         } else if (category.equals("Mathematik")) {
             mathButton.setBackground(new Color(128, 146, 160)); // Blue background
         } else if (category.equals("KFF")) {
-            kffButton.setBackground(Color.CYAN); // Blue background
+            kffButton.setBackground(new Color(216, 232, 255)); // Pastel blue
         }
     }
 
@@ -1652,7 +1653,7 @@ public class MedatoninDB extends JFrame {
         // For other categories and subcategories, only add "Add Question" button
         JButton addQuestionButton = createModernButton("Add Question");
         addQuestionButton.setBackground(new Color(127, 204, 165)); // Green background
-        addQuestionButton.setForeground(Color.WHITE);
+        addQuestionButton.setForeground(Color.BLACK);
         addQuestionButton.setFont(new Font("SansSerif", Font.BOLD, 14));
         addQuestionButton.setFocusPainted(false);
         addQuestionButton.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // Button padding
@@ -1667,7 +1668,7 @@ public class MedatoninDB extends JFrame {
             // Create the button first to get its height and style
             JButton generateButton = createModernButton("Generate");
             generateButton.setBackground(new Color(127, 204, 165)); // Green background
-            generateButton.setForeground(Color.WHITE);
+            generateButton.setForeground(Color.BLACK);
             generateButton.setFont(new Font("SansSerif", Font.BOLD, 14));
             generateButton.setFocusPainted(false);
             generateButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10)); // Padding for aesthetics
@@ -1824,12 +1825,12 @@ public class MedatoninDB extends JFrame {
         // Buttons for deleting questions
         JButton deleteMarkedButton = createModernButton("Delete Marked");
         deleteMarkedButton.setBackground(new Color(233, 151, 151));
-        deleteMarkedButton.setForeground(Color.WHITE);
+        deleteMarkedButton.setForeground(Color.BLACK);
         deleteMarkedButton.addActionListener(e -> deleteSelectedQuestions());
 
         JButton deleteAllButton = createModernButton("Delete All");
         deleteAllButton.setBackground(new Color(233, 151, 151));
-        deleteAllButton.setForeground(Color.WHITE);
+        deleteAllButton.setForeground(Color.BLACK);
         deleteAllButton.addActionListener(e -> {
             int res = JOptionPane.showConfirmDialog(this,
                     "Delete all questions in this subcategory?", "Confirm Delete",
@@ -1862,7 +1863,7 @@ public class MedatoninDB extends JFrame {
         JButton newSelectedButton = getSubcategoryButton(subcategory);
         if (newSelectedButton != null) {
             // Set the background color of the new selected button
-            newSelectedButton.setBackground(new Color(128, 146, 160));
+            newSelectedButton.setBackground(getCategoryButtonColor(category));
             selectedSubcategoryButton = newSelectedButton;
         }
 
@@ -3273,23 +3274,25 @@ public class MedatoninDB extends JFrame {
     }
 
     private void loadStandardQuestionIntoModel(DefaultTableModel model, QuestionDAO question, OptionDAO optionDAO) {
-        // Add question row
+        int questionRowIndex = model.getRowCount();
         model.addRow(new Object[] {
                 String.valueOf(question.getQuestionNumber()),
                 question.getText(),
-                question.getShapeData(),
-                false, // Checkbox state
+                "",
+                false,
                 question.getFormat(),
-                question.getDifficulty() // Neue Spalte
+                question.getDifficulty()
         });
 
-        // Load and add options
         try {
             List<OptionDAO> options = optionDAO.getOptionsForQuestion(question.getId());
             boolean isLang = "Lang".equals(question.getFormat());
-            // Sort options
+            String correctText = null;
             Collections.sort(options, Comparator.comparing(OptionDAO::getLabel));
             for (OptionDAO option : options) {
+                if (option.isCorrect()) {
+                    correctText = option.getText();
+                }
                 String label = option.getLabel();
                 if (isLang && label.matches("\\d+\\.")) {
                     model.addRow(new Object[] { label, option.getText(), "", option.isCorrect(), "" });
@@ -3298,6 +3301,12 @@ public class MedatoninDB extends JFrame {
                 } else if (!isLang && label.matches("[A-E]")) {
                     model.addRow(new Object[] { label + ")", option.getText(), "", option.isCorrect(), "" });
                 }
+            }
+
+            if ("Zahlenfolgen".equals(currentSubcategory) && correctText != null) {
+                model.setValueAt(correctText, questionRowIndex, 2);
+            } else {
+                model.setValueAt(question.getShapeData(), questionRowIndex, 2);
             }
         } catch (SQLException e) {
             debugLog("DB", "Error loading options for question ID " + question.getId() + ": "
@@ -3319,7 +3328,12 @@ public class MedatoninDB extends JFrame {
             FigurenGenerator.DissectedPieces dissectedPieces = new FigurenGenerator.DissectedPieces(
                 dissectedPiecesList, dissectedPiecesList, assembledPiecesList);
             model.addRow(new Object[] {
-                String.valueOf(question.getQuestionNumber()), dissectedPieces, "", false, "Kurz", "MEDIUM"
+                String.valueOf(question.getQuestionNumber()),
+                dissectedPieces,
+                dissectedPieces,
+                false,
+                "Kurz",
+                "MEDIUM"
             });
             List<OptionDAO> options = optionDAO.getOptionsForQuestion(question.getId());
             FigurenOptionsData figurenOptionsData = new FigurenOptionsData(options, dissectedPieces);
