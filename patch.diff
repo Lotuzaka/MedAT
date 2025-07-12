@@ -1,6 +1,6 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
 diff --git a/src/main/java/WortfluessigkeitGenerator.java b/src/main/java/WortfluessigkeitGenerator.java
-index 9401f1aa5158ec9c29383803a2ccf98ec2e5e0c3..bb78a5f2246a3805ecb13d46a055da96be613855 100644
+index 75f380eb63e75ab768bff93e3b40a136b213c8f0..0a72a16e58a58db5cd2f6d8865b5f057ceeae56b 100644
 --- a/src/main/java/WortfluessigkeitGenerator.java
 +++ b/src/main/java/WortfluessigkeitGenerator.java
 @@ -1,47 +1,51 @@
@@ -57,10 +57,10 @@ index 9401f1aa5158ec9c29383803a2ccf98ec2e5e0c3..bb78a5f2246a3805ecb13d46a055da96
       * Generates {@code numQuestions} items and persists them to the database.
       */
 diff --git a/src/main/java/WortfluessigkeitGenerator.java b/src/main/java/WortfluessigkeitGenerator.java
-index 9401f1aa5158ec9c29383803a2ccf98ec2e5e0c3..bb78a5f2246a3805ecb13d46a055da96be613855 100644
+index 75f380eb63e75ab768bff93e3b40a136b213c8f0..0a72a16e58a58db5cd2f6d8865b5f057ceeae56b 100644
 --- a/src/main/java/WortfluessigkeitGenerator.java
 +++ b/src/main/java/WortfluessigkeitGenerator.java
-@@ -74,60 +78,68 @@ public class WortfluessigkeitGenerator {
+@@ -74,68 +78,71 @@ public class WortfluessigkeitGenerator {
                          category,
                          subcategory,
                          nextNr++,
@@ -86,16 +86,25 @@ index 9401f1aa5158ec9c29383803a2ccf98ec2e5e0c3..bb78a5f2246a3805ecb13d46a055da96
      }
  
      /**
--     * Reads all valid words from the given UTF-8 file. Only words with a length
--     * between 7 and 9 characters are considered.
-+     * Reads all valid words from the given Word file. Only words with a length
-+     * between 7 and 9 characters are considered. The method extracts all text
-+     * from the document and splits it on whitespace.
+-     * Reads all valid words from the given list file.
++     * Reads all valid words from the given Word file.
+      *
+-     * <p>The word list distributed with the project is encoded in
+-     * ISO-8859-1. When reading it using UTF-8 the umlaut bytes become
+-     * replacement characters, which bypasses the {@link #INVALID_CHARS}
+-     * check. To ensure words containing umlauts are filtered out, we
+-     * read the file using the correct encoding.</p>
++     * <p>The file is parsed using Apache POI. All text is extracted and split
++     * on whitespace.</p>
+      *
+-     * <p>Only words with a length between 7 and 9 characters are
+-     * considered.</p>
++     * <p>Only words with a length between 7 and 9 characters are considered.</p>
       */
      List<String> readWordList(String path) throws IOException {
          List<String> raw = new ArrayList<>();
 -        try (BufferedReader br = new BufferedReader(new InputStreamReader(
--                new java.io.FileInputStream(path), StandardCharsets.UTF_8))) {
+-                new java.io.FileInputStream(path), StandardCharsets.ISO_8859_1))) {
 -            String line;
 -            while ((line = br.readLine()) != null) {
 -                raw.add(line.trim());

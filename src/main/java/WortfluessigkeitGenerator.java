@@ -1,5 +1,6 @@
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
@@ -13,13 +14,16 @@ import java.util.regex.Pattern;
 import java.util.Random;
 import java.util.Set;
 
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+
 /**
  * Generator for the "Wortflüssigkeit" subtest. It creates questions
  * consisting of scrambled words and multiple choice options. The class follows
  * the same DAO based architecture as the other generators.
  */
 public class WortfluessigkeitGenerator {
-    private static final String WORDLIST_PATH = "src/main/resources/wortliste.txt";
+    private static final String WORDLIST_PATH = "src/main/resources/lists/wortliste.docx";
     private static final char[] FILLER = {'S', 'T', 'N', 'R', 'L'};
 
     private final Connection conn;
@@ -96,24 +100,27 @@ public class WortfluessigkeitGenerator {
     }
 
     /**
-     * Reads all valid words from the given list file.
+     * Reads all valid words from the given Word file.
      *
-     * <p>The word list distributed with the project is encoded in
-     * ISO-8859-1. When reading it using UTF-8 the umlaut bytes become
-     * replacement characters, which bypasses the {@link #INVALID_CHARS}
-     * check. To ensure words containing umlauts are filtered out, we
-     * read the file using the correct encoding.</p>
+     * <p>The file is parsed using Apache POI. All text is extracted and split
+     * on whitespace.</p>
      *
-     * <p>Only words with a length between 7 and 9 characters are
-     * considered.</p>
+     * <p>Only words with a length between 7 and 9 characters are considered.</p>
      */
     List<String> readWordList(String path) throws IOException {
         List<String> raw = new ArrayList<>();
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(
-                new java.io.FileInputStream(path), StandardCharsets.ISO_8859_1))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                raw.add(line.trim());
+        try (InputStream is = new java.io.FileInputStream(path);
+             XWPFDocument doc = new XWPFDocument(is)) {
+            for (XWPFParagraph para : doc.getParagraphs()) {
+                String text = para.getText();
+                if (text != null) {
+                    for (String t : text.split("\\s+")) {
+                        t = t.trim();
+                        if (!t.isEmpty()) {
+                            raw.add(t);
+                        }
+                    }
+                }
             }
         }
 
