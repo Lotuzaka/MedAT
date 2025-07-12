@@ -1,68 +1,165 @@
-(cd "$(git rev-parse --show-toplevel)" && git apply --3way --whitespace=nowarn <<'EOF'
-diff --git a/src/test/java/WortfluessigkeitGeneratorTest.java b/src/test/java/WortfluessigkeitGeneratorTest.java
-new file mode 100644
-index 0000000..b36d677861fe0cd15c44850f5474aa77b3c1a6b7
---- /dev/null
-+++ b/src/test/java/WortfluessigkeitGeneratorTest.java
-@@ -0,0 +1,58 @@
-+import static org.junit.jupiter.api.Assertions.*;
-+
-+import java.sql.Connection;
-+import java.sql.DriverManager;
-+import java.sql.SQLException;
-+import java.sql.Statement;
-+
-+import org.junit.jupiter.api.AfterEach;
-+import org.junit.jupiter.api.BeforeEach;
-+import org.junit.jupiter.api.Test;
-+
-+/** Unit tests for the WortfluessigkeitGenerator. */
-+public class WortfluessigkeitGeneratorTest {
-+
-+    private Connection conn;
-+
-+    @BeforeEach
-+    void setUp() throws SQLException {
-+        conn = DriverManager.getConnection("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1");
-+        try (Statement st = conn.createStatement()) {
-+            st.execute("CREATE TABLE categories(id INT PRIMARY KEY AUTO_INCREMENT, name VARCHAR(255))");
-+            st.execute("CREATE TABLE subcategories(id INT PRIMARY KEY AUTO_INCREMENT, category_id INT, name VARCHAR(255), order_index INT)");
-+            st.execute("CREATE TABLE questions(id INT PRIMARY KEY AUTO_INCREMENT, subcategory_id INT, question_number INT, text VARCHAR(255), format VARCHAR(10), test_simulation_id INT, difficulty VARCHAR(10), shape_data VARCHAR(255), shape_type VARCHAR(255), dissected_pieces_data VARCHAR(255), assembled_pieces_data VARCHAR(255))");
-+            st.execute("CREATE TABLE options(id INT PRIMARY KEY AUTO_INCREMENT, question_id INT, label VARCHAR(5), text VARCHAR(255), is_correct BOOLEAN, shape_data VARCHAR(255))");
-+            st.execute("INSERT INTO categories(id,name) VALUES(1,'KFF')");
-+            st.execute("INSERT INTO subcategories(id,category_id,name,order_index) VALUES(1,1,'Wortflüssigkeit',1)");
+ (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
+diff --git a/src/main/java/WortfluessigkeitGenerator.java b/src/main/java/WortfluessigkeitGenerator.java
+index 9a075cc5c535495219d849cacce967c16726d40d..708cb4b6f675a2275e763bd0bdd4d0c267ebaafb 100644
+--- a/src/main/java/WortfluessigkeitGenerator.java
++++ b/src/main/java/WortfluessigkeitGenerator.java
+@@ -1,36 +1,37 @@
+ import java.io.BufferedReader;
+ import java.io.IOException;
+ import java.io.InputStreamReader;
+ import java.nio.charset.StandardCharsets;
+ import java.sql.Connection;
+ import java.sql.SQLException;
+ import java.util.ArrayList;
+ import java.util.Collections;
+ import java.util.HashSet;
+ import java.util.List;
+ import java.util.Locale;
++import java.util.regex.Pattern;
+ import java.util.Random;
+ import java.util.Set;
+ 
+ /**
+  * Generator for the "Wortflüssigkeit" subtest. It creates questions
+  * consisting of scrambled words and multiple choice options. The class follows
+  * the same DAO based architecture as the other generators.
+  */
+ public class WortfluessigkeitGenerator {
+     private static final String WORDLIST_PATH = "src/main/resources/wortliste.txt";
+     private static final char[] FILLER = {'S', 'T', 'N', 'R', 'L'};
+ 
+     private final Connection conn;
+     private final QuestionDAO questionDAO;
+     private final OptionDAO optionDAO;
+     private final String category;
+     private final String subcategory;
+     private final Integer simulationId;
+     private final Random random = new Random();
+ 
+     public WortfluessigkeitGenerator(Connection conn,
+                                      String category,
+                                      String subcategory,
+                                      Integer simulationId) {
+         this.conn = conn;
+diff --git a/src/main/java/WortfluessigkeitGenerator.java b/src/main/java/WortfluessigkeitGenerator.java
+index 9a075cc5c535495219d849cacce967c16726d40d..708cb4b6f675a2275e763bd0bdd4d0c267ebaafb 100644
+--- a/src/main/java/WortfluessigkeitGenerator.java
++++ b/src/main/java/WortfluessigkeitGenerator.java
+@@ -69,65 +70,108 @@ public class WortfluessigkeitGenerator {
+                                     "\" | Distraktoren = \"" + distractorString(optionLetters, correctIndex) + "\"");
+                 }
+ 
+                 int qId = questionDAO.insertQuestion(category, subcategory,
+                         questionText, nextNr++, simulationId);
+ 
+                 for (int j = 0; j < 5; j++) {
+                     String label = (j == 4) ? "E" : String.valueOf((char) ('A' + j));
+                     String text = (j == 4) ? "Keine Antwort ist richtig." :
+                             "Anfangsbuchstabe: " + optionLetters[j];
+                     boolean correct = j == correctIndex;
+                     optionDAO.insertOption(qId, label, text, correct);
+                 }
+             }
+             conn.commit();
+         } finally {
+             conn.setAutoCommit(autoCommit);
+         }
+     }
+ 
+     /**
+      * Reads all valid words from the given UTF-8 file. Only words with a length
+      * between 7 and 9 characters are considered.
+      */
+     List<String> readWordList(String path) throws IOException {
+-        List<String> out = new ArrayList<>();
++        List<String> raw = new ArrayList<>();
+         try (BufferedReader br = new BufferedReader(new InputStreamReader(
+                 new java.io.FileInputStream(path), StandardCharsets.UTF_8))) {
+             String line;
+             while ((line = br.readLine()) != null) {
+-                String w = line.trim();
+-                int len = w.codePointCount(0, w.length());
+-                if (len >= 7 && len <= 9) {
+-                    out.add(w.toUpperCase(Locale.GERMAN));
+-                }
++                raw.add(line.trim());
++            }
 +        }
-+    }
 +
-+    @AfterEach
-+    void tearDown() throws SQLException {
-+        conn.close();
-+    }
-+
-+    @Test
-+    void scrambleNeverReturnsOriginal() {
-+        WortfluessigkeitGenerator gen = new WortfluessigkeitGenerator(null, "KFF", "Wortflüssigkeit", 1);
-+        String word = "ABCDEFG";
-+        for (int i = 0; i < 10; i++) {
-+            String scrambled = gen.scramble(word);
-+            assertNotEquals(word, scrambled);
++        Set<String> rawUpper = new HashSet<>();
++        for (String r : raw) {
++            rawUpper.add(r.toUpperCase(Locale.GERMAN));
 +        }
++
++        List<String> out = new ArrayList<>();
++        for (String w : raw) {
++            String upper = w.toUpperCase(Locale.GERMAN);
++            int len = upper.codePointCount(0, upper.length());
++            if (len >= 7 && len <= 9 && isValidWord(upper, rawUpper)) {
++                out.add(upper);
+             }
+         }
+         return out;
+     }
+ 
++    private static final Pattern INVALID_CHARS = Pattern.compile(".*[ÄÖÜäöüß].*");
++    private static final Pattern DIMINUTIVE = Pattern.compile(".*(CHEN|LEIN)$", Pattern.CASE_INSENSITIVE);
++    private static final Set<String> PROPER_NAMES = Set.of("ALDI", "DM", "BUNDESLIGA", "BUNDESREPUBLIK");
++
++    private static boolean isValidWord(String word, Set<String> words) {
++        if (INVALID_CHARS.matcher(word).matches()) {
++            return false;
++        }
++        if (DIMINUTIVE.matcher(word).matches()) {
++            return false;
++        }
++        if (PROPER_NAMES.contains(word)) {
++            return false;
++        }
++        // simple plural detection: if removing a typical plural ending yields another word
++        if (word.endsWith("EN") && words.contains(word.substring(0, word.length() - 2))) {
++            return false;
++        }
++        if (word.endsWith("ER") && words.contains(word.substring(0, word.length() - 2))) {
++            return false;
++        }
++        if (word.endsWith("E") && words.contains(word.substring(0, word.length() - 1))) {
++            return false;
++        }
++        if (word.endsWith("S") && words.contains(word.substring(0, word.length() - 1))) {
++            return false;
++        }
++        if (word.endsWith("N") && words.contains(word.substring(0, word.length() - 1))) {
++            return false;
++        }
++        return true;
 +    }
 +
-+    @Test
-+    void executeCreatesQuestionsAndOptions() throws Exception {
-+        WortfluessigkeitGenerator gen = new WortfluessigkeitGenerator(conn, "KFF", "Wortflüssigkeit", 1);
-+        gen.execute(15);
-+        try (Statement st = conn.createStatement()) {
-+            var rs = st.executeQuery("SELECT COUNT(*) FROM questions WHERE test_simulation_id=1");
-+            assertTrue(rs.next());
-+            assertEquals(15, rs.getInt(1));
-+            rs = st.executeQuery("SELECT COUNT(*) FROM options o JOIN questions q ON o.question_id=q.id WHERE q.test_simulation_id=1");
-+            assertTrue(rs.next());
-+            assertEquals(75, rs.getInt(1));
-+        }
-+    }
-+}
+     /**
+      * Scrambles the characters of {@code word} using Fisher–Yates.
+      * The result is guaranteed not to equal the input.
+      */
+     String scramble(String word) {
+         char[] arr = word.toCharArray();
+         for (int attempt = 0; attempt < 20; attempt++) {
+             for (int i = arr.length - 1; i > 0; i--) {
+                 int j = random.nextInt(i + 1);
+                 char tmp = arr[i];
+                 arr[i] = arr[j];
+                 arr[j] = tmp;
+             }
+             String result = new String(arr);
+             if (!result.equals(word)) {
+                 return result;
+             }
+         }
+         return new StringBuilder(word).reverse().toString();
+     }
+ 
+     /**
+      * Checks whether the two strings consist of the same multiset of
+      * code points.
+      */
  
 EOF
 )

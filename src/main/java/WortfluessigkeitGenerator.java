@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Pattern;
 import java.util.Random;
 import java.util.Set;
 
@@ -91,19 +92,62 @@ public class WortfluessigkeitGenerator {
      * between 7 and 9 characters are considered.
      */
     List<String> readWordList(String path) throws IOException {
-        List<String> out = new ArrayList<>();
+        List<String> raw = new ArrayList<>();
         try (BufferedReader br = new BufferedReader(new InputStreamReader(
                 new java.io.FileInputStream(path), StandardCharsets.UTF_8))) {
             String line;
             while ((line = br.readLine()) != null) {
-                String w = line.trim();
-                int len = w.codePointCount(0, w.length());
-                if (len >= 7 && len <= 9) {
-                    out.add(w.toUpperCase(Locale.GERMAN));
-                }
+                raw.add(line.trim());
+            }
+        }
+
+        Set<String> rawUpper = new HashSet<>();
+        for (String r : raw) {
+            rawUpper.add(r.toUpperCase(Locale.GERMAN));
+        }
+
+        List<String> out = new ArrayList<>();
+        for (String w : raw) {
+            String upper = w.toUpperCase(Locale.GERMAN);
+            int len = upper.codePointCount(0, upper.length());
+            if (len >= 7 && len <= 9 && isValidWord(upper, rawUpper)) {
+                out.add(upper);
             }
         }
         return out;
+    }
+
+    private static final Pattern INVALID_CHARS = Pattern.compile(".*[ÄÖÜäöüß].*");
+    private static final Pattern DIMINUTIVE = Pattern.compile(".*(CHEN|LEIN)$", Pattern.CASE_INSENSITIVE);
+    private static final Set<String> PROPER_NAMES = Set.of("ALDI", "DM", "BUNDESLIGA", "BUNDESREPUBLIK");
+
+    private static boolean isValidWord(String word, Set<String> words) {
+        if (INVALID_CHARS.matcher(word).matches()) {
+            return false;
+        }
+        if (DIMINUTIVE.matcher(word).matches()) {
+            return false;
+        }
+        if (PROPER_NAMES.contains(word)) {
+            return false;
+        }
+        // simple plural detection: if removing a typical plural ending yields another word
+        if (word.endsWith("EN") && words.contains(word.substring(0, word.length() - 2))) {
+            return false;
+        }
+        if (word.endsWith("ER") && words.contains(word.substring(0, word.length() - 2))) {
+            return false;
+        }
+        if (word.endsWith("E") && words.contains(word.substring(0, word.length() - 1))) {
+            return false;
+        }
+        if (word.endsWith("S") && words.contains(word.substring(0, word.length() - 1))) {
+            return false;
+        }
+        if (word.endsWith("N") && words.contains(word.substring(0, word.length() - 1))) {
+            return false;
+        }
+        return true;
     }
 
     /**
