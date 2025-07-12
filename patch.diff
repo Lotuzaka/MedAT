@@ -1,8 +1,7 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
-diff --git a/src/test/java/WortfluessigkeitGeneratorPropertyTest.java b/src/test/java/WortfluessigkeitGeneratorPropertyTest.java
-new file mode 100644
-index 0000000..5cddb03771ca40dbdf13632709878a270c9e06b7
---- /dev/null
+diff --git a/dev/null b/src/test/java/WortfluessigkeitGeneratorPropertyTest.java
+index 0000000000000000000000000000000000000000..5cddb03771ca40dbdf13632709878a270c9e06b7 100644
+--- a/dev/null
 +++ b/src/test/java/WortfluessigkeitGeneratorPropertyTest.java
 @@ -0,0 +1,50 @@
 +import static org.junit.jupiter.api.Assertions.assertEquals;
