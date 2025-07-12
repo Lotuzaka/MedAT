@@ -20248,3 +20248,1414 @@ Alle Schluss sind keine Krise.
 [2025-07-12 16:16:42] [INFO] [DB] displaySubcategoriesInMainContent: Subcategory ID: 31
 [2025-07-12 16:16:42] [INFO] [DB] displaySubcategoriesInMainContent: Number of questions loaded: 0
 [2025-07-12 16:16:42] [INFO] [DB] displaySubcategoriesInMainContent: Added 0 questions with options to the model for Molekulare Genetik
+[2025-07-12 16:16:59] [INFO] [Startup] main: Default charset: UTF-8
+[2025-07-12 16:17:01] [INFO] [CategoryModel] createMainWindow: Creating category model for: Biologie
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Loaded subcategory: Menschliche Körper
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Loaded subcategory: Genetik
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Loaded subcategory: Evolution
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Loaded subcategory: Humangenetik
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Loaded subcategory: Frühentwicklung des Menschen
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Loaded subcategory: Ökologie
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Loaded subcategory: Immunbiologie
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Loaded subcategory: Menschliche Zelle
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Loaded subcategory: Molekulare Genetik
+[2025-07-12 16:17:01] [INFO] [CategoryModel] createMainWindow: Category model created for: Biologie
+[2025-07-12 16:17:01] [INFO] [CategoryModel] createMainWindow: subcategories: [Menschliche Körper, Genetik, Evolution, Humangenetik, Frühentwicklung des Menschen, Ökologie, Immunbiologie, Menschliche Zelle, Molekulare Genetik]
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Loading questions for category: Biologie
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Number of subcategories: 9
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Processing subcategory: Menschliche Körper
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Menschliche Körper
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 28
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Subcategory ID: 28
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Number of questions loaded: 1
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Added 1 questions with options to the model for Menschliche Körper
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Processing subcategory: Genetik
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Genetik
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 30
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Subcategory ID: 30
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Genetik
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Processing subcategory: Evolution
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Evolution
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 33
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Subcategory ID: 33
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Evolution
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Processing subcategory: Humangenetik
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Humangenetik
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 32
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Subcategory ID: 32
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Humangenetik
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Processing subcategory: Frühentwicklung des Menschen
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Frühentwicklung des Menschen
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 29
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Subcategory ID: 29
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Frühentwicklung des Menschen
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Processing subcategory: Ökologie
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Ökologie
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 34
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Subcategory ID: 34
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Ökologie
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Processing subcategory: Immunbiologie
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Immunbiologie
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 35
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Subcategory ID: 35
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Immunbiologie
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Processing subcategory: Menschliche Zelle
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Menschliche Zelle
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 27
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Subcategory ID: 27
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Menschliche Zelle
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Processing subcategory: Molekulare Genetik
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Molekulare Genetik
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 31
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Subcategory ID: 31
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Molekulare Genetik
+[2025-07-12 16:17:01] [INFO] [CategoryModel] createMainWindow: Creating category model for: Chemie
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Loaded subcategory: Chem 1
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Loaded subcategory: Chem 2
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Loaded subcategory: Chem 3
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Loaded subcategory: Chem 4
+[2025-07-12 16:17:01] [INFO] [CategoryModel] createMainWindow: Category model created for: Chemie
+[2025-07-12 16:17:01] [INFO] [CategoryModel] createMainWindow: subcategories: [Chem 1, Chem 2, Chem 3, Chem 4]
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Loading questions for category: Chemie
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Number of subcategories: 4
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Processing subcategory: Chem 1
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Category: Chemie, Subcategory: Chem 1
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 1
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Subcategory ID: 1
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Chem 1
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Processing subcategory: Chem 2
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Category: Chemie, Subcategory: Chem 2
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 2
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Subcategory ID: 2
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Chem 2
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Processing subcategory: Chem 3
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Category: Chemie, Subcategory: Chem 3
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 3
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Subcategory ID: 3
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Chem 3
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Processing subcategory: Chem 4
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Category: Chemie, Subcategory: Chem 4
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 4
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Subcategory ID: 4
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Chem 4
+[2025-07-12 16:17:01] [INFO] [CategoryModel] createMainWindow: Creating category model for: Physik
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Loaded subcategory: Phy 1
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Loaded subcategory: Phy 2
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Loaded subcategory: Phy 3
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Loaded subcategory: Phy 4
+[2025-07-12 16:17:01] [INFO] [CategoryModel] createMainWindow: Category model created for: Physik
+[2025-07-12 16:17:01] [INFO] [CategoryModel] createMainWindow: subcategories: [Phy 1, Phy 2, Phy 3, Phy 4]
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Loading questions for category: Physik
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Number of subcategories: 4
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Processing subcategory: Phy 1
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Category: Physik, Subcategory: Phy 1
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 5
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Subcategory ID: 5
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Phy 1
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Processing subcategory: Phy 2
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Category: Physik, Subcategory: Phy 2
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 6
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Subcategory ID: 6
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Phy 2
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Processing subcategory: Phy 3
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Category: Physik, Subcategory: Phy 3
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 7
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Subcategory ID: 7
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Phy 3
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Processing subcategory: Phy 4
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Category: Physik, Subcategory: Phy 4
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 8
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Subcategory ID: 8
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Phy 4
+[2025-07-12 16:17:01] [INFO] [CategoryModel] createMainWindow: Creating category model for: Mathematik
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Loaded subcategory: Math1
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Loaded subcategory: Math2
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Loaded subcategory: Math3
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Loaded subcategory: Math 4
+[2025-07-12 16:17:01] [INFO] [CategoryModel] createMainWindow: Category model created for: Mathematik
+[2025-07-12 16:17:01] [INFO] [CategoryModel] createMainWindow: subcategories: [Math1, Math2, Math3, Math 4]
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Loading questions for category: Mathematik
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Number of subcategories: 4
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Processing subcategory: Math1
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Category: Mathematik, Subcategory: Math1
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 9
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Subcategory ID: 9
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Math1
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Processing subcategory: Math2
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Category: Mathematik, Subcategory: Math2
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 10
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Subcategory ID: 10
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Math2
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Processing subcategory: Math3
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Category: Mathematik, Subcategory: Math3
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 11
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Subcategory ID: 11
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Math3
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Processing subcategory: Math 4
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Category: Mathematik, Subcategory: Math 4
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 12
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Subcategory ID: 12
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Math 4
+[2025-07-12 16:17:01] [INFO] [CategoryModel] createMainWindow: Creating category model for: KFF
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Loaded subcategory: Figuren
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Loaded subcategory: Zahlenfolgen
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Loaded subcategory: Implikationen
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Loaded subcategory: Wortflüssigkeit
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Loaded subcategory: Merkfähigkeiten
+[2025-07-12 16:17:01] [INFO] [CategoryModel] createMainWindow: Category model created for: KFF
+[2025-07-12 16:17:01] [INFO] [CategoryModel] createMainWindow: subcategories: [Figuren, Zahlenfolgen, Implikationen, Wortflüssigkeit, Merkfähigkeiten]
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Loading questions for category: KFF
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Number of subcategories: 5
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Processing subcategory: Figuren
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Figuren
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 39
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Subcategory ID: 39
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Number of questions loaded: 3
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Added 3 questions with options to the model for Figuren
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Processing subcategory: Zahlenfolgen
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Zahlenfolgen
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 38
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Subcategory ID: 38
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Number of questions loaded: 5
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Added 5 questions with options to the model for Zahlenfolgen
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Processing subcategory: Implikationen
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 40
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Subcategory ID: 40
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Number of questions loaded: 5
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Added 5 questions with options to the model for Implikationen
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Processing subcategory: Wortflüssigkeit
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Wortflüssigkeit
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 41
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Subcategory ID: 41
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Number of questions loaded: 5
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Added 5 questions with options to the model for Wortflüssigkeit
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Processing subcategory: Merkfähigkeiten
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Merkfähigkeiten
+[2025-07-12 16:17:01] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 42
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Subcategory ID: 42
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:17:01] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Merkfähigkeiten
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Loaded subcategory: Menschliche Körper
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Loaded subcategory: Genetik
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Loaded subcategory: Evolution
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Loaded subcategory: Humangenetik
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Loaded subcategory: Frühentwicklung des Menschen
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Loaded subcategory: Ökologie
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Loaded subcategory: Immunbiologie
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Loaded subcategory: Menschliche Zelle
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Loaded subcategory: Molekulare Genetik
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Loading questions for category: Biologie
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Number of subcategories: 9
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Processing subcategory: Menschliche Körper
+[2025-07-12 16:17:02] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:02] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Menschliche Körper
+[2025-07-12 16:17:02] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 28
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Subcategory ID: 28
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Number of questions loaded: 1
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Added 1 questions with options to the model for Menschliche Körper
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Processing subcategory: Genetik
+[2025-07-12 16:17:02] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:02] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Genetik
+[2025-07-12 16:17:02] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 30
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Subcategory ID: 30
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Number of questions loaded: 0
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Added 0 questions with options to the model for Genetik
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Processing subcategory: Evolution
+[2025-07-12 16:17:02] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:02] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Evolution
+[2025-07-12 16:17:02] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 33
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Subcategory ID: 33
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Number of questions loaded: 0
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Added 0 questions with options to the model for Evolution
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Processing subcategory: Humangenetik
+[2025-07-12 16:17:02] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:02] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Humangenetik
+[2025-07-12 16:17:02] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 32
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Subcategory ID: 32
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Number of questions loaded: 0
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Added 0 questions with options to the model for Humangenetik
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Processing subcategory: Frühentwicklung des Menschen
+[2025-07-12 16:17:02] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:02] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Frühentwicklung des Menschen
+[2025-07-12 16:17:02] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 29
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Subcategory ID: 29
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Number of questions loaded: 0
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Added 0 questions with options to the model for Frühentwicklung des Menschen
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Processing subcategory: Ökologie
+[2025-07-12 16:17:02] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:02] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Ökologie
+[2025-07-12 16:17:02] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 34
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Subcategory ID: 34
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Number of questions loaded: 0
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Added 0 questions with options to the model for Ökologie
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Processing subcategory: Immunbiologie
+[2025-07-12 16:17:02] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:02] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Immunbiologie
+[2025-07-12 16:17:02] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 35
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Subcategory ID: 35
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Number of questions loaded: 0
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Added 0 questions with options to the model for Immunbiologie
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Processing subcategory: Menschliche Zelle
+[2025-07-12 16:17:02] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:02] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Menschliche Zelle
+[2025-07-12 16:17:02] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 27
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Subcategory ID: 27
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Number of questions loaded: 0
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Added 0 questions with options to the model for Menschliche Zelle
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Processing subcategory: Molekulare Genetik
+[2025-07-12 16:17:02] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:02] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Molekulare Genetik
+[2025-07-12 16:17:02] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 31
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Subcategory ID: 31
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Number of questions loaded: 0
+[2025-07-12 16:17:02] [INFO] [DB] displaySubcategoriesInMainContent: Added 0 questions with options to the model for Molekulare Genetik
+[2025-07-12 16:17:33] [INFO] [DB] switchCategory: Loading questions for category: KFF
+[2025-07-12 16:17:33] [INFO] [DB] switchCategory: Number of subcategories: 5
+[2025-07-12 16:17:33] [INFO] [DB] switchCategory: Processing subcategory: Figuren
+[2025-07-12 16:17:33] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:33] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Figuren
+[2025-07-12 16:17:33] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 39
+[2025-07-12 16:17:33] [INFO] [DB] switchCategory: Subcategory ID: 39
+[2025-07-12 16:17:33] [INFO] [DB] switchCategory: Number of questions loaded: 3
+[2025-07-12 16:17:33] [INFO] [DB] switchCategory: Added 3 questions with options to the model for Figuren
+[2025-07-12 16:17:33] [INFO] [DB] switchCategory: Processing subcategory: Zahlenfolgen
+[2025-07-12 16:17:33] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:33] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Zahlenfolgen
+[2025-07-12 16:17:33] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 38
+[2025-07-12 16:17:33] [INFO] [DB] switchCategory: Subcategory ID: 38
+[2025-07-12 16:17:33] [INFO] [DB] switchCategory: Number of questions loaded: 5
+[2025-07-12 16:17:33] [INFO] [DB] switchCategory: Added 5 questions with options to the model for Zahlenfolgen
+[2025-07-12 16:17:33] [INFO] [DB] switchCategory: Processing subcategory: Implikationen
+[2025-07-12 16:17:33] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:33] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:17:33] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 40
+[2025-07-12 16:17:33] [INFO] [DB] switchCategory: Subcategory ID: 40
+[2025-07-12 16:17:33] [INFO] [DB] switchCategory: Number of questions loaded: 5
+[2025-07-12 16:17:33] [INFO] [DB] switchCategory: Added 5 questions with options to the model for Implikationen
+[2025-07-12 16:17:33] [INFO] [DB] switchCategory: Processing subcategory: Wortflüssigkeit
+[2025-07-12 16:17:33] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:33] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Wortflüssigkeit
+[2025-07-12 16:17:33] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 41
+[2025-07-12 16:17:33] [INFO] [DB] switchCategory: Subcategory ID: 41
+[2025-07-12 16:17:33] [INFO] [DB] switchCategory: Number of questions loaded: 5
+[2025-07-12 16:17:33] [INFO] [DB] switchCategory: Added 5 questions with options to the model for Wortflüssigkeit
+[2025-07-12 16:17:33] [INFO] [DB] switchCategory: Processing subcategory: Merkfähigkeiten
+[2025-07-12 16:17:33] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:33] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Merkfähigkeiten
+[2025-07-12 16:17:33] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 42
+[2025-07-12 16:17:33] [INFO] [DB] switchCategory: Subcategory ID: 42
+[2025-07-12 16:17:33] [INFO] [DB] switchCategory: Number of questions loaded: 0
+[2025-07-12 16:17:33] [INFO] [DB] switchCategory: Added 0 questions with options to the model for Merkfähigkeiten
+[2025-07-12 16:17:33] [INFO] [DB] displaySubcategoriesInMainContent: Loaded subcategory: Figuren
+[2025-07-12 16:17:33] [INFO] [DB] displaySubcategoriesInMainContent: Loaded subcategory: Zahlenfolgen
+[2025-07-12 16:17:33] [INFO] [DB] displaySubcategoriesInMainContent: Loaded subcategory: Implikationen
+[2025-07-12 16:17:33] [INFO] [DB] displaySubcategoriesInMainContent: Loaded subcategory: Wortflüssigkeit
+[2025-07-12 16:17:33] [INFO] [DB] displaySubcategoriesInMainContent: Loaded subcategory: Merkfähigkeiten
+[2025-07-12 16:17:33] [INFO] [DB] displaySubcategoriesInMainContent: Loading questions for category: KFF
+[2025-07-12 16:17:33] [INFO] [DB] displaySubcategoriesInMainContent: Number of subcategories: 5
+[2025-07-12 16:17:33] [INFO] [DB] displaySubcategoriesInMainContent: Processing subcategory: Figuren
+[2025-07-12 16:17:33] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:33] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Figuren
+[2025-07-12 16:17:33] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 39
+[2025-07-12 16:17:33] [INFO] [DB] displaySubcategoriesInMainContent: Subcategory ID: 39
+[2025-07-12 16:17:33] [INFO] [DB] displaySubcategoriesInMainContent: Number of questions loaded: 3
+[2025-07-12 16:17:33] [INFO] [DB] displaySubcategoriesInMainContent: Added 3 questions with options to the model for Figuren
+[2025-07-12 16:17:33] [INFO] [DB] displaySubcategoriesInMainContent: Processing subcategory: Zahlenfolgen
+[2025-07-12 16:17:33] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:33] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Zahlenfolgen
+[2025-07-12 16:17:33] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 38
+[2025-07-12 16:17:33] [INFO] [DB] displaySubcategoriesInMainContent: Subcategory ID: 38
+[2025-07-12 16:17:33] [INFO] [DB] displaySubcategoriesInMainContent: Number of questions loaded: 5
+[2025-07-12 16:17:33] [INFO] [DB] displaySubcategoriesInMainContent: Added 5 questions with options to the model for Zahlenfolgen
+[2025-07-12 16:17:33] [INFO] [DB] displaySubcategoriesInMainContent: Processing subcategory: Implikationen
+[2025-07-12 16:17:33] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:33] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:17:33] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 40
+[2025-07-12 16:17:33] [INFO] [DB] displaySubcategoriesInMainContent: Subcategory ID: 40
+[2025-07-12 16:17:33] [INFO] [DB] displaySubcategoriesInMainContent: Number of questions loaded: 5
+[2025-07-12 16:17:33] [INFO] [DB] displaySubcategoriesInMainContent: Added 5 questions with options to the model for Implikationen
+[2025-07-12 16:17:33] [INFO] [DB] displaySubcategoriesInMainContent: Processing subcategory: Wortflüssigkeit
+[2025-07-12 16:17:33] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:33] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Wortflüssigkeit
+[2025-07-12 16:17:33] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 41
+[2025-07-12 16:17:33] [INFO] [DB] displaySubcategoriesInMainContent: Subcategory ID: 41
+[2025-07-12 16:17:33] [INFO] [DB] displaySubcategoriesInMainContent: Number of questions loaded: 5
+[2025-07-12 16:17:33] [INFO] [DB] displaySubcategoriesInMainContent: Added 5 questions with options to the model for Wortflüssigkeit
+[2025-07-12 16:17:33] [INFO] [DB] displaySubcategoriesInMainContent: Processing subcategory: Merkfähigkeiten
+[2025-07-12 16:17:33] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:33] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Merkfähigkeiten
+[2025-07-12 16:17:33] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 42
+[2025-07-12 16:17:33] [INFO] [DB] displaySubcategoriesInMainContent: Subcategory ID: 42
+[2025-07-12 16:17:33] [INFO] [DB] displaySubcategoriesInMainContent: Number of questions loaded: 0
+[2025-07-12 16:17:33] [INFO] [DB] displaySubcategoriesInMainContent: Added 0 questions with options to the model for Merkfähigkeiten
+[2025-07-12 16:17:34] [INFO] [DB] switchSubcategory: Loading questions for category: KFF
+[2025-07-12 16:17:34] [INFO] [DB] switchSubcategory: Number of subcategories: 5
+[2025-07-12 16:17:34] [INFO] [DB] switchSubcategory: Processing subcategory: Figuren
+[2025-07-12 16:17:34] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:34] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Figuren
+[2025-07-12 16:17:34] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 39
+[2025-07-12 16:17:34] [INFO] [DB] switchSubcategory: Subcategory ID: 39
+[2025-07-12 16:17:34] [INFO] [DB] switchSubcategory: Number of questions loaded: 3
+[2025-07-12 16:17:34] [INFO] [DB] switchSubcategory: Added 3 questions with options to the model for Figuren
+[2025-07-12 16:17:34] [INFO] [DB] switchSubcategory: Processing subcategory: Zahlenfolgen
+[2025-07-12 16:17:34] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:34] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Zahlenfolgen
+[2025-07-12 16:17:34] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 38
+[2025-07-12 16:17:34] [INFO] [DB] switchSubcategory: Subcategory ID: 38
+[2025-07-12 16:17:34] [INFO] [DB] switchSubcategory: Number of questions loaded: 5
+[2025-07-12 16:17:34] [INFO] [DB] switchSubcategory: Added 5 questions with options to the model for Zahlenfolgen
+[2025-07-12 16:17:34] [INFO] [DB] switchSubcategory: Processing subcategory: Implikationen
+[2025-07-12 16:17:34] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:34] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:17:34] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 40
+[2025-07-12 16:17:34] [INFO] [DB] switchSubcategory: Subcategory ID: 40
+[2025-07-12 16:17:34] [INFO] [DB] switchSubcategory: Number of questions loaded: 5
+[2025-07-12 16:17:34] [INFO] [DB] switchSubcategory: Added 5 questions with options to the model for Implikationen
+[2025-07-12 16:17:34] [INFO] [DB] switchSubcategory: Processing subcategory: Wortflüssigkeit
+[2025-07-12 16:17:34] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:34] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Wortflüssigkeit
+[2025-07-12 16:17:34] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 41
+[2025-07-12 16:17:34] [INFO] [DB] switchSubcategory: Subcategory ID: 41
+[2025-07-12 16:17:34] [INFO] [DB] switchSubcategory: Number of questions loaded: 5
+[2025-07-12 16:17:34] [INFO] [DB] switchSubcategory: Added 5 questions with options to the model for Wortflüssigkeit
+[2025-07-12 16:17:34] [INFO] [DB] switchSubcategory: Processing subcategory: Merkfähigkeiten
+[2025-07-12 16:17:34] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:34] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Merkfähigkeiten
+[2025-07-12 16:17:34] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 42
+[2025-07-12 16:17:34] [INFO] [DB] switchSubcategory: Subcategory ID: 42
+[2025-07-12 16:17:34] [INFO] [DB] switchSubcategory: Number of questions loaded: 0
+[2025-07-12 16:17:34] [INFO] [DB] switchSubcategory: Added 0 questions with options to the model for Merkfähigkeiten
+[2025-07-12 16:17:35] [INFO] [DB] actionPerformed: Loading questions for category: KFF
+[2025-07-12 16:17:35] [INFO] [DB] actionPerformed: Number of subcategories: 5
+[2025-07-12 16:17:35] [INFO] [DB] actionPerformed: Processing subcategory: Figuren
+[2025-07-12 16:17:35] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:35] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Figuren
+[2025-07-12 16:17:35] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 39
+[2025-07-12 16:17:35] [INFO] [DB] actionPerformed: Subcategory ID: 39
+[2025-07-12 16:17:35] [INFO] [DB] actionPerformed: Number of questions loaded: 3
+[2025-07-12 16:17:35] [INFO] [DB] actionPerformed: Added 3 questions with options to the model for Figuren
+[2025-07-12 16:17:35] [INFO] [DB] actionPerformed: Processing subcategory: Zahlenfolgen
+[2025-07-12 16:17:35] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:35] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Zahlenfolgen
+[2025-07-12 16:17:35] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 38
+[2025-07-12 16:17:35] [INFO] [DB] actionPerformed: Subcategory ID: 38
+[2025-07-12 16:17:35] [INFO] [DB] actionPerformed: Number of questions loaded: 5
+[2025-07-12 16:17:35] [INFO] [DB] actionPerformed: Added 5 questions with options to the model for Zahlenfolgen
+[2025-07-12 16:17:35] [INFO] [DB] actionPerformed: Processing subcategory: Implikationen
+[2025-07-12 16:17:35] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:35] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:17:35] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 40
+[2025-07-12 16:17:35] [INFO] [DB] actionPerformed: Subcategory ID: 40
+[2025-07-12 16:17:35] [INFO] [DB] actionPerformed: Number of questions loaded: 5
+[2025-07-12 16:17:35] [INFO] [DB] actionPerformed: Added 5 questions with options to the model for Implikationen
+[2025-07-12 16:17:35] [INFO] [DB] actionPerformed: Processing subcategory: Wortflüssigkeit
+[2025-07-12 16:17:35] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:35] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Wortflüssigkeit
+[2025-07-12 16:17:35] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 41
+[2025-07-12 16:17:35] [INFO] [DB] actionPerformed: Subcategory ID: 41
+[2025-07-12 16:17:35] [INFO] [DB] actionPerformed: Number of questions loaded: 5
+[2025-07-12 16:17:35] [INFO] [DB] actionPerformed: Added 5 questions with options to the model for Wortflüssigkeit
+[2025-07-12 16:17:35] [INFO] [DB] actionPerformed: Processing subcategory: Merkfähigkeiten
+[2025-07-12 16:17:35] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:35] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Merkfähigkeiten
+[2025-07-12 16:17:35] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 42
+[2025-07-12 16:17:35] [INFO] [DB] actionPerformed: Subcategory ID: 42
+[2025-07-12 16:17:35] [INFO] [DB] actionPerformed: Number of questions loaded: 0
+[2025-07-12 16:17:35] [INFO] [DB] actionPerformed: Added 0 questions with options to the model for Merkfähigkeiten
+[2025-07-12 16:17:38] [INFO] [DB] deleteAllQuestions: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:38] [INFO] [DB] deleteAllQuestions: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:17:38] [INFO] [DB] deleteAllQuestions: Found subcategory ID: 40
+[2025-07-12 16:17:38] [INFO] [DB] reloadQuestionsAfterDeletion: Loading questions for category: KFF
+[2025-07-12 16:17:38] [INFO] [DB] reloadQuestionsAfterDeletion: Number of subcategories: 5
+[2025-07-12 16:17:38] [INFO] [DB] reloadQuestionsAfterDeletion: Processing subcategory: Figuren
+[2025-07-12 16:17:38] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:38] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Figuren
+[2025-07-12 16:17:38] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 39
+[2025-07-12 16:17:38] [INFO] [DB] reloadQuestionsAfterDeletion: Subcategory ID: 39
+[2025-07-12 16:17:38] [INFO] [DB] reloadQuestionsAfterDeletion: Number of questions loaded: 3
+[2025-07-12 16:17:38] [INFO] [DB] reloadQuestionsAfterDeletion: Added 3 questions with options to the model for Figuren
+[2025-07-12 16:17:38] [INFO] [DB] reloadQuestionsAfterDeletion: Processing subcategory: Zahlenfolgen
+[2025-07-12 16:17:38] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:38] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Zahlenfolgen
+[2025-07-12 16:17:38] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 38
+[2025-07-12 16:17:38] [INFO] [DB] reloadQuestionsAfterDeletion: Subcategory ID: 38
+[2025-07-12 16:17:38] [INFO] [DB] reloadQuestionsAfterDeletion: Number of questions loaded: 5
+[2025-07-12 16:17:38] [INFO] [DB] reloadQuestionsAfterDeletion: Added 5 questions with options to the model for Zahlenfolgen
+[2025-07-12 16:17:38] [INFO] [DB] reloadQuestionsAfterDeletion: Processing subcategory: Implikationen
+[2025-07-12 16:17:38] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:38] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:17:38] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 40
+[2025-07-12 16:17:38] [INFO] [DB] reloadQuestionsAfterDeletion: Subcategory ID: 40
+[2025-07-12 16:17:38] [INFO] [DB] reloadQuestionsAfterDeletion: Number of questions loaded: 0
+[2025-07-12 16:17:38] [INFO] [DB] reloadQuestionsAfterDeletion: Added 0 questions with options to the model for Implikationen
+[2025-07-12 16:17:38] [INFO] [DB] reloadQuestionsAfterDeletion: Processing subcategory: Wortflüssigkeit
+[2025-07-12 16:17:38] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:38] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Wortflüssigkeit
+[2025-07-12 16:17:38] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 41
+[2025-07-12 16:17:38] [INFO] [DB] reloadQuestionsAfterDeletion: Subcategory ID: 41
+[2025-07-12 16:17:38] [INFO] [DB] reloadQuestionsAfterDeletion: Number of questions loaded: 5
+[2025-07-12 16:17:38] [INFO] [DB] reloadQuestionsAfterDeletion: Added 5 questions with options to the model for Wortflüssigkeit
+[2025-07-12 16:17:38] [INFO] [DB] reloadQuestionsAfterDeletion: Processing subcategory: Merkfähigkeiten
+[2025-07-12 16:17:38] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:38] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Merkfähigkeiten
+[2025-07-12 16:17:38] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 42
+[2025-07-12 16:17:38] [INFO] [DB] reloadQuestionsAfterDeletion: Subcategory ID: 42
+[2025-07-12 16:17:38] [INFO] [DB] reloadQuestionsAfterDeletion: Number of questions loaded: 0
+[2025-07-12 16:17:38] [INFO] [DB] reloadQuestionsAfterDeletion: Added 0 questions with options to the model for Merkfähigkeiten
+[2025-07-12 16:17:42] [INFO] [FileRead] execute: Line 1: Weltmeister
+[2025-07-12 16:17:42] [INFO] [FileRead] execute: Line 2: Abend
+[2025-07-12 16:17:42] [INFO] [FileRead] execute: Line 3: Abschnitt
+[2025-07-12 16:17:42] [INFO] [FileRead] execute: Line 4: Abstimmung
+[2025-07-12 16:17:42] [INFO] [FileRead] execute: Line 5: Abteilung
+[2025-07-12 16:17:42] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Question: Alle Nutzung sind Hoffnung.
+Einige Angriff sind Nutzung.
+[2025-07-12 16:17:42] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Einige Angriff sind keine Hoffnung.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Keine Hoffnung sind Angriff.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Einige Hoffnung sind Angriff.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Alle Hoffnung sind Angriff.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Question: Alle Vorlage sind Angst Betrieb.
+Alle Vorlage sind keine Landtag.
+[2025-07-12 16:17:42] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Alle Angst Betrieb sind Landtag.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Einige Landtag sind Angst Betrieb.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Keine Angst Betrieb sind Landtag.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Einige Angst Betrieb sind keine Landtag.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Question: Alle Ort sind keine Ansicht.
+Einige Partie sind Ort.
+[2025-07-12 16:17:42] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Alle Partie sind Ansicht.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Einige Partie sind keine Ansicht.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Einige Partie sind Ansicht.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Alle Ansicht sind keine Partie.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Question: Einige Bewegung sind Post.
+Alle Bewegung sind Umwelt.
+[2025-07-12 16:17:42] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Einige Umwelt sind Post.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Einige Post sind Umwelt.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Keine Post sind Umwelt.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Alle Post sind Umwelt.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Question: Alle Licht sind keine Boden.
+Alle Telekom sind Licht.
+[2025-07-12 16:17:42] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Alle Boden sind keine Telekom.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Keine Boden sind Telekom.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Alle Telekom sind keine Boden.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Einige Boden sind Telekom.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Question: Alle Berufung sind keine Wissen.
+Einige Berufung sind Neubau.
+[2025-07-12 16:17:42] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Alle Neubau sind Wissen.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Keine Neubau sind Wissen.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Einige Neubau sind keine Wissen.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Einige Wissen sind Neubau.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Question: Einige Anwalt sind St�ck.
+Alle Projekt sind St�ck.
+[2025-07-12 16:17:42] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Einige Projekt sind keine Anwalt.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Keine Projekt sind Anwalt.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Einige Anwalt sind Projekt.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Einige Projekt sind Anwalt.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Question: Alle Struktur sind Untersuchung.
+Einige Bundesrepublik sind keine Untersuchung.
+[2025-07-12 16:17:42] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Einige Bundesrepublik sind keine Struktur.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Einige Struktur sind Bundesrepublik.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Alle Bundesrepublik sind Struktur.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Alle Struktur sind keine Bundesrepublik.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Question: Alle Folge sind Verwaltung.
+Einige Verwaltung sind keine Abgeordnete.
+[2025-07-12 16:17:42] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Alle Folge sind keine Abgeordnete.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Keine Folge sind Abgeordnete.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Alle Folge sind Abgeordnete.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Alle Abgeordnete sind keine Folge.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Question: Alle Anerkennung sind Ausnahme.
+Alle F�rderung sind Ausnahme.
+[2025-07-12 16:17:42] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Alle Anerkennung sind keine F�rderung.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Einige Anerkennung sind keine F�rderung.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Alle F�rderung sind keine Anerkennung.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Einige F�rderung sind Anerkennung.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Question: Alle Ablehnung sind Blut.
+Einige Ablehnung sind Gegenteil.
+[2025-07-12 16:17:42] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Einige Gegenteil sind keine Blut.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Alle Gegenteil sind keine Blut.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Einige Gegenteil sind Blut.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Alle Gegenteil sind Blut.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Question: Alle Stoff sind Abbau.
+Einige Vereinigung sind keine Abbau.
+[2025-07-12 16:17:42] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Keine Vereinigung sind Stoff.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Einige Vereinigung sind Stoff.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Einige Stoff sind Vereinigung.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Alle Stoff sind Vereinigung.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Question: Alle Runde sind keine Serie.
+Alle Runde sind Nachfrage.
+[2025-07-12 16:17:42] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Einige Nachfrage sind keine Serie.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Alle Serie sind keine Nachfrage.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Keine Nachfrage sind Serie.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Alle Nachfrage sind Serie.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Question: Einige Protest sind Vorwurf.
+Alle Schluss sind Vorwurf.
+[2025-07-12 16:17:42] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Einige Schluss sind keine Protest.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Einige Protest sind Schluss.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Keine Schluss sind Protest.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Einige Protest sind keine Schluss.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Question: Alle Variante sind keine Vorsitzende.
+Alle Vorsitzende sind Zeuge.
+[2025-07-12 16:17:42] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Alle Variante sind keine Zeuge.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Einige Variante sind Zeuge.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Einige Zeuge sind keine Variante.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Keine Zeuge sind Variante.
+[2025-07-12 16:17:42] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:17:43] [INFO] [DB] lambda$26: Loading questions for category: KFF
+[2025-07-12 16:17:43] [INFO] [DB] lambda$26: Number of subcategories: 5
+[2025-07-12 16:17:43] [INFO] [DB] lambda$26: Processing subcategory: Figuren
+[2025-07-12 16:17:43] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:43] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Figuren
+[2025-07-12 16:17:43] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 39
+[2025-07-12 16:17:43] [INFO] [DB] lambda$26: Subcategory ID: 39
+[2025-07-12 16:17:43] [INFO] [DB] lambda$26: Number of questions loaded: 3
+[2025-07-12 16:17:43] [INFO] [DB] lambda$26: Added 3 questions with options to the model for Figuren
+[2025-07-12 16:17:43] [INFO] [DB] lambda$26: Processing subcategory: Zahlenfolgen
+[2025-07-12 16:17:43] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:43] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Zahlenfolgen
+[2025-07-12 16:17:43] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 38
+[2025-07-12 16:17:43] [INFO] [DB] lambda$26: Subcategory ID: 38
+[2025-07-12 16:17:43] [INFO] [DB] lambda$26: Number of questions loaded: 5
+[2025-07-12 16:17:43] [INFO] [DB] lambda$26: Added 5 questions with options to the model for Zahlenfolgen
+[2025-07-12 16:17:43] [INFO] [DB] lambda$26: Processing subcategory: Implikationen
+[2025-07-12 16:17:43] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:43] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:17:43] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 40
+[2025-07-12 16:17:43] [INFO] [DB] lambda$26: Subcategory ID: 40
+[2025-07-12 16:17:43] [INFO] [DB] lambda$26: Number of questions loaded: 15
+[2025-07-12 16:17:43] [INFO] [DB] lambda$26: Added 15 questions with options to the model for Implikationen
+[2025-07-12 16:17:43] [INFO] [DB] lambda$26: Processing subcategory: Wortflüssigkeit
+[2025-07-12 16:17:43] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:43] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Wortflüssigkeit
+[2025-07-12 16:17:43] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 41
+[2025-07-12 16:17:43] [INFO] [DB] lambda$26: Subcategory ID: 41
+[2025-07-12 16:17:43] [INFO] [DB] lambda$26: Number of questions loaded: 5
+[2025-07-12 16:17:43] [INFO] [DB] lambda$26: Added 5 questions with options to the model for Wortflüssigkeit
+[2025-07-12 16:17:43] [INFO] [DB] lambda$26: Processing subcategory: Merkfähigkeiten
+[2025-07-12 16:17:43] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:17:43] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Merkfähigkeiten
+[2025-07-12 16:17:43] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 42
+[2025-07-12 16:17:43] [INFO] [DB] lambda$26: Subcategory ID: 42
+[2025-07-12 16:17:43] [INFO] [DB] lambda$26: Number of questions loaded: 0
+[2025-07-12 16:17:43] [INFO] [DB] lambda$26: Added 0 questions with options to the model for Merkfähigkeiten
+[2025-07-12 16:24:47] [INFO] [Startup] main: Default charset: UTF-8
+[2025-07-12 16:24:48] [INFO] [CategoryModel] createMainWindow: Creating category model for: Biologie
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Loaded subcategory: Menschliche Körper
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Loaded subcategory: Genetik
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Loaded subcategory: Evolution
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Loaded subcategory: Humangenetik
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Loaded subcategory: Frühentwicklung des Menschen
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Loaded subcategory: Ökologie
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Loaded subcategory: Immunbiologie
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Loaded subcategory: Menschliche Zelle
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Loaded subcategory: Molekulare Genetik
+[2025-07-12 16:24:48] [INFO] [CategoryModel] createMainWindow: Category model created for: Biologie
+[2025-07-12 16:24:48] [INFO] [CategoryModel] createMainWindow: subcategories: [Menschliche Körper, Genetik, Evolution, Humangenetik, Frühentwicklung des Menschen, Ökologie, Immunbiologie, Menschliche Zelle, Molekulare Genetik]
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Loading questions for category: Biologie
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Number of subcategories: 9
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Processing subcategory: Menschliche Körper
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Menschliche Körper
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 28
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Subcategory ID: 28
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Number of questions loaded: 1
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Added 1 questions with options to the model for Menschliche Körper
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Processing subcategory: Genetik
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Genetik
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 30
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Subcategory ID: 30
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Genetik
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Processing subcategory: Evolution
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Evolution
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 33
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Subcategory ID: 33
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Evolution
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Processing subcategory: Humangenetik
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Humangenetik
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 32
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Subcategory ID: 32
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Humangenetik
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Processing subcategory: Frühentwicklung des Menschen
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Frühentwicklung des Menschen
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 29
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Subcategory ID: 29
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Frühentwicklung des Menschen
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Processing subcategory: Ökologie
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Ökologie
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 34
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Subcategory ID: 34
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Ökologie
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Processing subcategory: Immunbiologie
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Immunbiologie
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 35
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Subcategory ID: 35
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Immunbiologie
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Processing subcategory: Menschliche Zelle
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Menschliche Zelle
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 27
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Subcategory ID: 27
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Menschliche Zelle
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Processing subcategory: Molekulare Genetik
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Molekulare Genetik
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 31
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Subcategory ID: 31
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Molekulare Genetik
+[2025-07-12 16:24:48] [INFO] [CategoryModel] createMainWindow: Creating category model for: Chemie
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Loaded subcategory: Chem 1
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Loaded subcategory: Chem 2
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Loaded subcategory: Chem 3
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Loaded subcategory: Chem 4
+[2025-07-12 16:24:48] [INFO] [CategoryModel] createMainWindow: Category model created for: Chemie
+[2025-07-12 16:24:48] [INFO] [CategoryModel] createMainWindow: subcategories: [Chem 1, Chem 2, Chem 3, Chem 4]
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Loading questions for category: Chemie
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Number of subcategories: 4
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Processing subcategory: Chem 1
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Category: Chemie, Subcategory: Chem 1
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 1
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Subcategory ID: 1
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Chem 1
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Processing subcategory: Chem 2
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Category: Chemie, Subcategory: Chem 2
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 2
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Subcategory ID: 2
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Chem 2
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Processing subcategory: Chem 3
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Category: Chemie, Subcategory: Chem 3
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 3
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Subcategory ID: 3
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Chem 3
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Processing subcategory: Chem 4
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Category: Chemie, Subcategory: Chem 4
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 4
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Subcategory ID: 4
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Chem 4
+[2025-07-12 16:24:48] [INFO] [CategoryModel] createMainWindow: Creating category model for: Physik
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Loaded subcategory: Phy 1
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Loaded subcategory: Phy 2
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Loaded subcategory: Phy 3
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Loaded subcategory: Phy 4
+[2025-07-12 16:24:48] [INFO] [CategoryModel] createMainWindow: Category model created for: Physik
+[2025-07-12 16:24:48] [INFO] [CategoryModel] createMainWindow: subcategories: [Phy 1, Phy 2, Phy 3, Phy 4]
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Loading questions for category: Physik
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Number of subcategories: 4
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Processing subcategory: Phy 1
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Category: Physik, Subcategory: Phy 1
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 5
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Subcategory ID: 5
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Phy 1
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Processing subcategory: Phy 2
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Category: Physik, Subcategory: Phy 2
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 6
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Subcategory ID: 6
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Phy 2
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Processing subcategory: Phy 3
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Category: Physik, Subcategory: Phy 3
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 7
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Subcategory ID: 7
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Phy 3
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Processing subcategory: Phy 4
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Category: Physik, Subcategory: Phy 4
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 8
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Subcategory ID: 8
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Phy 4
+[2025-07-12 16:24:48] [INFO] [CategoryModel] createMainWindow: Creating category model for: Mathematik
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Loaded subcategory: Math1
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Loaded subcategory: Math2
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Loaded subcategory: Math3
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Loaded subcategory: Math 4
+[2025-07-12 16:24:48] [INFO] [CategoryModel] createMainWindow: Category model created for: Mathematik
+[2025-07-12 16:24:48] [INFO] [CategoryModel] createMainWindow: subcategories: [Math1, Math2, Math3, Math 4]
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Loading questions for category: Mathematik
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Number of subcategories: 4
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Processing subcategory: Math1
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Category: Mathematik, Subcategory: Math1
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 9
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Subcategory ID: 9
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Math1
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Processing subcategory: Math2
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Category: Mathematik, Subcategory: Math2
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 10
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Subcategory ID: 10
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Math2
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Processing subcategory: Math3
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Category: Mathematik, Subcategory: Math3
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 11
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Subcategory ID: 11
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Math3
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Processing subcategory: Math 4
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Category: Mathematik, Subcategory: Math 4
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 12
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Subcategory ID: 12
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Math 4
+[2025-07-12 16:24:48] [INFO] [CategoryModel] createMainWindow: Creating category model for: KFF
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Loaded subcategory: Figuren
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Loaded subcategory: Zahlenfolgen
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Loaded subcategory: Implikationen
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Loaded subcategory: Wortflüssigkeit
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Loaded subcategory: Merkfähigkeiten
+[2025-07-12 16:24:48] [INFO] [CategoryModel] createMainWindow: Category model created for: KFF
+[2025-07-12 16:24:48] [INFO] [CategoryModel] createMainWindow: subcategories: [Figuren, Zahlenfolgen, Implikationen, Wortflüssigkeit, Merkfähigkeiten]
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Loading questions for category: KFF
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Number of subcategories: 5
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Processing subcategory: Figuren
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Figuren
+[2025-07-12 16:24:48] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 39
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Subcategory ID: 39
+[2025-07-12 16:24:48] [INFO] [DB] createCategoryModel: Number of questions loaded: 3
+[2025-07-12 16:24:49] [INFO] [DB] createCategoryModel: Added 3 questions with options to the model for Figuren
+[2025-07-12 16:24:49] [INFO] [DB] createCategoryModel: Processing subcategory: Zahlenfolgen
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Zahlenfolgen
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 38
+[2025-07-12 16:24:49] [INFO] [DB] createCategoryModel: Subcategory ID: 38
+[2025-07-12 16:24:49] [INFO] [DB] createCategoryModel: Number of questions loaded: 5
+[2025-07-12 16:24:49] [INFO] [DB] createCategoryModel: Added 5 questions with options to the model for Zahlenfolgen
+[2025-07-12 16:24:49] [INFO] [DB] createCategoryModel: Processing subcategory: Implikationen
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 40
+[2025-07-12 16:24:49] [INFO] [DB] createCategoryModel: Subcategory ID: 40
+[2025-07-12 16:24:49] [INFO] [DB] createCategoryModel: Number of questions loaded: 15
+[2025-07-12 16:24:49] [INFO] [DB] createCategoryModel: Added 15 questions with options to the model for Implikationen
+[2025-07-12 16:24:49] [INFO] [DB] createCategoryModel: Processing subcategory: Wortflüssigkeit
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Wortflüssigkeit
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 41
+[2025-07-12 16:24:49] [INFO] [DB] createCategoryModel: Subcategory ID: 41
+[2025-07-12 16:24:49] [INFO] [DB] createCategoryModel: Number of questions loaded: 5
+[2025-07-12 16:24:49] [INFO] [DB] createCategoryModel: Added 5 questions with options to the model for Wortflüssigkeit
+[2025-07-12 16:24:49] [INFO] [DB] createCategoryModel: Processing subcategory: Merkfähigkeiten
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Merkfähigkeiten
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 42
+[2025-07-12 16:24:49] [INFO] [DB] createCategoryModel: Subcategory ID: 42
+[2025-07-12 16:24:49] [INFO] [DB] createCategoryModel: Number of questions loaded: 0
+[2025-07-12 16:24:49] [INFO] [DB] createCategoryModel: Added 0 questions with options to the model for Merkfähigkeiten
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Loaded subcategory: Menschliche Körper
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Loaded subcategory: Genetik
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Loaded subcategory: Evolution
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Loaded subcategory: Humangenetik
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Loaded subcategory: Frühentwicklung des Menschen
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Loaded subcategory: Ökologie
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Loaded subcategory: Immunbiologie
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Loaded subcategory: Menschliche Zelle
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Loaded subcategory: Molekulare Genetik
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Loading questions for category: Biologie
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Number of subcategories: 9
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Processing subcategory: Menschliche Körper
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Menschliche Körper
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 28
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Subcategory ID: 28
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Number of questions loaded: 1
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Added 1 questions with options to the model for Menschliche Körper
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Processing subcategory: Genetik
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Genetik
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 30
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Subcategory ID: 30
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Number of questions loaded: 0
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Added 0 questions with options to the model for Genetik
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Processing subcategory: Evolution
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Evolution
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 33
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Subcategory ID: 33
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Number of questions loaded: 0
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Added 0 questions with options to the model for Evolution
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Processing subcategory: Humangenetik
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Humangenetik
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 32
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Subcategory ID: 32
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Number of questions loaded: 0
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Added 0 questions with options to the model for Humangenetik
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Processing subcategory: Frühentwicklung des Menschen
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Frühentwicklung des Menschen
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 29
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Subcategory ID: 29
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Number of questions loaded: 0
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Added 0 questions with options to the model for Frühentwicklung des Menschen
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Processing subcategory: Ökologie
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Ökologie
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 34
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Subcategory ID: 34
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Number of questions loaded: 0
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Added 0 questions with options to the model for Ökologie
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Processing subcategory: Immunbiologie
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Immunbiologie
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 35
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Subcategory ID: 35
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Number of questions loaded: 0
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Added 0 questions with options to the model for Immunbiologie
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Processing subcategory: Menschliche Zelle
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Menschliche Zelle
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 27
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Subcategory ID: 27
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Number of questions loaded: 0
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Added 0 questions with options to the model for Menschliche Zelle
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Processing subcategory: Molekulare Genetik
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Category: Biologie, Subcategory: Molekulare Genetik
+[2025-07-12 16:24:49] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 31
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Subcategory ID: 31
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Number of questions loaded: 0
+[2025-07-12 16:24:49] [INFO] [DB] displaySubcategoriesInMainContent: Added 0 questions with options to the model for Molekulare Genetik
+[2025-07-12 16:24:51] [INFO] [DB] switchCategory: Loading questions for category: KFF
+[2025-07-12 16:24:51] [INFO] [DB] switchCategory: Number of subcategories: 5
+[2025-07-12 16:24:51] [INFO] [DB] switchCategory: Processing subcategory: Figuren
+[2025-07-12 16:24:51] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:51] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Figuren
+[2025-07-12 16:24:51] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 39
+[2025-07-12 16:24:51] [INFO] [DB] switchCategory: Subcategory ID: 39
+[2025-07-12 16:24:51] [INFO] [DB] switchCategory: Number of questions loaded: 3
+[2025-07-12 16:24:51] [INFO] [DB] switchCategory: Added 3 questions with options to the model for Figuren
+[2025-07-12 16:24:51] [INFO] [DB] switchCategory: Processing subcategory: Zahlenfolgen
+[2025-07-12 16:24:51] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:51] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Zahlenfolgen
+[2025-07-12 16:24:51] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 38
+[2025-07-12 16:24:51] [INFO] [DB] switchCategory: Subcategory ID: 38
+[2025-07-12 16:24:51] [INFO] [DB] switchCategory: Number of questions loaded: 5
+[2025-07-12 16:24:51] [INFO] [DB] switchCategory: Added 5 questions with options to the model for Zahlenfolgen
+[2025-07-12 16:24:51] [INFO] [DB] switchCategory: Processing subcategory: Implikationen
+[2025-07-12 16:24:51] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:51] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:24:51] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 40
+[2025-07-12 16:24:51] [INFO] [DB] switchCategory: Subcategory ID: 40
+[2025-07-12 16:24:51] [INFO] [DB] switchCategory: Number of questions loaded: 15
+[2025-07-12 16:24:51] [INFO] [DB] switchCategory: Added 15 questions with options to the model for Implikationen
+[2025-07-12 16:24:51] [INFO] [DB] switchCategory: Processing subcategory: Wortflüssigkeit
+[2025-07-12 16:24:51] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:51] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Wortflüssigkeit
+[2025-07-12 16:24:51] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 41
+[2025-07-12 16:24:51] [INFO] [DB] switchCategory: Subcategory ID: 41
+[2025-07-12 16:24:51] [INFO] [DB] switchCategory: Number of questions loaded: 5
+[2025-07-12 16:24:51] [INFO] [DB] switchCategory: Added 5 questions with options to the model for Wortflüssigkeit
+[2025-07-12 16:24:51] [INFO] [DB] switchCategory: Processing subcategory: Merkfähigkeiten
+[2025-07-12 16:24:51] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:51] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Merkfähigkeiten
+[2025-07-12 16:24:51] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 42
+[2025-07-12 16:24:51] [INFO] [DB] switchCategory: Subcategory ID: 42
+[2025-07-12 16:24:51] [INFO] [DB] switchCategory: Number of questions loaded: 0
+[2025-07-12 16:24:51] [INFO] [DB] switchCategory: Added 0 questions with options to the model for Merkfähigkeiten
+[2025-07-12 16:24:51] [INFO] [DB] displaySubcategoriesInMainContent: Loaded subcategory: Figuren
+[2025-07-12 16:24:51] [INFO] [DB] displaySubcategoriesInMainContent: Loaded subcategory: Zahlenfolgen
+[2025-07-12 16:24:51] [INFO] [DB] displaySubcategoriesInMainContent: Loaded subcategory: Implikationen
+[2025-07-12 16:24:51] [INFO] [DB] displaySubcategoriesInMainContent: Loaded subcategory: Wortflüssigkeit
+[2025-07-12 16:24:51] [INFO] [DB] displaySubcategoriesInMainContent: Loaded subcategory: Merkfähigkeiten
+[2025-07-12 16:24:51] [INFO] [DB] displaySubcategoriesInMainContent: Loading questions for category: KFF
+[2025-07-12 16:24:51] [INFO] [DB] displaySubcategoriesInMainContent: Number of subcategories: 5
+[2025-07-12 16:24:51] [INFO] [DB] displaySubcategoriesInMainContent: Processing subcategory: Figuren
+[2025-07-12 16:24:51] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:51] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Figuren
+[2025-07-12 16:24:51] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 39
+[2025-07-12 16:24:51] [INFO] [DB] displaySubcategoriesInMainContent: Subcategory ID: 39
+[2025-07-12 16:24:51] [INFO] [DB] displaySubcategoriesInMainContent: Number of questions loaded: 3
+[2025-07-12 16:24:51] [INFO] [DB] displaySubcategoriesInMainContent: Added 3 questions with options to the model for Figuren
+[2025-07-12 16:24:51] [INFO] [DB] displaySubcategoriesInMainContent: Processing subcategory: Zahlenfolgen
+[2025-07-12 16:24:51] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:51] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Zahlenfolgen
+[2025-07-12 16:24:51] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 38
+[2025-07-12 16:24:51] [INFO] [DB] displaySubcategoriesInMainContent: Subcategory ID: 38
+[2025-07-12 16:24:51] [INFO] [DB] displaySubcategoriesInMainContent: Number of questions loaded: 5
+[2025-07-12 16:24:51] [INFO] [DB] displaySubcategoriesInMainContent: Added 5 questions with options to the model for Zahlenfolgen
+[2025-07-12 16:24:51] [INFO] [DB] displaySubcategoriesInMainContent: Processing subcategory: Implikationen
+[2025-07-12 16:24:51] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:51] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:24:51] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 40
+[2025-07-12 16:24:51] [INFO] [DB] displaySubcategoriesInMainContent: Subcategory ID: 40
+[2025-07-12 16:24:51] [INFO] [DB] displaySubcategoriesInMainContent: Number of questions loaded: 15
+[2025-07-12 16:24:51] [INFO] [DB] displaySubcategoriesInMainContent: Added 15 questions with options to the model for Implikationen
+[2025-07-12 16:24:51] [INFO] [DB] displaySubcategoriesInMainContent: Processing subcategory: Wortflüssigkeit
+[2025-07-12 16:24:51] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:51] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Wortflüssigkeit
+[2025-07-12 16:24:51] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 41
+[2025-07-12 16:24:51] [INFO] [DB] displaySubcategoriesInMainContent: Subcategory ID: 41
+[2025-07-12 16:24:51] [INFO] [DB] displaySubcategoriesInMainContent: Number of questions loaded: 5
+[2025-07-12 16:24:51] [INFO] [DB] displaySubcategoriesInMainContent: Added 5 questions with options to the model for Wortflüssigkeit
+[2025-07-12 16:24:51] [INFO] [DB] displaySubcategoriesInMainContent: Processing subcategory: Merkfähigkeiten
+[2025-07-12 16:24:51] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:51] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Merkfähigkeiten
+[2025-07-12 16:24:51] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 42
+[2025-07-12 16:24:51] [INFO] [DB] displaySubcategoriesInMainContent: Subcategory ID: 42
+[2025-07-12 16:24:51] [INFO] [DB] displaySubcategoriesInMainContent: Number of questions loaded: 0
+[2025-07-12 16:24:51] [INFO] [DB] displaySubcategoriesInMainContent: Added 0 questions with options to the model for Merkfähigkeiten
+[2025-07-12 16:24:53] [INFO] [DB] actionPerformed: Loading questions for category: KFF
+[2025-07-12 16:24:53] [INFO] [DB] actionPerformed: Number of subcategories: 5
+[2025-07-12 16:24:53] [INFO] [DB] actionPerformed: Processing subcategory: Figuren
+[2025-07-12 16:24:53] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:53] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Figuren
+[2025-07-12 16:24:53] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 39
+[2025-07-12 16:24:53] [INFO] [DB] actionPerformed: Subcategory ID: 39
+[2025-07-12 16:24:53] [INFO] [DB] actionPerformed: Number of questions loaded: 3
+[2025-07-12 16:24:53] [INFO] [DB] actionPerformed: Added 3 questions with options to the model for Figuren
+[2025-07-12 16:24:53] [INFO] [DB] actionPerformed: Processing subcategory: Zahlenfolgen
+[2025-07-12 16:24:53] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:53] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Zahlenfolgen
+[2025-07-12 16:24:53] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 38
+[2025-07-12 16:24:53] [INFO] [DB] actionPerformed: Subcategory ID: 38
+[2025-07-12 16:24:53] [INFO] [DB] actionPerformed: Number of questions loaded: 5
+[2025-07-12 16:24:53] [INFO] [DB] actionPerformed: Added 5 questions with options to the model for Zahlenfolgen
+[2025-07-12 16:24:53] [INFO] [DB] actionPerformed: Processing subcategory: Implikationen
+[2025-07-12 16:24:53] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:53] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:24:53] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 40
+[2025-07-12 16:24:53] [INFO] [DB] actionPerformed: Subcategory ID: 40
+[2025-07-12 16:24:53] [INFO] [DB] actionPerformed: Number of questions loaded: 15
+[2025-07-12 16:24:53] [INFO] [DB] actionPerformed: Added 15 questions with options to the model for Implikationen
+[2025-07-12 16:24:53] [INFO] [DB] actionPerformed: Processing subcategory: Wortflüssigkeit
+[2025-07-12 16:24:53] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:53] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Wortflüssigkeit
+[2025-07-12 16:24:53] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 41
+[2025-07-12 16:24:53] [INFO] [DB] actionPerformed: Subcategory ID: 41
+[2025-07-12 16:24:53] [INFO] [DB] actionPerformed: Number of questions loaded: 5
+[2025-07-12 16:24:53] [INFO] [DB] actionPerformed: Added 5 questions with options to the model for Wortflüssigkeit
+[2025-07-12 16:24:53] [INFO] [DB] actionPerformed: Processing subcategory: Merkfähigkeiten
+[2025-07-12 16:24:53] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:53] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Merkfähigkeiten
+[2025-07-12 16:24:53] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 42
+[2025-07-12 16:24:53] [INFO] [DB] actionPerformed: Subcategory ID: 42
+[2025-07-12 16:24:53] [INFO] [DB] actionPerformed: Number of questions loaded: 0
+[2025-07-12 16:24:53] [INFO] [DB] actionPerformed: Added 0 questions with options to the model for Merkfähigkeiten
+[2025-07-12 16:24:53] [INFO] [DB] switchSubcategory: Loading questions for category: KFF
+[2025-07-12 16:24:53] [INFO] [DB] switchSubcategory: Number of subcategories: 5
+[2025-07-12 16:24:53] [INFO] [DB] switchSubcategory: Processing subcategory: Figuren
+[2025-07-12 16:24:53] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:53] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Figuren
+[2025-07-12 16:24:53] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 39
+[2025-07-12 16:24:53] [INFO] [DB] switchSubcategory: Subcategory ID: 39
+[2025-07-12 16:24:53] [INFO] [DB] switchSubcategory: Number of questions loaded: 3
+[2025-07-12 16:24:53] [INFO] [DB] switchSubcategory: Added 3 questions with options to the model for Figuren
+[2025-07-12 16:24:53] [INFO] [DB] switchSubcategory: Processing subcategory: Zahlenfolgen
+[2025-07-12 16:24:53] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:53] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Zahlenfolgen
+[2025-07-12 16:24:53] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 38
+[2025-07-12 16:24:53] [INFO] [DB] switchSubcategory: Subcategory ID: 38
+[2025-07-12 16:24:53] [INFO] [DB] switchSubcategory: Number of questions loaded: 5
+[2025-07-12 16:24:53] [INFO] [DB] switchSubcategory: Added 5 questions with options to the model for Zahlenfolgen
+[2025-07-12 16:24:53] [INFO] [DB] switchSubcategory: Processing subcategory: Implikationen
+[2025-07-12 16:24:53] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:53] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:24:53] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 40
+[2025-07-12 16:24:53] [INFO] [DB] switchSubcategory: Subcategory ID: 40
+[2025-07-12 16:24:53] [INFO] [DB] switchSubcategory: Number of questions loaded: 15
+[2025-07-12 16:24:53] [INFO] [DB] switchSubcategory: Added 15 questions with options to the model for Implikationen
+[2025-07-12 16:24:53] [INFO] [DB] switchSubcategory: Processing subcategory: Wortflüssigkeit
+[2025-07-12 16:24:53] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:53] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Wortflüssigkeit
+[2025-07-12 16:24:54] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 41
+[2025-07-12 16:24:54] [INFO] [DB] switchSubcategory: Subcategory ID: 41
+[2025-07-12 16:24:54] [INFO] [DB] switchSubcategory: Number of questions loaded: 5
+[2025-07-12 16:24:54] [INFO] [DB] switchSubcategory: Added 5 questions with options to the model for Wortflüssigkeit
+[2025-07-12 16:24:54] [INFO] [DB] switchSubcategory: Processing subcategory: Merkfähigkeiten
+[2025-07-12 16:24:54] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:54] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Merkfähigkeiten
+[2025-07-12 16:24:54] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 42
+[2025-07-12 16:24:54] [INFO] [DB] switchSubcategory: Subcategory ID: 42
+[2025-07-12 16:24:54] [INFO] [DB] switchSubcategory: Number of questions loaded: 0
+[2025-07-12 16:24:54] [INFO] [DB] switchSubcategory: Added 0 questions with options to the model for Merkfähigkeiten
+[2025-07-12 16:24:56] [INFO] [DB] deleteAllQuestions: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:56] [INFO] [DB] deleteAllQuestions: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:24:56] [INFO] [DB] deleteAllQuestions: Found subcategory ID: 40
+[2025-07-12 16:24:57] [INFO] [DB] reloadQuestionsAfterDeletion: Loading questions for category: KFF
+[2025-07-12 16:24:57] [INFO] [DB] reloadQuestionsAfterDeletion: Number of subcategories: 5
+[2025-07-12 16:24:57] [INFO] [DB] reloadQuestionsAfterDeletion: Processing subcategory: Figuren
+[2025-07-12 16:24:57] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:57] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Figuren
+[2025-07-12 16:24:57] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 39
+[2025-07-12 16:24:57] [INFO] [DB] reloadQuestionsAfterDeletion: Subcategory ID: 39
+[2025-07-12 16:24:57] [INFO] [DB] reloadQuestionsAfterDeletion: Number of questions loaded: 3
+[2025-07-12 16:24:57] [INFO] [DB] reloadQuestionsAfterDeletion: Added 3 questions with options to the model for Figuren
+[2025-07-12 16:24:57] [INFO] [DB] reloadQuestionsAfterDeletion: Processing subcategory: Zahlenfolgen
+[2025-07-12 16:24:57] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:57] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Zahlenfolgen
+[2025-07-12 16:24:57] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 38
+[2025-07-12 16:24:57] [INFO] [DB] reloadQuestionsAfterDeletion: Subcategory ID: 38
+[2025-07-12 16:24:57] [INFO] [DB] reloadQuestionsAfterDeletion: Number of questions loaded: 5
+[2025-07-12 16:24:57] [INFO] [DB] reloadQuestionsAfterDeletion: Added 5 questions with options to the model for Zahlenfolgen
+[2025-07-12 16:24:57] [INFO] [DB] reloadQuestionsAfterDeletion: Processing subcategory: Implikationen
+[2025-07-12 16:24:57] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:57] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:24:57] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 40
+[2025-07-12 16:24:57] [INFO] [DB] reloadQuestionsAfterDeletion: Subcategory ID: 40
+[2025-07-12 16:24:57] [INFO] [DB] reloadQuestionsAfterDeletion: Number of questions loaded: 0
+[2025-07-12 16:24:57] [INFO] [DB] reloadQuestionsAfterDeletion: Added 0 questions with options to the model for Implikationen
+[2025-07-12 16:24:57] [INFO] [DB] reloadQuestionsAfterDeletion: Processing subcategory: Wortflüssigkeit
+[2025-07-12 16:24:57] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:57] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Wortflüssigkeit
+[2025-07-12 16:24:57] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 41
+[2025-07-12 16:24:57] [INFO] [DB] reloadQuestionsAfterDeletion: Subcategory ID: 41
+[2025-07-12 16:24:57] [INFO] [DB] reloadQuestionsAfterDeletion: Number of questions loaded: 5
+[2025-07-12 16:24:57] [INFO] [DB] reloadQuestionsAfterDeletion: Added 5 questions with options to the model for Wortflüssigkeit
+[2025-07-12 16:24:57] [INFO] [DB] reloadQuestionsAfterDeletion: Processing subcategory: Merkfähigkeiten
+[2025-07-12 16:24:57] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:24:57] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Merkfähigkeiten
+[2025-07-12 16:24:57] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 42
+[2025-07-12 16:24:57] [INFO] [DB] reloadQuestionsAfterDeletion: Subcategory ID: 42
+[2025-07-12 16:24:57] [INFO] [DB] reloadQuestionsAfterDeletion: Number of questions loaded: 0
+[2025-07-12 16:24:57] [INFO] [DB] reloadQuestionsAfterDeletion: Added 0 questions with options to the model for Merkfähigkeiten
+[2025-07-12 16:25:01] [INFO] [FileRead] execute: Line 1: Hürde
+[2025-07-12 16:25:01] [INFO] [FileRead] execute: Line 2: Weltmeister
+[2025-07-12 16:25:01] [INFO] [FileRead] execute: Line 3: Abend
+[2025-07-12 16:25:01] [INFO] [FileRead] execute: Line 4: Abschnitt
+[2025-07-12 16:25:01] [INFO] [FileRead] execute: Line 5: Abstimmung
+[2025-07-12 16:25:01] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Question: Einige WM sind Bevölkerung.
+Alle Bevölkerung sind keine Einigung.
+[2025-07-12 16:25:01] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Keine WM sind Einigung.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Einige Einigung sind keine WM.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Keine Einigung sind WM.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Einige WM sind keine Einigung.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Question: Alle Aktivität sind keine Arbeitgeber.
+Einige Wetter sind Arbeitgeber.
+[2025-07-12 16:25:01] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Alle Wetter sind keine Aktivität.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Einige Aktivität sind keine Wetter.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Einige Wetter sind keine Aktivität.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Einige Aktivität sind Wetter.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Question: Einige Berufung sind Herstellung.
+Alle Herstellung sind Veranstaltung.
+[2025-07-12 16:25:01] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Alle Berufung sind Veranstaltung.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Einige Berufung sind Veranstaltung.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Einige Berufung sind keine Veranstaltung.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Alle Veranstaltung sind keine Berufung.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Question: Alle Seele sind Wende.
+Alle Motto sind keine Seele.
+[2025-07-12 16:25:01] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Einige Wende sind keine Motto.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Einige Motto sind Wende.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Alle Motto sind keine Wende.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Alle Motto sind Wende.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Question: Alle Unabhängigkeit sind Anlass.
+Einige Anlass sind Kirche.
+[2025-07-12 16:25:01] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Alle Unabhängigkeit sind keine Kirche.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Einige Unabhängigkeit sind Kirche.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Keine Unabhängigkeit sind Kirche.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Einige Kirche sind keine Unabhängigkeit.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Question: Alle Gold sind keine Material.
+Alle Behandlung sind Gold.
+[2025-07-12 16:25:01] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Alle Material sind keine Behandlung.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Einige Material sind keine Behandlung.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Alle Behandlung sind Material.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Alle Material sind Behandlung.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Question: Alle Treffen sind Demokratie.
+Einige Treffen sind keine Aussage.
+[2025-07-12 16:25:01] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Alle Aussage sind Demokratie.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Einige Demokratie sind keine Aussage.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Alle Demokratie sind Aussage.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Alle Demokratie sind keine Aussage.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Question: Alle Bericht sind Umfeld.
+Einige Umfeld sind Änderung.
+[2025-07-12 16:25:01] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Einige Änderung sind keine Bericht.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Keine Änderung sind Bericht.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Einige Änderung sind Bericht.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Alle Bericht sind keine Änderung.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Question: Alle Urlaub sind Traum.
+Alle Traum sind Bewohner.
+[2025-07-12 16:25:01] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Alle Urlaub sind keine Bewohner.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Keine Urlaub sind Bewohner.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Alle Urlaub sind Bewohner.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Einige Bewohner sind Urlaub.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Question: Einige Schritt sind keine Hektar.
+Alle Schritt sind Ding.
+[2025-07-12 16:25:01] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Einige Ding sind keine Hektar.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Alle Ding sind Hektar.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Alle Hektar sind keine Ding.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Keine Ding sind Hektar.
+[2025-07-12 16:25:01] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:25:01] [INFO] [DB] lambda$26: Loading questions for category: KFF
+[2025-07-12 16:25:01] [INFO] [DB] lambda$26: Number of subcategories: 5
+[2025-07-12 16:25:01] [INFO] [DB] lambda$26: Processing subcategory: Figuren
+[2025-07-12 16:25:01] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:25:01] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Figuren
+[2025-07-12 16:25:01] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 39
+[2025-07-12 16:25:01] [INFO] [DB] lambda$26: Subcategory ID: 39
+[2025-07-12 16:25:01] [INFO] [DB] lambda$26: Number of questions loaded: 3
+[2025-07-12 16:25:01] [INFO] [DB] lambda$26: Added 3 questions with options to the model for Figuren
+[2025-07-12 16:25:01] [INFO] [DB] lambda$26: Processing subcategory: Zahlenfolgen
+[2025-07-12 16:25:01] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:25:01] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Zahlenfolgen
+[2025-07-12 16:25:01] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 38
+[2025-07-12 16:25:01] [INFO] [DB] lambda$26: Subcategory ID: 38
+[2025-07-12 16:25:01] [INFO] [DB] lambda$26: Number of questions loaded: 5
+[2025-07-12 16:25:01] [INFO] [DB] lambda$26: Added 5 questions with options to the model for Zahlenfolgen
+[2025-07-12 16:25:01] [INFO] [DB] lambda$26: Processing subcategory: Implikationen
+[2025-07-12 16:25:01] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:25:01] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:25:01] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 40
+[2025-07-12 16:25:01] [INFO] [DB] lambda$26: Subcategory ID: 40
+[2025-07-12 16:25:01] [INFO] [DB] lambda$26: Number of questions loaded: 10
+[2025-07-12 16:25:01] [INFO] [DB] lambda$26: Added 10 questions with options to the model for Implikationen
+[2025-07-12 16:25:01] [INFO] [DB] lambda$26: Processing subcategory: Wortflüssigkeit
+[2025-07-12 16:25:01] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:25:01] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Wortflüssigkeit
+[2025-07-12 16:25:01] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 41
+[2025-07-12 16:25:01] [INFO] [DB] lambda$26: Subcategory ID: 41
+[2025-07-12 16:25:01] [INFO] [DB] lambda$26: Number of questions loaded: 5
+[2025-07-12 16:25:01] [INFO] [DB] lambda$26: Added 5 questions with options to the model for Wortflüssigkeit
+[2025-07-12 16:25:01] [INFO] [DB] lambda$26: Processing subcategory: Merkfähigkeiten
+[2025-07-12 16:25:01] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:25:01] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Merkfähigkeiten
+[2025-07-12 16:25:01] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 42
+[2025-07-12 16:25:01] [INFO] [DB] lambda$26: Subcategory ID: 42
+[2025-07-12 16:25:01] [INFO] [DB] lambda$26: Number of questions loaded: 0
+[2025-07-12 16:25:01] [INFO] [DB] lambda$26: Added 0 questions with options to the model for Merkfähigkeiten
+[2025-07-12 16:25:12] [INFO] [FileRead] execute: Line 1: Hürde
+[2025-07-12 16:25:12] [INFO] [FileRead] execute: Line 2: Weltmeister
+[2025-07-12 16:25:12] [INFO] [FileRead] execute: Line 3: Abend
+[2025-07-12 16:25:12] [INFO] [FileRead] execute: Line 4: Abschnitt
+[2025-07-12 16:25:12] [INFO] [FileRead] execute: Line 5: Abstimmung
+[2025-07-12 16:25:12] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Question: Alle Rückgang sind keine Geist.
+Alle Kasse sind Rückgang.
+[2025-07-12 16:25:12] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Einige Kasse sind keine Geist.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Alle Geist sind keine Kasse.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Keine Kasse sind Geist.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Alle Kasse sind keine Geist.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Question: Alle Tier sind Staat.
+Einige Staat sind keine Anbieter.
+[2025-07-12 16:25:12] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Alle Anbieter sind Tier.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Keine Anbieter sind Tier.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Alle Anbieter sind keine Tier.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Alle Tier sind keine Anbieter.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Question: Einige Verhältnis sind Wahl.
+Alle Verhältnis sind keine Patient.
+[2025-07-12 16:25:12] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Keine Patient sind Wahl.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Alle Wahl sind keine Patient.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Einige Wahl sind Patient.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Einige Wahl sind keine Patient.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Question: Alle Rahmen sind Aufmerksamkeit.
+Alle Aufmerksamkeit sind keine Größe.
+[2025-07-12 16:25:12] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Einige Größe sind keine Rahmen.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Alle Rahmen sind keine Größe.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Keine Größe sind Rahmen.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Alle Rahmen sind Größe.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Question: Alle Hoffnung sind keine Pause.
+Einige Gefängnis sind Pause.
+[2025-07-12 16:25:12] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Einige Hoffnung sind Gefängnis.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Alle Hoffnung sind Gefängnis.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Keine Hoffnung sind Gefängnis.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Einige Gefängnis sind keine Hoffnung.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Question: Einige Manager sind Strecke.
+Alle Medium sind keine Manager.
+[2025-07-12 16:25:12] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Einige Strecke sind keine Medium.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Einige Medium sind keine Strecke.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Einige Medium sind Strecke.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Einige Strecke sind Medium.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Question: Alle Landschaft sind Strategie.
+Einige Mehrheit sind keine Strategie.
+[2025-07-12 16:25:12] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Keine Mehrheit sind Landschaft.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Alle Landschaft sind Mehrheit.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Einige Landschaft sind keine Mehrheit.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Keine Landschaft sind Mehrheit.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Question: Einige Risiko sind Pfund.
+Alle Reich sind Risiko.
+[2025-07-12 16:25:12] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Alle Pfund sind Reich.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Einige Reich sind Pfund.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Keine Reich sind Pfund.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Einige Pfund sind keine Reich.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Question: Alle Urlaub sind Gedanke.
+Alle Gedanke sind Unterschied.
+[2025-07-12 16:25:12] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Alle Urlaub sind Unterschied.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Einige Urlaub sind keine Unterschied.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Einige Unterschied sind keine Urlaub.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Einige Urlaub sind Unterschied.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Question: Alle Aufbau sind keine Vortrag.
+Alle Vortrag sind Umfang.
+[2025-07-12 16:25:12] [INFO] [QuestionDAO] getSubcategoryId: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Einige Aufbau sind keine Umfang.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Keine Aufbau sind Umfang.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Alle Umfang sind Aufbau.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Einige Umfang sind keine Aufbau.
+[2025-07-12 16:25:12] [INFO] [Syllogism] lambda$26: Option: Keine Antwort ist richtig.
+[2025-07-12 16:25:12] [INFO] [DB] lambda$26: Loading questions for category: KFF
+[2025-07-12 16:25:12] [INFO] [DB] lambda$26: Number of subcategories: 5
+[2025-07-12 16:25:12] [INFO] [DB] lambda$26: Processing subcategory: Figuren
+[2025-07-12 16:25:12] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:25:12] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Figuren
+[2025-07-12 16:25:12] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 39
+[2025-07-12 16:25:12] [INFO] [DB] lambda$26: Subcategory ID: 39
+[2025-07-12 16:25:12] [INFO] [DB] lambda$26: Number of questions loaded: 3
+[2025-07-12 16:25:12] [INFO] [DB] lambda$26: Added 3 questions with options to the model for Figuren
+[2025-07-12 16:25:12] [INFO] [DB] lambda$26: Processing subcategory: Zahlenfolgen
+[2025-07-12 16:25:12] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:25:12] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Zahlenfolgen
+[2025-07-12 16:25:12] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 38
+[2025-07-12 16:25:12] [INFO] [DB] lambda$26: Subcategory ID: 38
+[2025-07-12 16:25:12] [INFO] [DB] lambda$26: Number of questions loaded: 5
+[2025-07-12 16:25:12] [INFO] [DB] lambda$26: Added 5 questions with options to the model for Zahlenfolgen
+[2025-07-12 16:25:12] [INFO] [DB] lambda$26: Processing subcategory: Implikationen
+[2025-07-12 16:25:12] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:25:12] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Implikationen
+[2025-07-12 16:25:12] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 40
+[2025-07-12 16:25:12] [INFO] [DB] lambda$26: Subcategory ID: 40
+[2025-07-12 16:25:12] [INFO] [DB] lambda$26: Number of questions loaded: 20
+[2025-07-12 16:25:12] [INFO] [DB] lambda$26: Added 20 questions with options to the model for Implikationen
+[2025-07-12 16:25:12] [INFO] [DB] lambda$26: Processing subcategory: Wortflüssigkeit
+[2025-07-12 16:25:12] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:25:12] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Wortflüssigkeit
+[2025-07-12 16:25:12] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 41
+[2025-07-12 16:25:12] [INFO] [DB] lambda$26: Subcategory ID: 41
+[2025-07-12 16:25:12] [INFO] [DB] lambda$26: Number of questions loaded: 5
+[2025-07-12 16:25:12] [INFO] [DB] lambda$26: Added 5 questions with options to the model for Wortflüssigkeit
+[2025-07-12 16:25:12] [INFO] [DB] lambda$26: Processing subcategory: Merkfähigkeiten
+[2025-07-12 16:25:12] [INFO] [DB] loadQuestionsFromDatabase: Executing SQL: SELECT s.id FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.name = ? AND c.name = ?
+[2025-07-12 16:25:12] [INFO] [DB] loadQuestionsFromDatabase: Category: KFF, Subcategory: Merkfähigkeiten
+[2025-07-12 16:25:12] [INFO] [DB] loadQuestionsFromDatabase: Found subcategory ID: 42
+[2025-07-12 16:25:13] [INFO] [DB] lambda$26: Subcategory ID: 42
+[2025-07-12 16:25:13] [INFO] [DB] lambda$26: Number of questions loaded: 0
+[2025-07-12 16:25:13] [INFO] [DB] lambda$26: Added 0 questions with options to the model for Merkfähigkeiten

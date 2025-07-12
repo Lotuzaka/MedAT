@@ -96,21 +96,13 @@ public class WortfluessigkeitGenerator {
     }
 
     /**
-     * Reads all valid words from the given list file.
-     *
-     * <p>The word list distributed with the project is encoded in
-     * ISO-8859-1. When reading it using UTF-8 the umlaut bytes become
-     * replacement characters, which bypasses the {@link #INVALID_CHARS}
-     * check. To ensure words containing umlauts are filtered out, we
-     * read the file using the correct encoding.</p>
-     *
-     * <p>Only words with a length between 7 and 9 characters are
-     * considered.</p>
+     * Reads all valid words from the given UTF-8 file. Only words with a length
+     * between 7 and 9 characters are considered.
      */
     List<String> readWordList(String path) throws IOException {
         List<String> raw = new ArrayList<>();
         try (BufferedReader br = new BufferedReader(new InputStreamReader(
-                new java.io.FileInputStream(path), StandardCharsets.ISO_8859_1))) {
+                new java.io.FileInputStream(path), StandardCharsets.UTF_8))) {
             String line;
             while ((line = br.readLine()) != null) {
                 raw.add(line.trim());
