@@ -1,28 +1,30 @@
- (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
-diff --git a/dev/null b/src/test/java/WortfluessigkeitGeneratorPropertyTest.java
-index 0000000000000000000000000000000000000000..5cddb03771ca40dbdf13632709878a270c9e06b7 100644
---- a/dev/null
-+++ b/src/test/java/WortfluessigkeitGeneratorPropertyTest.java
-@@ -0,0 +1,50 @@
-+import static org.junit.jupiter.api.Assertions.assertEquals;
+(cd "$(git rev-parse --show-toplevel)" && git apply --3way --whitespace=nowarn <<'EOF'
+diff --git a/src/test/java/WortfluessigkeitGeneratorTest.java b/src/test/java/WortfluessigkeitGeneratorTest.java
+new file mode 100644
+index 0000000..b36d677861fe0cd15c44850f5474aa77b3c1a6b7
+--- /dev/null
++++ b/src/test/java/WortfluessigkeitGeneratorTest.java
+@@ -0,0 +1,58 @@
++import static org.junit.jupiter.api.Assertions.*;
 +
 +import java.sql.Connection;
 +import java.sql.DriverManager;
 +import java.sql.SQLException;
 +import java.sql.Statement;
-+import java.util.List;
 +
-+import net.jqwik.api.ForAll;
-+import net.jqwik.api.Property;
-+import net.jqwik.api.Provide;
-+import net.jqwik.api.arbitraries.Integers;
-+import net.jqwik.api.Arbitrary;
++import org.junit.jupiter.api.AfterEach;
++import org.junit.jupiter.api.BeforeEach;
++import org.junit.jupiter.api.Test;
 +
-+public class WortfluessigkeitGeneratorPropertyTest {
++/** Unit tests for the WortfluessigkeitGenerator. */
++public class WortfluessigkeitGeneratorTest {
 +
-+    private Connection createDb() throws SQLException {
-+        Connection c = DriverManager.getConnection("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1");
-+        try (Statement st = c.createStatement()) {
++    private Connection conn;
++
++    @BeforeEach
++    void setUp() throws SQLException {
++        conn = DriverManager.getConnection("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1");
++        try (Statement st = conn.createStatement()) {
 +            st.execute("CREATE TABLE categories(id INT PRIMARY KEY AUTO_INCREMENT, name VARCHAR(255))");
 +            st.execute("CREATE TABLE subcategories(id INT PRIMARY KEY AUTO_INCREMENT, category_id INT, name VARCHAR(255), order_index INT)");
 +            st.execute("CREATE TABLE questions(id INT PRIMARY KEY AUTO_INCREMENT, subcategory_id INT, question_number INT, text VARCHAR(255), format VARCHAR(10), test_simulation_id INT, difficulty VARCHAR(10), shape_data VARCHAR(255), shape_type VARCHAR(255), dissected_pieces_data VARCHAR(255), assembled_pieces_data VARCHAR(255))");
@@ -30,28 +32,35 @@ index 0000000000000000000000000000000000000000..5cddb03771ca40dbdf13632709878a27
 +            st.execute("INSERT INTO categories(id,name) VALUES(1,'KFF')");
 +            st.execute("INSERT INTO subcategories(id,category_id,name,order_index) VALUES(1,1,'Wortflüssigkeit',1)");
 +        }
-+        return c;
 +    }
 +
-+    @Property
-+    void oneCorrectOptionPerQuestion(@ForAll("ids") int simId) throws Exception {
-+        try (Connection conn = createDb()) {
-+            WortfluessigkeitGenerator gen = new WortfluessigkeitGenerator(conn, "KFF", "Wortflüssigkeit", simId);
-+            gen.execute(1);
-+            QuestionDAO qDao = new QuestionDAO(conn);
-+            int subId = qDao.getSubcategoryId("KFF", "Wortflüssigkeit");
-+            List<QuestionDAO> qs = qDao.getQuestionsBySubcategoryAndSimulation(subId, simId);
-+            assertEquals(1, qs.size());
-+            OptionDAO oDao = new OptionDAO(conn);
-+            List<OptionDAO> opts = oDao.getOptionsByQuestionId(qs.get(0).getId());
-+            long count = opts.stream().filter(OptionDAO::isCorrect).count();
-+            assertEquals(1, count);
++    @AfterEach
++    void tearDown() throws SQLException {
++        conn.close();
++    }
++
++    @Test
++    void scrambleNeverReturnsOriginal() {
++        WortfluessigkeitGenerator gen = new WortfluessigkeitGenerator(null, "KFF", "Wortflüssigkeit", 1);
++        String word = "ABCDEFG";
++        for (int i = 0; i < 10; i++) {
++            String scrambled = gen.scramble(word);
++            assertNotEquals(word, scrambled);
 +        }
 +    }
 +
-+    @Provide
-+    Arbitrary<Integer> ids() {
-+        return Integers.between(1, 1000);
++    @Test
++    void executeCreatesQuestionsAndOptions() throws Exception {
++        WortfluessigkeitGenerator gen = new WortfluessigkeitGenerator(conn, "KFF", "Wortflüssigkeit", 1);
++        gen.execute(15);
++        try (Statement st = conn.createStatement()) {
++            var rs = st.executeQuery("SELECT COUNT(*) FROM questions WHERE test_simulation_id=1");
++            assertTrue(rs.next());
++            assertEquals(15, rs.getInt(1));
++            rs = st.executeQuery("SELECT COUNT(*) FROM options o JOIN questions q ON o.question_id=q.id WHERE q.test_simulation_id=1");
++            assertTrue(rs.next());
++            assertEquals(75, rs.getInt(1));
++        }
 +    }
 +}
  
