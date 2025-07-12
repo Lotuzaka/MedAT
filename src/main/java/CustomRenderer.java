@@ -135,13 +135,13 @@ public class CustomRenderer extends DefaultTableCellRenderer {
             }
         } else {
             c.setBackground(Color.WHITE);
-            Boolean isChecked = (Boolean) model.getValueAt(row, 2);
+            Boolean isChecked = (Boolean) model.getValueAt(row, 3);
             if (isChecked != null && isChecked) {
                 c.setBackground(new Color(127, 204, 165, 75));
             }
         }
 
-        if (column == 2) {
+        if (column == 3) {
             if (isQuestionRow) {
                 JLabel deleteLabel = new JLabel("X", SwingConstants.CENTER);
                 deleteLabel.setForeground(isPendingDeletion ? Color.WHITE : Color.RED);
@@ -163,7 +163,7 @@ public class CustomRenderer extends DefaultTableCellRenderer {
             }
         }
 
-        if (column == 3) {
+        if (column == 4) {
             if (isQuestionRow) {
                 // Only show gear icon on question rows
                 JLabel gearLabel = new JLabel(gearIcon);
@@ -173,7 +173,7 @@ public class CustomRenderer extends DefaultTableCellRenderer {
                 return gearLabel;
             } else {
                 // Option row: highlight cell green if correct
-                Boolean isChecked = (Boolean) model.getValueAt(row, 2);
+                Boolean isChecked = (Boolean) model.getValueAt(row, 3);
                 JLabel empty = new JLabel();
                 empty.setOpaque(true);
                 if (isChecked != null && isChecked) {
@@ -185,20 +185,20 @@ public class CustomRenderer extends DefaultTableCellRenderer {
             }
         }
 
-        if (column == 3 && !isQuestionRow) {
+        if (column == 4 && !isQuestionRow) {
             return new JLabel("");
         }
 
         if (isQuestionRow) {
             c.setFont(c.getFont().deriveFont(Font.BOLD));
         } else if (!isPendingDeletion) {
-            Boolean isChecked = (Boolean) model.getValueAt(row, 2);
+            Boolean isChecked = (Boolean) model.getValueAt(row, 3);
             if (isChecked != null && isChecked) {
                 c.setBackground(new Color(127, 204, 165, 75));
             }
         }
 
-        if (column == 4 && isFrageRow(row, (DefaultTableModel) table.getModel())) {
+        if (column == 5 && isFrageRow(row, (DefaultTableModel) table.getModel())) {
             String difficulty = (String) value;
             if (difficulty != null && !difficulty.isEmpty()) {
                 try {

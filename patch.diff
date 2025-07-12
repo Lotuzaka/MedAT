@@ -1,71 +1,130 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
-diff --git a/src/main/java/WortfluessigkeitGenerator.java b/src/main/java/WortfluessigkeitGenerator.java
-index 708cb4b6f675a2275e763bd0bdd4d0c267ebaafb..9401f1aa5158ec9c29383803a2ccf98ec2e5e0c3 100644
---- a/src/main/java/WortfluessigkeitGenerator.java
-+++ b/src/main/java/WortfluessigkeitGenerator.java
-@@ -48,52 +48,60 @@ public class WortfluessigkeitGenerator {
-     public void execute(int numQuestions) throws IOException, SQLException {
-         List<String> words = readWordList(WORDLIST_PATH);
-         Collections.shuffle(words, random);
+diff --git a/src/main/java/CustomRenderer.java b/src/main/java/CustomRenderer.java
+index d11614160ff22ad20226ae0231dd3055f97deafa..596b61c02fade2e7308d8a0c0b41b9feb63f8cd1 100644
+--- a/src/main/java/CustomRenderer.java
++++ b/src/main/java/CustomRenderer.java
+@@ -113,114 +113,114 @@ public class CustomRenderer extends DefaultTableCellRenderer {
+                 optionsPanel.add(optionPanel);
+             }
  
-         int subId = questionDAO.getSubcategoryId(category, subcategory);
-         int nextNr = questionDAO.getNextQuestionNumber(simulationId, subId);
+             return optionsPanel;
+         }
  
-         boolean autoCommit = conn.getAutoCommit();
-         conn.setAutoCommit(false);
-         try {
-             for (int i = 0; i < numQuestions && i < words.size(); i++) {
-                 String word = words.get(i).toUpperCase(Locale.GERMAN);
-                 String scrambled = scramble(word);
-                 char[] optionLetters = new char[4];
-                 int correctIndex = fillOptions(word, optionLetters);
-                 String questionText = toSpacedString(scrambled);
+         Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+         c.setForeground(Color.BLACK);
  
-                 if (i < 5) {
-                     MedatoninDB.debugLog("Wortfluessigkeit",
-                             "ID " + nextNr + " | Word = \"" + word +
-                                     "\" | Scramble = \"" + questionText +
-                                     "\" | Correct = \"" + optionLetters[correctIndex] +
-                                     "\" | Distraktoren = \"" + distractorString(optionLetters, correctIndex) + "\"");
+         boolean isPendingDeletion = false;
+         if (isQuestionRow) {
+             String questionNumber = String.valueOf(model.getValueAt(row, 0));
+             if (questionNumber != null && questionNumber.matches("\\d+")) {
+                 int questionNum = Integer.parseInt(questionNumber);
+                 QuestionIdentifier identifier = new QuestionIdentifier(currentSubcategory, questionNum);
+                 isPendingDeletion = pendingDeleteQuestions.contains(identifier);
+             }
+             if (isPendingDeletion) {
+                 c.setBackground(Color.RED);
+                 c.setForeground(Color.WHITE);
+             } else {
+                 c.setBackground(new Color(221, 221, 221));
+             }
+         } else {
+             c.setBackground(Color.WHITE);
+-            Boolean isChecked = (Boolean) model.getValueAt(row, 2);
++            Boolean isChecked = (Boolean) model.getValueAt(row, 3);
+             if (isChecked != null && isChecked) {
+                 c.setBackground(new Color(127, 204, 165, 75));
+             }
+         }
+ 
+-        if (column == 2) {
++        if (column == 3) {
+             if (isQuestionRow) {
+                 JLabel deleteLabel = new JLabel("X", SwingConstants.CENTER);
+                 deleteLabel.setForeground(isPendingDeletion ? Color.WHITE : Color.RED);
+                 deleteLabel.setBackground(c.getBackground());
+                 deleteLabel.setOpaque(true);
+                 return deleteLabel;
+             } else {
+                 Boolean checked = false;
+                 if (value instanceof Boolean) {
+                     checked = (Boolean) value;
                  }
+                 JCheckBox checkBox = new JCheckBox();
+                 checkBox.setSelected(checked);
+                 checkBox.setHorizontalAlignment(SwingConstants.CENTER);
+                 checkBox.setEnabled(false);
+                 checkBox.setBackground(c.getBackground());
+                 checkBox.setForeground(c.getForeground());
+                 return checkBox;
+             }
+         }
  
--                int qId = questionDAO.insertQuestion(category, subcategory,
--                        questionText, nextNr++, simulationId);
-+                int qId = questionDAO.insertQuestionWithShape(
-+                        category,
-+                        subcategory,
-+                        nextNr++,
-+                        questionText,
-+                        simulationId,
-+                        word,
-+                        "WORD",
-+                        null,
-+                        null);
+-        if (column == 3) {
++        if (column == 4) {
+             if (isQuestionRow) {
+                 // Only show gear icon on question rows
+                 JLabel gearLabel = new JLabel(gearIcon);
+                 gearLabel.setHorizontalAlignment(SwingConstants.CENTER);
+                 gearLabel.setBackground(c.getBackground());
+                 gearLabel.setOpaque(true);
+                 return gearLabel;
+             } else {
+                 // Option row: highlight cell green if correct
+-                Boolean isChecked = (Boolean) model.getValueAt(row, 2);
++                Boolean isChecked = (Boolean) model.getValueAt(row, 3);
+                 JLabel empty = new JLabel();
+                 empty.setOpaque(true);
+                 if (isChecked != null && isChecked) {
+                     empty.setBackground(new Color(127, 204, 165, 75));
+                 } else {
+                     empty.setBackground(c.getBackground());
+                 }
+                 return empty;
+             }
+         }
  
-                 for (int j = 0; j < 5; j++) {
-                     String label = (j == 4) ? "E" : String.valueOf((char) ('A' + j));
-                     String text = (j == 4) ? "Keine Antwort ist richtig." :
-                             "Anfangsbuchstabe: " + optionLetters[j];
-                     boolean correct = j == correctIndex;
-                     optionDAO.insertOption(qId, label, text, correct);
+-        if (column == 3 && !isQuestionRow) {
++        if (column == 4 && !isQuestionRow) {
+             return new JLabel("");
+         }
+ 
+         if (isQuestionRow) {
+             c.setFont(c.getFont().deriveFont(Font.BOLD));
+         } else if (!isPendingDeletion) {
+-            Boolean isChecked = (Boolean) model.getValueAt(row, 2);
++            Boolean isChecked = (Boolean) model.getValueAt(row, 3);
+             if (isChecked != null && isChecked) {
+                 c.setBackground(new Color(127, 204, 165, 75));
+             }
+         }
+ 
+-        if (column == 4 && isFrageRow(row, (DefaultTableModel) table.getModel())) {
++        if (column == 5 && isFrageRow(row, (DefaultTableModel) table.getModel())) {
+             String difficulty = (String) value;
+             if (difficulty != null && !difficulty.isEmpty()) {
+                 try {
+                     Difficulty diff = Difficulty.valueOf(difficulty.toUpperCase());
+ 
+                     JPanel panel = new JPanel(new GridBagLayout());
+                     panel.setOpaque(true);
+                     panel.setBackground(c.getBackground());
+ 
+                     JLabel badge = new JLabel(diff.symbol);
+                     badge.setForeground(diff.color);
+                     badge.setFont(new Font("Arial", Font.BOLD, 18));
+ 
+                     GridBagConstraints gbc = new GridBagConstraints();
+                     gbc.gridx = 0;
+                     gbc.gridy = 0;
+                     gbc.anchor = GridBagConstraints.CENTER;
+ 
+                     panel.add(badge, gbc);
+                     return panel;
+                 } catch (IllegalArgumentException e) {
+                     return c;
                  }
              }
-             conn.commit();
-         } finally {
-             conn.setAutoCommit(autoCommit);
          }
-     }
- 
-     /**
-      * Reads all valid words from the given UTF-8 file. Only words with a length
-      * between 7 and 9 characters are considered.
-      */
-     List<String> readWordList(String path) throws IOException {
-         List<String> raw = new ArrayList<>();
-         try (BufferedReader br = new BufferedReader(new InputStreamReader(
-                 new java.io.FileInputStream(path), StandardCharsets.UTF_8))) {
-             String line;
-             while ((line = br.readLine()) != null) {
  
 EOF
 )
