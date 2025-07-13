@@ -3428,14 +3428,20 @@ public class MedatoninDB extends JFrame {
             FigurenGenerator.DissectedPieces dissectedPieces = new FigurenGenerator.DissectedPieces(
                 dissectedPiecesList, dissectedPiecesList, assembledPiecesList);
 
-            // Find the correct option (the assembled figure)
-            Geometry correctOption = null;
-            if (!assembledPiecesList.isEmpty()) {
-                correctOption = assembledPiecesList.get(0); // Assume first is correct
+            // Show dissected pieces as WKT string in the 'Text' column
+            StringBuilder dissectedPiecesWKT = new StringBuilder();
+            for (Geometry piece : dissectedPiecesList) {
+                dissectedPiecesWKT.append(piece.toText()).append("; ");
             }
-            // Solution column: show the correctOption (assembled figure)
+            String dissectedText = dissectedPiecesWKT.length() > 0 ? dissectedPiecesWKT.substring(0, dissectedPiecesWKT.length() - 2) : "";
+
+            // Show assembled figure as WKT string in the 'Solution' column
+            String solutionText = "";
+            if (!assembledPiecesList.isEmpty()) {
+                solutionText = assembledPiecesList.get(0).toText();
+            }
             model.addRow(new Object[] {
-                String.valueOf(question.getQuestionNumber()), dissectedPieces, correctOption, false, "Kurz", "MEDIUM"
+                String.valueOf(question.getQuestionNumber()), dissectedText, solutionText, false, "Kurz", "MEDIUM"
             });
 
             // Option panel: only show options in grey, no solution
