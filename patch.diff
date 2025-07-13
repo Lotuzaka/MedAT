@@ -1,69 +1,72 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
 diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
-index 330f6f27bdb1675dd012898cdf27ac17d6f2ac80..d47ca30c96d7375f3f04a1d44fd90173c1137788 100644
+index d47ca30c96d7375f3f04a1d44fd90173c1137788..2f91113e67103dae20527fd78c84231b8b2b925b 100644
 --- a/src/main/java/MedatoninDB.java
 +++ b/src/main/java/MedatoninDB.java
-@@ -2380,54 +2380,57 @@ public class MedatoninDB extends JFrame {
-         TableColumn column = table.getColumnModel().getColumn(col);
-         column.setMinWidth(min);
-         column.setMaxWidth(max);
-         column.setPreferredWidth(pref);
+@@ -3426,52 +3426,62 @@ public class MedatoninDB extends JFrame {
      }
  
-     // Reset the background color of all category buttons to default
-     /**
-      * Resets all category buttons to the default background color.
-      */
-     private void resetCategoryButtons() {
-         Color defaultColor = new Color(221, 221, 221);
-         for (JButton btn : Arrays.asList(bioButton, chemButton, physButton, mathButton, kffButton)) {
-             btn.setBackground(defaultColor);
+     private void loadFigurenQuestionIntoModel(DefaultTableModel model, QuestionDAO question, OptionDAO optionDAO) {
+         try {
+             WKTReader wktReader = new WKTReader();
+             List<Geometry> dissectedPiecesList = new ArrayList<>();
+             for (String pieceWKT : question.getDissectedPiecesData().split(";")) {
+                 dissectedPiecesList.add(wktReader.read(pieceWKT));
+             }
+             List<Geometry> assembledPiecesList = new ArrayList<>();
+             for (String wkt : question.getAssembledPiecesData().split(";")) {
+                 if (!wkt.trim().isEmpty()) assembledPiecesList.add(wktReader.read(wkt));
+             }
+             FigurenGenerator.DissectedPieces dissectedPieces = new FigurenGenerator.DissectedPieces(
+                 dissectedPiecesList, dissectedPiecesList, assembledPiecesList);
+ 
+             // Show dissected pieces as shapes (object) in the 'Text' column
+             List<OptionDAO> options = optionDAO.getOptionsForQuestion(question.getId());
+             OptionDAO correctOption = null;
+             for (OptionDAO option : options) {
+                 if (option.isCorrect()) {
+                     correctOption = option;
+                     break;
+                 }
+             }
++            // Use the stored difficulty if available
++            String difficulty = question.getDifficulty();
++            if (difficulty == null || difficulty.trim().isEmpty()) {
++                difficulty = "MEDIUM";
++            }
+             model.addRow(new Object[] {
+-                String.valueOf(question.getQuestionNumber()), dissectedPieces, correctOption, false, "Kurz", "MEDIUM"
++                String.valueOf(question.getQuestionNumber()),
++                dissectedPieces,
++                correctOption,
++                false,
++                "Kurz",
++                difficulty
+             });
+ 
+             // Option panel: only show options in grey, no solution
+             FigurenOptionsData figurenOptionsData = new FigurenOptionsData(options, dissectedPieces);
+             model.addRow(new Object[] { "", figurenOptionsData, "", false, "" });
+         } catch (Exception e) {
+             debugLog("DB", "Error loading Figuren question ID " + question.getId() + ": " + e.getMessage());
+             e.printStackTrace();
          }
      }
  
-     // Method to create a new table model with an additional button column
-     private DefaultTableModel createTableModel() {
-         return new DefaultTableModel(new String[] { "Nr.", "Text", "Solution", "✓", "Set", "Diff" }, 0) {
-             @Override
-             public boolean isCellEditable(int row, int column) {
-                 if ("Figuren".equals(currentSubcategory)) {
-                     Object value = getValueAt(row, 1);
-                     if (value instanceof FigurenOptionsData || value instanceof List<?>) {
--                        return false; // Make the options row not editable
-+                        return false; // Options row not editable
-                     }
--                    // The question row is not editable in "Figuren"
--                    return column == 3;
-+                    // Allow editing of the checkmark and difficulty for question rows
-+                    if (column == 3 || column == 5) {
-+                        return true;
-+                    }
-+                    return false;
-                 } else {
-                     // For other subcategories, "Text" column is editable
-                     if (column == 1) {
-                         return true;
-                     }
-                 }
-                 if (column == 3) {
-                     // "✓" column is editable for both question and answer rows
-                     return true;
-                 }
-                 if (column == 4)
-                     return isFrageRow(row, this); // Only allow editing the "Set" column for question rows
+     private Map<String, DefaultTableModel> loadSubcategoriesFromDatabase(int categoryId) {
+         Map<String, DefaultTableModel> subcategories = new LinkedHashMap<>();
+         String sql = "SELECT name FROM subcategories WHERE category_id = ? ORDER BY order_index";
  
-                 if (column == 5)
-                     return isFrageRow(row, this); // Difficulty nur bei Fragen editierbar
- 
-                 return false; // "Nr." column is not editable
+         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+             stmt.setInt(1, categoryId);
+             try (ResultSet rs = stmt.executeQuery()) {
+                 while (rs.next()) {
+                     String subcategoryName = rs.getString("name");
+                     debugLog("DB", "Loaded subcategory: " + subcategoryName);
+                     DefaultTableModel model = createTableModel();
+                     subcategories.put(subcategoryName, model);
+                 }
              }
- 
-             @Override
-             public Class<?> getColumnClass(int columnIndex) {
-                 if (columnIndex == 0)
-                     return String.class; // Ensure the first column is always String
-                 if (columnIndex == 1)
-                     return Object.class;
  
 EOF
 )

@@ -3448,8 +3448,18 @@ public class MedatoninDB extends JFrame {
                     break;
                 }
             }
+            // Use the stored difficulty if available
+            String difficulty = question.getDifficulty();
+            if (difficulty == null || difficulty.trim().isEmpty()) {
+                difficulty = "MEDIUM";
+            }
             model.addRow(new Object[] {
-                String.valueOf(question.getQuestionNumber()), dissectedPieces, correctOption, false, "Kurz", "MEDIUM"
+                String.valueOf(question.getQuestionNumber()),
+                dissectedPieces,
+                correctOption,
+                false,
+                "Kurz",
+                difficulty
             });
 
             // Option panel: only show options in grey, no solution
