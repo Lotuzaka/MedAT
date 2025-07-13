@@ -16,7 +16,8 @@ public class SyllogismGenerator {
   // Constants
   private static final String WORDLIST_PATH = "src/main/resources/lists/wortliste.docx";
   private static final String NO_VALID_ANSWER = "Keine Antwort ist richtig.";
-  private static final int OPTION_COUNT = 5;
+  private static final int TOTAL_OPTIONS = 5; // A, B, C, D, E
+  private static final int DISTRACTOR_OPTIONS = 4; // A, B, C, D when E is "Keine Antwort ist richtig"
   private static final int WORDS_PER_QUESTION = 3;
 
   // Instance variables
@@ -545,13 +546,25 @@ public class SyllogismGenerator {
     List<String> options = new ArrayList<>();
     
     if (NO_VALID_ANSWER.equals(correctConclusion)) {
-      addDistractorsToOptions(options, wordA, wordB, wordC, correctConclusion, 4);
+      // If "Keine Antwort ist richtig" is correct, add 4 distractors first
+      addDistractorsToOptions(options, wordA, wordB, wordC, correctConclusion, DISTRACTOR_OPTIONS);
+      // Then add "Keine Antwort ist richtig" as option E
       options.add(NO_VALID_ANSWER);
     } else {
+      // Add correct conclusion first
       options.add(correctConclusion);
-      addDistractorsToOptions(options, wordA, wordB, wordC, correctConclusion, 3);
+      // We need 3 more distractors to make 4 total options (A-D)
+      int targetSize = DISTRACTOR_OPTIONS; // We want 4 options total before adding "Keine Antwort"
+      addDistractorsToOptions(options, wordA, wordB, wordC, correctConclusion, targetSize);
+      // Shuffle the first 4 options (A-D) 
       Collections.shuffle(options);
+      // Always add "Keine Antwort ist richtig" as option E
       options.add(NO_VALID_ANSWER);
+    }
+    
+    // Ensure we always have exactly 5 options
+    if (options.size() != TOTAL_OPTIONS) {
+      MedatoninDB.debugLog("Syllogism", "WARNING: Generated " + options.size() + " options instead of " + TOTAL_OPTIONS);
     }
     
     return options;
@@ -561,15 +574,42 @@ public class SyllogismGenerator {
    * Adds distractor options to the options list.
    */
   private void addDistractorsToOptions(List<String> options, String wordA, String wordB, String wordC, 
-                                      String correctConclusion, int count) {
+                                      String correctConclusion, int targetCount) {
     List<String> distractors = generateDistractorConclusions(wordA, wordB, wordC, correctConclusion);
     
-    while (options.size() < count && !distractors.isEmpty()) {
+    // Add distractors until we reach the target count
+    while (options.size() < targetCount && !distractors.isEmpty()) {
       String distractor = distractors.get(random.nextInt(distractors.size()));
       if (!options.contains(distractor)) {
         options.add(distractor);
       }
       distractors.remove(distractor);
+    }
+    
+    // If we still don't have enough options and ran out of unique distractors,
+    // create additional generic distractors
+    int fallbackCounter = 0;
+    while (options.size() < targetCount) {
+      String fallbackDistractor;
+      switch (fallbackCounter % 6) {
+        case 0: fallbackDistractor = "Alle " + wordA + " sind " + wordB + "."; break;
+        case 1: fallbackDistractor = "Einige " + wordB + " sind " + wordA + "."; break;
+        case 2: fallbackDistractor = "Alle " + wordC + " sind " + wordA + "."; break;
+        case 3: fallbackDistractor = "Einige " + wordA + " sind " + wordB + "."; break;
+        case 4: fallbackDistractor = "Keine " + wordB + " sind " + wordC + "."; break;
+        default: fallbackDistractor = "Einige " + wordC + " sind " + wordB + "."; break;
+      }
+      
+      if (!options.contains(fallbackDistractor)) {
+        options.add(fallbackDistractor);
+      }
+      fallbackCounter++;
+      
+      // Safety check to avoid infinite loop
+      if (fallbackCounter > 20) {
+        MedatoninDB.debugLog("Syllogism", "WARNING: Could not generate enough unique distractors");
+        break;
+      }
     }
   }
 
@@ -597,6 +637,7 @@ public class SyllogismGenerator {
    */
   private void insertQuestionIntoDatabase(QuestionData questionData, int questionNumber) throws SQLException {
     MedatoninDB.debugLog("Syllogism", "Question: " + questionData.questionText);
+    MedatoninDB.debugLog("Syllogism", "Generated " + questionData.options.size() + " options");
     
     int questionId = questionDAO.insertQuestion(category, subcategory, questionData.questionText, 
                                                questionNumber, simulationId);
@@ -606,7 +647,7 @@ public class SyllogismGenerator {
       String optionText = questionData.options.get(i);
       boolean isCorrect = (i == questionData.correctOptionIndex);
       
-      MedatoninDB.debugLog("Syllogism", "Option: " + optionText);
+      MedatoninDB.debugLog("Syllogism", "Option " + optionLabel + ": " + optionText + (isCorrect ? " (CORRECT)" : ""));
       optionDAO.insertOption(questionId, optionLabel, optionText, isCorrect);
     }
   }
