@@ -1,24 +1,24 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
 diff --git a/src/main/java/CustomRenderer.java b/src/main/java/CustomRenderer.java
-index 4d49318c40fed4451007dd9aae695b0700583816..35c323a5d0537d28f88163c16eaf66829a9f00c0 100644
+index f811b20c964006dbb82156e113f002e6a7023ebe..5a3045097aaf701db28158937e24302ea6c4c2cf 100644
 --- a/src/main/java/CustomRenderer.java
 +++ b/src/main/java/CustomRenderer.java
-@@ -1,34 +1,37 @@
+@@ -1,36 +1,37 @@
  import javax.swing.*;
  import javax.swing.table.*;
  import java.awt.*;
--import java.util.List;
--import java.util.Set;
--import java.util.Collections;
-+import java.io.IOException;
-+import java.nio.file.Path;
-+import java.nio.file.Paths;
-+import java.util.*;
- import org.locationtech.jts.geom.Geometry;
+ import java.io.IOException;
+ import java.nio.file.Path;
+ import java.nio.file.Paths;
+ import java.util.*;
+ import java.util.List;
+-import org.locationtech.jts.geom.Geometry;
++import org.locationtech.jts.geom.*;
  import org.locationtech.jts.io.ParseException;
  import org.locationtech.jts.io.WKTReader;
-+import svg.SvgBuilder;
-+import util.*;
++import org.locationtech.jts.awt.ShapeWriter;
+ import svg.SvgBuilder;
+ import util.*;
  
  // Data holder for Figuren options and dissected pieces (copied from MedatoninDB)
  class FigurenOptionsData {
@@ -42,9 +42,13 @@ index 4d49318c40fed4451007dd9aae695b0700583816..35c323a5d0537d28f88163c16eaf6682
          this.symbol = symbol;
      }
  }
- 
- public class CustomRenderer extends DefaultTableCellRenderer {
-@@ -292,26 +295,62 @@ public class CustomRenderer extends DefaultTableCellRenderer {
+diff --git a/src/main/java/CustomRenderer.java b/src/main/java/CustomRenderer.java
+index f811b20c964006dbb82156e113f002e6a7023ebe..5a3045097aaf701db28158937e24302ea6c4c2cf 100644
+--- a/src/main/java/CustomRenderer.java
++++ b/src/main/java/CustomRenderer.java
+@@ -293,71 +294,154 @@ public class CustomRenderer extends DefaultTableCellRenderer {
+             Object cellValue = model.getValueAt(row, 3);
+             if (cellValue instanceof Boolean) {
                  isChecked = (Boolean) cellValue;
              } else if (cellValue instanceof String) {
                  String str = (String) cellValue;
@@ -68,277 +72,135 @@ index 4d49318c40fed4451007dd9aae695b0700583816..35c323a5d0537d28f88163c16eaf6682
              }
              return c;
          }
++
++        // Show Euler diagram for Implikationen solution column
++        if ("Implikationen".equals(currentSubcategory) && isQuestionRow && column == 2) {
++            Object qTextObj = model.getValueAt(row, 1);
++            if (qTextObj instanceof String text && text.contains("\n")) {
++                String[] lines = text.split("\n");
++                if (lines.length >= 2) {
++                    JPanel panel = createEulerPanel(lines[0].trim(), lines[1].trim());
++                    panel.setPreferredSize(new Dimension(200, 200));
++                    return panel;
++                }
++            }
++        }
          return c;
      }
+ 
+     /**
+      * Renders the Euler diagram for two premises as an SVG file.
+      *
+      * @param major first premise (e.g. "Alle A sind B.")
+      * @param minor second premise (e.g. "Einige B sind nicht C.")
+      * @param terms optional labels for the circles; if null labels are taken from the premises
+      * @return path to the generated SVG file
+      */
+     public static Path renderEuler(String major, String minor, List<String> terms) throws IOException {
+         Sentence s1 = SyllogismUtils.parseSentence(major);
+         Sentence s2 = SyllogismUtils.parseSentence(minor);
+ 
+         int[] mask = Objects.requireNonNull(
+                 SyllogismUtils.DIAGRAM_MASKS.get(Pair.of(s1.type(), s2.type())),
+                 "unknown combination");
+ 
+         List<String> labels;
+         if (terms != null && terms.size() >= 3) {
+             labels = terms;
+         } else {
+             labels = List.of(s1.subject(), s1.predicate(), s2.predicate());
+         }
+ 
+         SvgBuilder svg = new SvgBuilder(300, 300);
+         svg.setupCircles(120, 150, 80,
+                         180, 150, 80,
+                         150,  80, 80);
+ 
+         for (int i = 0; i < mask.length; i++) {
+             if (mask[i] == 1) {
+                 svg.fillRegion(i, Color.LIGHT_GRAY);
+             }
+         }
+ 
+         svg.addText("labelA", labels.get(0),  60, 240);
+         svg.addText("labelB", labels.get(1), 240, 240);
+         svg.addText("labelC", labels.get(2), 150,  30);
+ 
+         Path dir = Paths.get(System.getProperty("java.io.tmpdir"));
+         String fileName = "diagram_" + UUID.randomUUID() + ".svg";
+         return svg.saveSvg(dir, fileName);
+     }
 +
-+    /**
-+     * Renders the Euler diagram for two premises as an SVG file.
-+     *
-+     * @param major first premise (e.g. "Alle A sind B.")
-+     * @param minor second premise (e.g. "Einige B sind nicht C.")
-+     * @param terms optional labels for the circles; if null labels are taken from the premises
-+     * @return path to the generated SVG file
-+     */
-+    public static Path renderEuler(String major, String minor, List<String> terms) throws IOException {
++    private static JPanel createEulerPanel(String major, String minor) {
 +        Sentence s1 = SyllogismUtils.parseSentence(major);
 +        Sentence s2 = SyllogismUtils.parseSentence(minor);
-+        int[] mask = SyllogismUtils.DIAGRAM_MASKS.getOrDefault(Pair.of(s1.type(), s2.type()), new int[8]);
++        int[] mask = Objects.requireNonNull(
++                SyllogismUtils.DIAGRAM_MASKS.get(Pair.of(s1.type(), s2.type())),
++                "unknown combination");
++        List<String> lbl = List.of(s1.subject(), s1.predicate(), s2.predicate());
++        return new EulerPanel(mask, lbl);
++    }
 +
-+        List<String> labels;
-+        if (terms != null && terms.size() >= 3) {
-+            labels = terms;
-+        } else {
-+            labels = Arrays.asList(s1.subject(), s1.predicate(), s2.predicate());
++    private static class EulerPanel extends JPanel {
++        private final List<Geometry> regions = new ArrayList<>();
++        private final int[] mask;
++        private final List<String> labels;
++        private final GeometryFactory gf = new GeometryFactory();
++        private final ShapeWriter sw = new ShapeWriter();
++
++        EulerPanel(int[] mask, List<String> labels) {
++            this.mask = mask;
++            this.labels = labels;
++            setupRegions();
++            setPreferredSize(new Dimension(300, 300));
++            setOpaque(true);
 +        }
 +
-+        SvgBuilder svg = new SvgBuilder(300, 300);
-+        svg.setupCircles(120, 150, 80, 180, 150, 80, 150, 80, 80);
-+        for (int i = 0; i < mask.length; i++) {
-+            if (mask[i] == 1) {
-+                svg.fillRegion(i, Color.LIGHT_GRAY);
++        private void setupRegions() {
++            Geometry A = circle(120, 150, 80);
++            Geometry B = circle(180, 150, 80);
++            Geometry C = circle(150, 80, 80);
++            regions.add(A.difference(B.union(C)));                //0
++            regions.add(A.intersection(B).difference(C));         //1
++            regions.add(B.difference(A.union(C)));                //2
++            regions.add(A.intersection(B).intersection(C));       //3
++            regions.add(C.difference(A.union(B)));                //4
++            regions.add(A.intersection(C).difference(B));         //5
++            regions.add(B.intersection(C).difference(A));         //6
++            regions.add(gf.createPolygon());                      //7
++        }
++
++        private Polygon circle(double x, double y, double r) {
++            return (Polygon) gf.createPoint(new Coordinate(x, y)).buffer(r);
++        }
++
++        @Override
++        protected void paintComponent(Graphics g) {
++            super.paintComponent(g);
++            Graphics2D g2 = (Graphics2D) g;
++            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
++            g2.setColor(Color.WHITE);
++            g2.fillRect(0, 0, getWidth(), getHeight());
++
++            g2.setColor(Color.LIGHT_GRAY);
++            for (int i = 0; i < mask.length && i < regions.size(); i++) {
++                if (mask[i] == 1) {
++                    Shape s = sw.toShape(regions.get(i));
++                    g2.fill(s);
++                }
 +            }
-+        }
-+        svg.addText("labelA", labels.get(0), 60, 240);
-+        svg.addText("labelB", labels.get(1), 240, 240);
-+        svg.addText("labelC", labels.get(2), 150, 30);
 +
-+        Path dir = Paths.get(System.getProperty("java.io.tmpdir"));
-+        String fileName = "diagram_" + UUID.randomUUID() + ".svg";
-+        return svg.saveSvg(dir, fileName);
++            g2.setColor(Color.BLACK);
++            g2.draw(new Ellipse2D.Double(40, 70, 160, 160));
++            g2.draw(new Ellipse2D.Double(120, 70, 160, 160));
++            g2.draw(new Ellipse2D.Double(80, -0, 160, 160));
++
++            g2.drawString(labels.get(0), 60, 260);
++            g2.drawString(labels.get(1), 240, 260);
++            g2.drawString(labels.get(2), 150, 40);
++        }
 +    }
  }
-diff --git a/src/main/java/svg/SvgBuilder.java b/src/main/java/svg/SvgBuilder.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..ea93bdb84b720a4b5ee6140ddcdfc564b62e4ad4
---- /dev/null
-+++ b/src/main/java/svg/SvgBuilder.java
-@@ -0,0 +1,90 @@
-+import java.awt.Color;
-+import java.io.IOException;
-+import java.nio.file.*;
-+import java.util.*;
-+import org.locationtech.jts.geom.*;
-+import org.locationtech.jts.geom.util.GeometryCombiner;
-+
-+public class SvgBuilder {
-+    private final StringBuilder sb = new StringBuilder();
-+    private final int width;
-+    private final int height;
-+    private final GeometryFactory gf = new GeometryFactory();
-+    private final List<Geometry> regions = new ArrayList<>();
-+
-+    public SvgBuilder(int width, int height) {
-+        this.width = width;
-+        this.height = height;
-+    }
-+
-+    public void setupCircles(double ax, double ay, double ar,
-+                             double bx, double by, double br,
-+                             double cx, double cy, double cr) {
-+        Geometry A = circle(ax, ay, ar);
-+        Geometry B = circle(bx, by, br);
-+        Geometry C = circle(cx, cy, cr);
-+        regions.clear();
-+        regions.add(A.difference(GeometryCombiner.combine(Arrays.asList(B, C)))); //0
-+        regions.add(A.intersection(B).difference(C)); //1
-+        regions.add(B.difference(GeometryCombiner.combine(Arrays.asList(A, C)))); //2
-+        regions.add(A.intersection(B).intersection(C)); //3
-+        regions.add(C.difference(GeometryCombiner.combine(Arrays.asList(A, B)))); //4
-+        regions.add(A.intersection(C).difference(B)); //5
-+        regions.add(B.intersection(C).difference(A)); //6
-+        regions.add(gf.createPolygon()); //7 empty
-+
-+        sb.append(String.format("<circle id='A' cx='%.1f' cy='%.1f' r='%.1f' fill='none' stroke='black'/>", ax, ay, ar));
-+        sb.append(String.format("<circle id='B' cx='%.1f' cy='%.1f' r='%.1f' fill='none' stroke='black'/>", bx, by, br));
-+        sb.append(String.format("<circle id='C' cx='%.1f' cy='%.1f' r='%.1f' fill='none' stroke='black'/>", cx, cy, cr));
-+    }
-+
-+    private Polygon circle(double x, double y, double r) {
-+        return (Polygon) gf.createPoint(new Coordinate(x, y)).buffer(r);
-+    }
-+
-+    private String toPath(Geometry g) {
-+        if (g.isEmpty()) return "";
-+        StringBuilder path = new StringBuilder();
-+        for (int i = 0; i < g.getNumGeometries(); i++) {
-+            Polygon p = (Polygon) g.getGeometryN(i);
-+            Coordinate[] coords = p.getExteriorRing().getCoordinates();
-+            if (coords.length == 0) continue;
-+            path.append("M").append(coords[0].x).append(' ').append(coords[0].y);
-+            for (int j = 1; j < coords.length; j++) {
-+                path.append(" L").append(coords[j].x).append(' ').append(coords[j].y);
-+            }
-+            path.append('Z');
-+            for (int r = 0; r < p.getNumInteriorRing(); r++) {
-+                Coordinate[] inner = p.getInteriorRingN(r).getCoordinates();
-+                path.append(" M").append(inner[0].x).append(' ').append(inner[0].y);
-+                for (int j = 1; j < inner.length; j++) {
-+                    path.append(" L").append(inner[j].x).append(' ').append(inner[j].y);
-+                }
-+                path.append('Z');
-+            }
-+        }
-+        return path.toString();
-+    }
-+
-+    public void fillRegion(int idx, Color color) {
-+        if (idx < 0 || idx >= regions.size()) return;
-+        Geometry g = regions.get(idx);
-+        if (g.isEmpty()) return;
-+        String path = toPath(g);
-+        String fill = String.format("rgb(%d,%d,%d)", color.getRed(), color.getGreen(), color.getBlue());
-+        sb.append(String.format("<path d='%s' fill='%s' stroke='none'/>", path, fill));
-+    }
-+
-+    public void addText(String id, String text, double x, double y) {
-+        sb.append(String.format("<text id='%s' x='%.1f' y='%.1f' font-family='Arial' font-size='12' text-anchor='middle'>%s</text>",
-+                id, x, y, text));
-+    }
-+
-+    public Path saveSvg(Path dir, String fileName) throws IOException {
-+        Files.createDirectories(dir);
-+        Path out = dir.resolve(fileName);
-+        String content = "<svg xmlns='http://www.w3.org/2000/svg' width='"+width+"' height='"+height+"'>" + sb + "</svg>";
-+        Files.writeString(out, content);
-+        return out;
-+    }
-+}
-diff --git a/src/main/java/util/Pair.java b/src/main/java/util/Pair.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..b11e49eb0cc921531b6960fd4c78bb0161ea5fbd
---- /dev/null
-+++ b/src/main/java/util/Pair.java
-@@ -0,0 +1,5 @@
-+public record Pair<L,R>(L left, R right) {
-+    public static <L,R> Pair<L,R> of(L left, R right) {
-+        return new Pair<>(left, right);
-+    }
-+}
-diff --git a/src/main/java/util/Sentence.java b/src/main/java/util/Sentence.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..a77178c3b0e391bb8a2d2f2c6779b2c4e0d9c026
---- /dev/null
-+++ b/src/main/java/util/Sentence.java
-@@ -0,0 +1 @@
-+public record Sentence(Type type, String subject, String predicate) {}
-diff --git a/src/main/java/util/SyllogismUtils.java b/src/main/java/util/SyllogismUtils.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..221b9fe591bb7d3bfd50911d0cddb491ade15e31
---- /dev/null
-+++ b/src/main/java/util/SyllogismUtils.java
-@@ -0,0 +1,61 @@
-+import java.util.*;
-+import java.util.regex.*;
-+
-+public class SyllogismUtils {
-+    public static Sentence parseSentence(String input) {
-+        if (input == null) throw new IllegalArgumentException("null sentence");
-+        String s = input.trim();
-+        if (s.endsWith(".")) s = s.substring(0, s.length()-1);
-+        // Patterns for German/English simple forms
-+        Pattern a = Pattern.compile("^(?i)(Alle|All)\\s+(\\w+)\\s+sind\\s+(?!keine|nicht)(\\w+)");
-+        Matcher m = a.matcher(s);
-+        if (m.find()) {
-+            return new Sentence(Type.A, m.group(2), m.group(3));
-+        }
-+        Pattern e = Pattern.compile("^(?i)(Keine|Kein|No)\\s+(\\w+)\\s+sind\\s+(\\w+)");
-+        m = e.matcher(s);
-+        if (m.find()) {
-+            return new Sentence(Type.E, m.group(2), m.group(3));
-+        }
-+        Pattern o = Pattern.compile("^(?i)(Einige|Some)\\s+(\\w+)\\s+sind\\s+(?:keine|nicht|not)\\s+(\\w+)");
-+        m = o.matcher(s);
-+        if (m.find()) {
-+            return new Sentence(Type.O, m.group(2), m.group(3));
-+        }
-+        Pattern i = Pattern.compile("^(?i)(Einige|Some)\\s+(\\w+)\\s+sind\\s+(?!keine|nicht|not)(\\w+)");
-+        m = i.matcher(s);
-+        if (m.find()) {
-+            return new Sentence(Type.I, m.group(2), m.group(3));
-+        }
-+        throw new IllegalArgumentException("Unrecognized sentence: " + input);
-+    }
-+
-+    public static final Map<Pair<Type, Type>, int[]> DIAGRAM_MASKS = initMasks();
-+
-+    private static Map<Pair<Type, Type>, int[]> initMasks() {
-+        Map<Pair<Type, Type>, int[]> map = new HashMap<>();
-+        for (Type maj : Type.values()) {
-+            for (Type min : Type.values()) {
-+                map.put(Pair.of(maj, min), deduceDiagramMask(maj, min));
-+            }
-+        }
-+        return map;
-+    }
-+
-+    public static int[] deduceDiagramMask(Type major, Type minor) {
-+        int[] mask = new int[8];
-+        // Major premise effects
-+        switch (major) {
-+            case A -> { mask[0] = 1; mask[5] = 1; }
-+            case E -> { mask[1] = 1; mask[3] = 1; }
-+            default -> {}
-+        }
-+        // Minor premise effects
-+        switch (minor) {
-+            case A -> { mask[2] = 1; mask[1] = 1; }
-+            case E -> { mask[6] = 1; mask[3] = 1; }
-+            default -> {}
-+        }
-+        return mask;
-+    }
-+}
-diff --git a/src/main/java/util/Type.java b/src/main/java/util/Type.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..52e67e274ec6b9f725def33c0882796aed44744d
---- /dev/null
-+++ b/src/main/java/util/Type.java
-@@ -0,0 +1,3 @@
-+public enum Type {
-+    A, E, I, O
-+}
-diff --git a/src/test/java/RenderEulerTest.java b/src/test/java/RenderEulerTest.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..a003cdf1c246b1fde43b0a6a4e93ddfd71bc5f0e
---- /dev/null
-+++ b/src/test/java/RenderEulerTest.java
-@@ -0,0 +1,36 @@
-+import static org.junit.jupiter.api.Assertions.*;
-+import java.nio.file.*;
-+import java.util.*;
-+import org.junit.jupiter.api.Test;
-+
-+public class RenderEulerTest {
-+    private String sentence(Type t, String s, String p) {
-+        return switch (t) {
-+            case A -> "Alle " + s + " sind " + p + ".";
-+            case E -> "Keine " + s + " sind " + p + ".";
-+            case I -> "Einige " + s + " sind " + p + ".";
-+            case O -> "Einige " + s + " sind keine " + p + ".";
-+        };
-+    }
-+
-+    @Test
-+    public void rendersAllCombinations() throws Exception {
-+        for (Type major : Type.values()) {
-+            for (Type minor : Type.values()) {
-+                String maj = sentence(major, "A", "B");
-+                String min = sentence(minor, "B", "C");
-+                Path p = CustomRenderer.renderEuler(maj, min, null);
-+                assertTrue(Files.exists(p), major+"-"+minor+" file");
-+                assertTrue(Files.size(p) > 0, "non empty");
-+            }
-+        }
-+    }
-+
-+    @Test
-+    public void maskMatchesKnownExample() {
-+        int[] mask = SyllogismUtils.DIAGRAM_MASKS.get(Pair.of(Type.A, Type.A));
-+        assertNotNull(mask);
-+        int[] expected = SyllogismUtils.deduceDiagramMask(Type.A, Type.A);
-+        assertArrayEquals(expected, mask);
-+    }
-+}
  
 EOF
 )

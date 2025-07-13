@@ -1,14 +1,16 @@
 import javax.swing.*;
 import javax.swing.table.*;
 import java.awt.*;
+import java.awt.geom.Ellipse2D;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.List;
-import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.*;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
+import org.locationtech.jts.awt.ShapeWriter;
 import svg.SvgBuilder;
 import util.*;
 
@@ -113,7 +115,7 @@ public class CustomRenderer extends DefaultTableCellRenderer {
             }
 
             if (panel != null) {
-                panel.setPreferredSize(new Dimension(200, 200));
+                panel.setPreferredSize(new java.awt.Dimension(200, 200));
                 return panel;
             }
         }
@@ -155,7 +157,7 @@ public class CustomRenderer extends DefaultTableCellRenderer {
                     optionPanel.setBackground(new Color(127, 204, 165, 75));
                 }
 
-                shapePanel.setPreferredSize(new Dimension(100, 100));
+                shapePanel.setPreferredSize(new java.awt.Dimension(100, 100));
                 optionPanel.add(shapePanel, BorderLayout.CENTER);
                 optionPanel.add(new JLabel("Option " + option.getLabel(), SwingConstants.CENTER),
                         BorderLayout.SOUTH);
@@ -315,6 +317,19 @@ public class CustomRenderer extends DefaultTableCellRenderer {
             }
             return c;
         }
+
+        // Show Euler diagram for Implikationen solution column
+        if ("Implikationen".equals(currentSubcategory) && isQuestionRow && column == 2) {
+            Object qTextObj = model.getValueAt(row, 1);
+            if (qTextObj instanceof String text && text.contains("\n")) {
+                String[] lines = text.split("\n");
+                if (lines.length >= 2) {
+                    JPanel panel = createEulerPanel(lines[0].trim(), lines[1].trim());
+                    panel.setPreferredSize(new java.awt.Dimension(200, 200));
+                    return panel;
+                }
+            }
+        }
         return c;
     }
 
@@ -325,32 +340,124 @@ public class CustomRenderer extends DefaultTableCellRenderer {
      * @param minor second premise (e.g. "Einige B sind nicht C.")
      * @param terms optional labels for the circles; if null labels are taken from the premises
      * @return path to the generated SVG file
+     * @throws IOException if file creation fails
+     * @throws IllegalArgumentException if sentences cannot be parsed
      */
     public static Path renderEuler(String major, String minor, List<String> terms) throws IOException {
-        Sentence s1 = SyllogismUtils.parseSentence(major);
-        Sentence s2 = SyllogismUtils.parseSentence(minor);
-        int[] mask = SyllogismUtils.DIAGRAM_MASKS.getOrDefault(Pair.of(s1.type(), s2.type()), new int[8]);
+        try {
+            Sentence s1 = SyllogismUtils.parseSentence(major);
+            Sentence s2 = SyllogismUtils.parseSentence(minor);
 
-        List<String> labels;
-        if (terms != null && terms.size() >= 3) {
-            labels = terms;
-        } else {
-            labels = Arrays.asList(s1.subject(), s1.predicate(), s2.predicate());
-        }
+            int[] mask = Objects.requireNonNull(
+                    SyllogismUtils.DIAGRAM_MASKS.get(Pair.of(s1.type(), s2.type())),
+                    "unknown combination");
 
-        SvgBuilder svg = new SvgBuilder(300, 300);
-        svg.setupCircles(120, 150, 80, 180, 150, 80, 150, 80, 80);
-        for (int i = 0; i < mask.length; i++) {
-            if (mask[i] == 1) {
-                svg.fillRegion(i, Color.LIGHT_GRAY);
+            List<String> labels;
+            if (terms != null && terms.size() >= 3) {
+                labels = terms;
+            } else {
+                labels = List.of(s1.subject(), s1.predicate(), s2.predicate());
             }
-        }
-        svg.addText("labelA", labels.get(0), 60, 240);
-        svg.addText("labelB", labels.get(1), 240, 240);
-        svg.addText("labelC", labels.get(2), 150, 30);
 
-        Path dir = Paths.get(System.getProperty("java.io.tmpdir"));
-        String fileName = "diagram_" + UUID.randomUUID() + ".svg";
-        return svg.saveSvg(dir, fileName);
+            SvgBuilder svg = new SvgBuilder(300, 300);
+            svg.setupCircles(120, 150, 80,
+                            180, 150, 80,
+                            150,  80, 80);
+
+            for (int i = 0; i < mask.length; i++) {
+                if (mask[i] == 1) {
+                    svg.fillRegion(i, Color.LIGHT_GRAY);
+                }
+            }
+
+            svg.addText("labelA", labels.get(0),  60, 240);
+            svg.addText("labelB", labels.get(1), 240, 240);
+            svg.addText("labelC", labels.get(2), 150,  30);
+
+            Path dir = Paths.get(System.getProperty("java.io.tmpdir"));
+            String fileName = "diagram_" + UUID.randomUUID() + ".svg";
+            return svg.saveSvg(dir, fileName);
+        } catch (IllegalArgumentException e) {
+            // If sentence parsing fails, throw IOException with meaningful message
+            throw new IOException("Cannot parse sentences for Euler diagram: " + e.getMessage(), e);
+        }
+    }
+
+    private static JPanel createEulerPanel(String major, String minor) {
+        try {
+            Sentence s1 = SyllogismUtils.parseSentence(major);
+            Sentence s2 = SyllogismUtils.parseSentence(minor);
+            int[] mask = Objects.requireNonNull(
+                    SyllogismUtils.DIAGRAM_MASKS.get(Pair.of(s1.type(), s2.type())),
+                    "unknown combination");
+            List<String> lbl = List.of(s1.subject(), s1.predicate(), s2.predicate());
+            return new EulerPanel(mask, lbl);
+        } catch (IllegalArgumentException e) {
+            // If sentence parsing fails, return a simple error panel
+            JPanel errorPanel = new JPanel();
+            errorPanel.setBackground(Color.WHITE);
+            errorPanel.add(new JLabel("Cannot parse: " + e.getMessage()));
+            return errorPanel;
+        }
+    }
+
+    private static class EulerPanel extends JPanel {
+        private final List<Geometry> regions = new ArrayList<>();
+        private final int[] mask;
+        private final List<String> labels;
+        private final GeometryFactory gf = new GeometryFactory();
+        private final ShapeWriter sw = new ShapeWriter();
+
+        EulerPanel(int[] mask, List<String> labels) {
+            this.mask = mask;
+            this.labels = labels;
+            setupRegions();
+            setPreferredSize(new java.awt.Dimension(300, 300));
+            setOpaque(true);
+        }
+
+        private void setupRegions() {
+            Geometry A = circle(120, 150, 80);
+            Geometry B = circle(180, 150, 80);
+            Geometry C = circle(150, 80, 80);
+            regions.add(A.difference(B.union(C)));                //0
+            regions.add(A.intersection(B).difference(C));         //1
+            regions.add(B.difference(A.union(C)));                //2
+            regions.add(A.intersection(B).intersection(C));       //3
+            regions.add(C.difference(A.union(B)));                //4
+            regions.add(A.intersection(C).difference(B));         //5
+            regions.add(B.intersection(C).difference(A));         //6
+            regions.add(gf.createPolygon());                      //7
+        }
+
+        private org.locationtech.jts.geom.Polygon circle(double x, double y, double r) {
+            return (org.locationtech.jts.geom.Polygon) gf.createPoint(new Coordinate(x, y)).buffer(r);
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g;
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(Color.WHITE);
+            g2.fillRect(0, 0, getWidth(), getHeight());
+
+            g2.setColor(Color.LIGHT_GRAY);
+            for (int i = 0; i < mask.length && i < regions.size(); i++) {
+                if (mask[i] == 1) {
+                    Shape s = sw.toShape(regions.get(i));
+                    g2.fill(s);
+                }
+            }
+
+            g2.setColor(Color.BLACK);
+            g2.draw(new Ellipse2D.Double(40, 70, 160, 160));
+            g2.draw(new Ellipse2D.Double(120, 70, 160, 160));
+            g2.draw(new Ellipse2D.Double(80, -0, 160, 160));
+
+            g2.drawString(labels.get(0), 60, 260);
+            g2.drawString(labels.get(1), 240, 260);
+            g2.drawString(labels.get(2), 150, 40);
+        }
     }
 }

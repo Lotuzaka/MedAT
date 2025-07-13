@@ -8,27 +8,43 @@ public class SyllogismUtils {
         if (input == null) throw new IllegalArgumentException("null sentence");
         String s = input.trim();
         if (s.endsWith(".")) s = s.substring(0, s.length()-1);
+        
         // Patterns for German/English simple forms
+        // Type A: "Alle X sind Y" (but not "Alle X sind keine Y")
         Pattern a = Pattern.compile("^(?i)(Alle|All)\\s+(\\w+)\\s+sind\\s+(?!keine|nicht)(\\w+)");
         Matcher m = a.matcher(s);
         if (m.find()) {
             return new Sentence(Type.A, m.group(2), m.group(3));
         }
-        Pattern e = Pattern.compile("^(?i)(Keine|Kein|No)\\s+(\\w+)\\s+sind\\s+(\\w+)");
-        m = e.matcher(s);
+        
+        // Type E: "Keine X sind Y" or "Alle X sind keine Y"
+        Pattern e1 = Pattern.compile("^(?i)(Keine|Kein|No)\\s+(\\w+)\\s+sind\\s+(\\w+)");
+        m = e1.matcher(s);
         if (m.find()) {
             return new Sentence(Type.E, m.group(2), m.group(3));
         }
+        
+        // Type E: "Alle X sind keine Y" (alternative form)
+        Pattern e2 = Pattern.compile("^(?i)(Alle|All)\\s+(\\w+)\\s+sind\\s+keine\\s+(\\w+)");
+        m = e2.matcher(s);
+        if (m.find()) {
+            return new Sentence(Type.E, m.group(2), m.group(3));
+        }
+        
+        // Type O: "Einige X sind keine Y"
         Pattern o = Pattern.compile("^(?i)(Einige|Some)\\s+(\\w+)\\s+sind\\s+(?:keine|nicht|not)\\s+(\\w+)");
         m = o.matcher(s);
         if (m.find()) {
             return new Sentence(Type.O, m.group(2), m.group(3));
         }
+        
+        // Type I: "Einige X sind Y" (but not "Einige X sind keine Y")
         Pattern i = Pattern.compile("^(?i)(Einige|Some)\\s+(\\w+)\\s+sind\\s+(?!keine|nicht|not)(\\w+)");
         m = i.matcher(s);
         if (m.find()) {
             return new Sentence(Type.I, m.group(2), m.group(3));
         }
+        
         throw new IllegalArgumentException("Unrecognized sentence: " + input);
     }
 
