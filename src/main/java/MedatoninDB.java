@@ -614,14 +614,7 @@ public class MedatoninDB extends JFrame {
                 JTable table = getTableForSubcategory(subcat);
                 if (table != null) {
                     TableColumnModel colModel = table.getColumnModel();
-                    DefaultTableModel model = (DefaultTableModel) table.getModel();
-                    // Find column indices in model
-                    int solutionModelIdx = -1, textModelIdx = -1;
-                    for (int i = 0; i < model.getColumnCount(); i++) {
-                        if ("Solution".equals(model.getColumnName(i))) solutionModelIdx = i;
-                        if ("Text".equals(model.getColumnName(i))) textModelIdx = i;
-                    }
-                    // Find Solution column in view
+
                     int solutionViewIdx = -1;
                     for (int i = 0; i < colModel.getColumnCount(); i++) {
                         if ("Solution".equals(colModel.getColumn(i).getHeaderValue())) {
@@ -629,53 +622,55 @@ public class MedatoninDB extends JFrame {
                             break;
                         }
                     }
-                    if (showSolutionColumn) {
-                        // If Solution column is missing, re-add it after "Text" column
-                        if (solutionViewIdx == -1 && solutionModelIdx != -1 && textModelIdx != -1) {
-                            TableColumn col = new TableColumn(solutionModelIdx);
-                            col.setHeaderValue("Solution");
-                            col.setMinWidth(120);
-                            col.setMaxWidth(150);
-                            col.setPreferredWidth(130);
-                            col.setWidth(130);
-                            // Insert after "Text" column
-                            int insertAt = -1;
-                            for (int i = 0; i < colModel.getColumnCount(); i++) {
-                                if (colModel.getColumn(i).getHeaderValue().equals("Text")) {
-                                    insertAt = i + 1;
+
+                    // If column is missing (legacy state), re-add it in the correct position
+                    if (solutionViewIdx == -1) {
+                        if (showSolutionColumn) {
+                            DefaultTableModel model = (DefaultTableModel) table.getModel();
+                            int modelIdx = -1;
+                            for (int i = 0; i < model.getColumnCount(); i++) {
+                                if ("Solution".equals(model.getColumnName(i))) {
+                                    modelIdx = i;
                                     break;
                                 }
                             }
-                            if (insertAt == -1) insertAt = colModel.getColumnCount();
-                            colModel.addColumn(col);
-                            colModel.moveColumn(colModel.getColumnCount() - 1, insertAt);
-                        } else if (solutionViewIdx != -1) {
-                            // Restore width and header
-                            TableColumn col = colModel.getColumn(solutionViewIdx);
-                            col.setMinWidth(120);
-                            col.setMaxWidth(150);
-                            col.setPreferredWidth(130);
-                            col.setHeaderValue("Solution");
-                            col.setWidth(130);
-                            // Ensure Solution is after Text
-                            int textViewIdx = -1;
-                            for (int i = 0; i < colModel.getColumnCount(); i++) {
-                                if (colModel.getColumn(i).getHeaderValue().equals("Text")) {
-                                    textViewIdx = i;
-                                    break;
+                            if (modelIdx != -1) {
+                                TableColumn col = new TableColumn(modelIdx);
+                                col.setHeaderValue("Solution");
+                                colModel.addColumn(col);
+                                // place column after "Text" if possible
+                                int textIdx = -1;
+                                for (int i = 0; i < colModel.getColumnCount(); i++) {
+                                    if ("Text".equals(colModel.getColumn(i).getHeaderValue())) {
+                                        textIdx = i;
+                                        break;
+                                    }
                                 }
+                                if (textIdx != -1) {
+                                    colModel.moveColumn(colModel.getColumnCount() - 1, textIdx + 1);
+                                }
+                                solutionViewIdx = textIdx + 1;
                             }
-                            if (textViewIdx != -1 && solutionViewIdx != textViewIdx + 1) {
-                                colModel.moveColumn(solutionViewIdx, textViewIdx + 1);
-                            }
-                        }
-                    } else {
-                        // Hide Solution column if present
-                        if (solutionViewIdx != -1) {
-                            TableColumn col = colModel.getColumn(solutionViewIdx);
-                            colModel.removeColumn(col);
                         }
                     }
+
+                    if (solutionViewIdx != -1) {
+                        TableColumn col = colModel.getColumn(solutionViewIdx);
+                        if (showSolutionColumn) {
+                            col.setMinWidth(120);
+                            col.setMaxWidth(150);
+                            col.setPreferredWidth(130);
+                            col.setWidth(130);
+                            col.setHeaderValue("Solution");
+                        } else {
+                            col.setMinWidth(0);
+                            col.setMaxWidth(0);
+                            col.setPreferredWidth(0);
+                            col.setWidth(0);
+                            col.setHeaderValue("");
+                        }
+                    }
+
                     table.revalidate();
                     table.repaint();
                 }
@@ -1739,9 +1734,6 @@ public class MedatoninDB extends JFrame {
 
         // Create the table for the subcategory
         questionTable = new JTable(tableModel);
-        updateSolutionColumnVisibility();
-        // Restore solution column visibility after switching subcategory
-        updateSolutionColumnVisibility();
         questionTable.setBorder(BorderFactory.createEmptyBorder());
         questionTable.setShowGrid(false);
         questionTable.setRowHeight(30);
@@ -2043,6 +2035,10 @@ public class MedatoninDB extends JFrame {
         // Ensure safe UI updates
         mainContentPanel.revalidate();
         mainContentPanel.repaint();
+
+        // Apply visibility setting for the Solution column now that the table
+        // is part of the component hierarchy
+        updateSolutionColumnVisibility();
 
         // Update the print button label immediately when switching subcategories
         updatePrintButtonLabel();

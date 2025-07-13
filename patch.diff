@@ -1,182 +1,279 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
 diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
-index 87b7d8ee6abbb9b8b17888df827b2a3002ee2b93..88b15afe364191082416819fb888530820370959 100644
+index 17b4f2d419da234660a9427129b289b81a315b17..1b272f9b3b988706c64fd6e3a4599ccd70c0d52f 100644
 --- a/src/main/java/MedatoninDB.java
 +++ b/src/main/java/MedatoninDB.java
-@@ -99,51 +99,50 @@ public class MedatoninDB extends JFrame {
-     private JButton printCategoryButton; // Button that will dynamically change label
-     private JButton bioButton, chemButton, physButton, mathButton, kffButton; // Category buttons
-     private JPanel subcategoryPanel; // Panel to hold subcategory buttons
-     private JButton selectedSubcategoryButton = null; // Class-level variable to keep track of the currently selected
-                                                       // subcategory button
+@@ -592,112 +592,107 @@ public class MedatoninDB extends JFrame {
+         topPanel.add(solutionToggleButton, BorderLayout.EAST);
+         // Setze die Ränder von allen relevanten Panels und ScrollPane auf leer
+         mainContentPanel.setBorder(BorderFactory.createEmptyBorder()); // Kein Rand für das Hauptinhalt-Panel
+         scrollPane.setBorder(BorderFactory.createEmptyBorder()); // Kein Rand für das ScrollPane
+         topPanel.setBorder(BorderFactory.createEmptyBorder()); // Kein Rand für das obere Panel
+         mainCategoryPanel.setBorder(BorderFactory.createEmptyBorder()); // Kein Rand für das Kategoriemenü-Panel
+         westPanel.setBorder(BorderFactory.createEmptyBorder()); // Kein Rand für das westliche Panel
+         buttonPanel.setBorder(BorderFactory.createEmptyBorder()); // Kein Rand für das Button-Panel
  
-     private Map<JTable, Integer> tablePendingDeleteRowMap = new HashMap<>(); // Track pending delete row per table
-     private ImageIcon gearIcon; // Load the gear icon
-     private ImageIcon penIcon; // Load the pen icon
-     private ImageIcon penEditIcon; // Load the pen edit icon
+         // Set frame visibility
+         setVisible(true);
+     }
  
-     private boolean isEditMode = false; // Variable to check if edit mode is enabled
-     private Point initialClickPoint; // Initial click point for the drag
-     private JButton draggedButton; // Reference to the button being dragged
-     private JPanel draggedContainer; // Panel that contains the dragged button
-     private int originalIndex = -1; // Original index of the dragged button
-     private int dragThreshold = 5; // Threshold in pixels to start dragging
-     private boolean isDragging = false; // Indicates if a drag operation is in progress
-     private int lastTargetIndex = -1; // **Declaration of lastTargetIndex**
-     private Set<QuestionIdentifier> pendingDeleteQuestions = new HashSet<>();
-     private boolean isAdjustingFormat = false;
- 
-     // Panel to visually separate subcategories
-     private JPanel mainContentPanel;
-     JButton editToggleButton;
--    private JButton solutionToggleButton;
-     private JButton addSubcategoryButton; // Declare this as a class member
-     private Color backgroundColor = Color.WHITE;
-     private int buttonBorderRadius = 15; // Border radius for buttons
- 
-     private boolean solutionsVisible = true;
-     private TableColumn hiddenSolutionColumn;
- 
-     // Dropdown to select test simulations
-     private JComboBox<String> simulationComboBox;
-     private Map<String, Integer> simulationMap; // Maps simulation names to their IDs
- 
-     private Integer selectedSimulationId = null; // ID der ausgewählten Simulation
+     // Flag to control Solution column visibility
+     private boolean showSolutionColumn = true;
  
      /**
-      * Utility to create a horizontal container for a subcategory button (with optional delete button).
-      * @param subcategory The subcategory name
-      * @param category The parent category
-      * @param isEditMode Whether edit mode is enabled
-      * @param deleteAction Action to perform on delete (can be null if not in edit mode)
-      * @return JPanel containing the button(s)
+      * Show/hide the Solution column in all subcategory tables based on showSolutionColumn flag.
       */
-     private JPanel createSubcategoryButtonContainer(String subcategory, String category, boolean isEditMode, Runnable deleteAction) {
-         JPanel buttonContainer = new JPanel();
-         buttonContainer.setLayout(new BoxLayout(buttonContainer, BoxLayout.X_AXIS));
-         buttonContainer.setBackground(backgroundColor);
-diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
-index 87b7d8ee6abbb9b8b17888df827b2a3002ee2b93..88b15afe364191082416819fb888530820370959 100644
---- a/src/main/java/MedatoninDB.java
-+++ b/src/main/java/MedatoninDB.java
-@@ -462,54 +461,50 @@ public class MedatoninDB extends JFrame {
-         bioButton.setBackground(new Color(243, 211, 135));
- 
-         // Add action listeners to switch categories
-         bioButton.addActionListener(e -> switchCategory("Biologie"));
-         chemButton.addActionListener(e -> switchCategory("Chemie"));
-         physButton.addActionListener(e -> switchCategory("Physik"));
-         mathButton.addActionListener(e -> switchCategory("Mathematik"));
-         kffButton.addActionListener(e -> switchCategory("KFF"));
- 
-         // Add buttons to the navigation panel
-         addButtonWithSpacing(mainCategoryPanel, bioButton);
-         addButtonWithSpacing(mainCategoryPanel, chemButton);
-         addButtonWithSpacing(mainCategoryPanel, physButton);
-         addButtonWithSpacing(mainCategoryPanel, mathButton);
-         addButtonWithSpacing(mainCategoryPanel, kffButton);
- 
-         // Create the toggle button with the pen icon
-         editToggleButton = createModernButton("Arbeitsmodus");
-         editToggleButton.setIcon(penIcon);
- 
-         // Create a panel for the toggle buttons
-         JPanel toggleButtonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-         toggleButtonPanel.setBackground(backgroundColor); // Match the panel background to existing layout
-         toggleButtonPanel.add(editToggleButton);
- 
--        solutionToggleButton = createModernButton("Hide Solutions");
--        solutionToggleButton.setPreferredSize(new Dimension(300, solutionToggleButton.getPreferredSize().height));
--        solutionToggleButton.addActionListener(e -> toggleSolutionColumn());
--        toggleButtonPanel.add(solutionToggleButton);
- 
-         editToggleButton.setPreferredSize(new Dimension(300, editToggleButton.getPreferredSize().height)); // Adjust the
-                                                                                                            // size as
-                                                                                                            // needed
-         // Add action listener to toggle button
-         editToggleButton.addActionListener(new ActionListener() {
-             @Override
-             public void actionPerformed(ActionEvent e) {
-                 if (!isEditMode) {
-                     editToggleButton.setIcon(penEditIcon); // Change to the edit icon
-                     editToggleButton.setText("Bearbeitungsmodus"); // Display the text next to the icon
-                     editToggleButton.setBackground(Color.red);
-                     editToggleButton.setForeground(Color.WHITE);
-                     setEditMode(true);
-                     // Add any specific actions when edit mode is enabled
-                 } else {
-                     editToggleButton.setIcon(penIcon); // Change to the pen icon
-                     editToggleButton.setText("Arbeitsmodus"); // Remove text
-                     setEditMode(false);
-                     editToggleButton.setBackground(new Color(221, 221, 221));
-                     editToggleButton.setForeground(Color.BLACK);
-                     loadSubcategories(currentCategory);
-                     // Add any specific actions when edit mode is disabled
+     private void updateSolutionColumnVisibility() {
+         for (Map<String, DefaultTableModel> subMap : categoryModels.values()) {
+             for (String subcat : subMap.keySet()) {
+                 JTable table = getTableForSubcategory(subcat);
+                 if (table != null) {
+                     TableColumnModel colModel = table.getColumnModel();
+-                    DefaultTableModel model = (DefaultTableModel) table.getModel();
+-                    // Find column indices in model
+-                    int solutionModelIdx = -1, textModelIdx = -1;
+-                    for (int i = 0; i < model.getColumnCount(); i++) {
+-                        if ("Solution".equals(model.getColumnName(i))) solutionModelIdx = i;
+-                        if ("Text".equals(model.getColumnName(i))) textModelIdx = i;
+-                    }
+-                    // Find Solution column in view
++
+                     int solutionViewIdx = -1;
+                     for (int i = 0; i < colModel.getColumnCount(); i++) {
+                         if ("Solution".equals(colModel.getColumn(i).getHeaderValue())) {
+                             solutionViewIdx = i;
+                             break;
+                         }
+                     }
+-                    if (showSolutionColumn) {
+-                        // If Solution column is missing, re-add it after "Text" column
+-                        if (solutionViewIdx == -1 && solutionModelIdx != -1 && textModelIdx != -1) {
+-                            TableColumn col = new TableColumn(solutionModelIdx);
+-                            col.setHeaderValue("Solution");
+-                            col.setMinWidth(120);
+-                            col.setMaxWidth(150);
+-                            col.setPreferredWidth(130);
+-                            col.setWidth(130);
+-                            // Insert after "Text" column
+-                            int insertAt = -1;
+-                            for (int i = 0; i < colModel.getColumnCount(); i++) {
+-                                if (colModel.getColumn(i).getHeaderValue().equals("Text")) {
+-                                    insertAt = i + 1;
++
++                    // If column is missing (legacy state), re-add it in the correct position
++                    if (solutionViewIdx == -1) {
++                        if (showSolutionColumn) {
++                            DefaultTableModel model = (DefaultTableModel) table.getModel();
++                            int modelIdx = -1;
++                            for (int i = 0; i < model.getColumnCount(); i++) {
++                                if ("Solution".equals(model.getColumnName(i))) {
++                                    modelIdx = i;
+                                     break;
+                                 }
+                             }
+-                            if (insertAt == -1) insertAt = colModel.getColumnCount();
+-                            colModel.addColumn(col);
+-                            colModel.moveColumn(colModel.getColumnCount() - 1, insertAt);
+-                        } else if (solutionViewIdx != -1) {
+-                            // Restore width and header
+-                            TableColumn col = colModel.getColumn(solutionViewIdx);
++                            if (modelIdx != -1) {
++                                TableColumn col = new TableColumn(modelIdx);
++                                col.setHeaderValue("Solution");
++                                colModel.addColumn(col);
++                                // place column after "Text" if possible
++                                int textIdx = -1;
++                                for (int i = 0; i < colModel.getColumnCount(); i++) {
++                                    if ("Text".equals(colModel.getColumn(i).getHeaderValue())) {
++                                        textIdx = i;
++                                        break;
++                                    }
++                                }
++                                if (textIdx != -1) {
++                                    colModel.moveColumn(colModel.getColumnCount() - 1, textIdx + 1);
++                                }
++                                solutionViewIdx = textIdx + 1;
++                            }
++                        }
++                    }
++
++                    if (solutionViewIdx != -1) {
++                        TableColumn col = colModel.getColumn(solutionViewIdx);
++                        if (showSolutionColumn) {
+                             col.setMinWidth(120);
+                             col.setMaxWidth(150);
+                             col.setPreferredWidth(130);
+-                            col.setHeaderValue("Solution");
+                             col.setWidth(130);
+-                            // Ensure Solution is after Text
+-                            int textViewIdx = -1;
+-                            for (int i = 0; i < colModel.getColumnCount(); i++) {
+-                                if (colModel.getColumn(i).getHeaderValue().equals("Text")) {
+-                                    textViewIdx = i;
+-                                    break;
+-                                }
+-                            }
+-                            if (textViewIdx != -1 && solutionViewIdx != textViewIdx + 1) {
+-                                colModel.moveColumn(solutionViewIdx, textViewIdx + 1);
+-                            }
+-                        }
+-                    } else {
+-                        // Hide Solution column if present
+-                        if (solutionViewIdx != -1) {
+-                            TableColumn col = colModel.getColumn(solutionViewIdx);
+-                            colModel.removeColumn(col);
++                            col.setHeaderValue("Solution");
++                        } else {
++                            col.setMinWidth(0);
++                            col.setMaxWidth(0);
++                            col.setPreferredWidth(0);
++                            col.setWidth(0);
++                            col.setHeaderValue("");
+                         }
+                     }
++
+                     table.revalidate();
+                     table.repaint();
                  }
              }
+         }
+     }
+ 
+     /**
+      * Helper to get the JTable for a subcategory name (if visible in UI).
+      */
+     private JTable getTableForSubcategory(String subcategory) {
+         for (Component comp : mainContentPanel.getComponents()) {
+             if (comp instanceof JPanel) {
+                 JPanel panel = (JPanel) comp;
+                 for (Component inner : panel.getComponents()) {
+                     if (inner instanceof JScrollPane) {
+                         JScrollPane scroll = (JScrollPane) inner;
+                         JViewport viewport = scroll.getViewport();
+                         Component view = viewport.getView();
+                         if (view instanceof JTable) {
+                             JTable table = (JTable) view;
+                             if (table.getModel() instanceof DefaultTableModel) {
+                                 DefaultTableModel model = (DefaultTableModel) table.getModel();
+                                 // Try to match subcategory by model reference
+                                 if (categoryModels.get(currentCategory) != null &&
 diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
-index 87b7d8ee6abbb9b8b17888df827b2a3002ee2b93..88b15afe364191082416819fb888530820370959 100644
+index 17b4f2d419da234660a9427129b289b81a315b17..1b272f9b3b988706c64fd6e3a4599ccd70c0d52f 100644
 --- a/src/main/java/MedatoninDB.java
 +++ b/src/main/java/MedatoninDB.java
-@@ -2344,58 +2339,52 @@ public class MedatoninDB extends JFrame {
-         if (columnIndex != -1) {
-             hiddenSolutionColumn = columnModel.getColumn(columnIndex);
-             columnModel.removeColumn(hiddenSolutionColumn);
-             hiddenSolutionColumn.setHeaderValue("Solution");
-             solutionsVisible = false;
-         }
-     }
+@@ -1717,53 +1712,50 @@ public class MedatoninDB extends JFrame {
  
-     // Method to show the "Solution" column
-     private void showSolutionColumn() {
-         if (questionTable == null || solutionsVisible) return;
-         TableColumnModel columnModel = questionTable.getColumnModel();
-         if (hiddenSolutionColumn != null) {
-             columnModel.addColumn(hiddenSolutionColumn);
-             hiddenSolutionColumn.setHeaderValue("Solution");
-             int last = columnModel.getColumnCount() - 1;
-             columnModel.moveColumn(last, 2); // place back at index 2
-             adjustColumnWidths(questionTable);
-         }
-         solutionsVisible = true;
-     }
+         // Remove all components from mainContentPanel
+         mainContentPanel.removeAll();
+         mainContentPanel.setLayout(new BorderLayout());
  
-     private void toggleSolutionColumn() {
-         if (solutionsVisible) {
-             hideSolutionColumn();
--            if (solutionToggleButton != null) {
--                solutionToggleButton.setText("Show Solutions");
--            }
+         // Create a panel to hold the content
+         JPanel subcategoryContentPanel = new JPanel();
+         subcategoryContentPanel.setLayout(new BorderLayout());
+ 
+         // Create a panel for the buttons
+         JPanel buttonPanel = new JPanel();
+         buttonPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+         buttonPanel.setBackground(backgroundColor);
+ 
+         // Ensure the subcategory exists before setting the model
+         Map<String, DefaultTableModel> subcategories = categoryModels.get(category);
+         if (subcategories.containsKey(subcategory)) {
+             tableModel = subcategories.get(subcategory);
          } else {
-             showSolutionColumn();
--            if (solutionToggleButton != null) {
--                solutionToggleButton.setText("Hide Solutions");
--            }
+             tableModel = createTableModel(); // Create an empty model if subcategory doesn't exist
+             subcategories.put(subcategory, tableModel); // Add the new subcategory to the map
          }
-     }
  
-     // Helper method to get the index of a column by name
-     private int getColumnIndexByName(String columnName) {
-         TableColumnModel columnModel = questionTable.getColumnModel();
-         for (int i = 0; i < columnModel.getColumnCount(); i++) {
-             if (columnModel.getColumn(i).getHeaderValue().equals(columnName)) {
-                 return i;
+         // Create the table for the subcategory
+         questionTable = new JTable(tableModel);
+-        updateSolutionColumnVisibility();
+-        // Restore solution column visibility after switching subcategory
+-        updateSolutionColumnVisibility();
+         questionTable.setBorder(BorderFactory.createEmptyBorder());
+         questionTable.setShowGrid(false);
+         questionTable.setRowHeight(30);
+         questionTable.setFont(new Font("SansSerif", Font.PLAIN, 14));
+         CustomRenderer renderer = new CustomRenderer(currentSubcategory, pendingDeleteQuestions, gearIcon);
+         questionTable.setDefaultRenderer(Object.class, renderer);
+         questionTable.setDefaultRenderer(Boolean.class, renderer);
+         questionTable.setDefaultRenderer(Integer.class, renderer);
+         questionTable.setDefaultRenderer(String.class, renderer);
+         questionTable.setDefaultEditor(Object.class, new CustomEditor(questionTable));
+ 
+         // After initializing your questionTable
+         TableColumn korrektColumn = questionTable.getColumnModel().getColumn(3);
+         korrektColumn.setCellEditor(new CustomEditor(questionTable));
+ 
+         // Adjust the column widths after creating the table
+         adjustColumnWidths(questionTable);
+ 
+         if ("Figuren".equals(currentSubcategory)) {
+             questionTable.setRowHeight(150); // Default row height for question rows
+             for (int row = 0; row < questionTable.getRowCount(); row++) {
+                 Object value = questionTable.getValueAt(row, 1);
+                 if (value instanceof List<?>) {
+                     questionTable.setRowHeight(row, 50); // Adjust height for options row
+                 }
+diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
+index 17b4f2d419da234660a9427129b289b81a315b17..1b272f9b3b988706c64fd6e3a4599ccd70c0d52f 100644
+--- a/src/main/java/MedatoninDB.java
++++ b/src/main/java/MedatoninDB.java
+@@ -2022,50 +2014,54 @@ public class MedatoninDB extends JFrame {
+         JButton deleteAllButton = createModernButton("Delete All");
+         deleteAllButton.setBackground(new Color(233, 151, 151));
+         deleteAllButton.setForeground(Color.WHITE);
+         deleteAllButton.addActionListener(e -> {
+             int res = JOptionPane.showConfirmDialog(this,
+                     "Delete all questions in this subcategory?", "Confirm Delete",
+                     JOptionPane.YES_NO_OPTION);
+             if (res == JOptionPane.YES_OPTION) {
+                 deleteAllQuestions();
              }
+         });
+ 
+         buttonPanel.add(deleteMarkedButton);
+         buttonPanel.add(deleteAllButton);
+ 
+         // Add buttonPanel to subcategoryContentPanel
+         subcategoryContentPanel.add(buttonPanel, BorderLayout.SOUTH);
+ 
+         // Add subcategoryContentPanel to mainContentPanel
+         mainContentPanel.add(subcategoryContentPanel, BorderLayout.CENTER);
+ 
+         // Ensure safe UI updates
+         mainContentPanel.revalidate();
+         mainContentPanel.repaint();
+ 
++        // Apply visibility setting for the Solution column now that the table
++        // is part of the component hierarchy
++        updateSolutionColumnVisibility();
++
+         // Update the print button label immediately when switching subcategories
+         updatePrintButtonLabel();
+ 
+         // Highlight the selected subcategory button and reset others
+         resetSubcategoryButtons();
+ 
+         // Find the button corresponding to the selected subcategory
+         JButton newSelectedButton = getSubcategoryButton(subcategory);
+         if (newSelectedButton != null) {
+             // Set the background color of the new selected button
+             newSelectedButton.setBackground(new Color(128, 146, 160));
+             selectedSubcategoryButton = newSelectedButton;
          }
-         return -1; // Column not found
-     }
  
-     // Update the print button label based on the current category and subcategory
-     // names
-     private void updatePrintButtonLabel() {
-         String printButtonText = currentCategory + " Print";
-         printCategoryButton.setText(printButtonText);
-         adjustPrintButtonWidth(printCategoryButton, printButtonText);
-     }
+         // Load questions from the database
+         loadQuestionsFromDatabase(category, categoryModels.get(category), selectedSimulationId);
  
-     // Method to get the subcategory button by its text
-     private JButton getSubcategoryButton(String subcategory) {
-         for (Component component : subcategoryPanel.getComponents()) {
+         // Add TableModelListener to handle updates
+         questionTable.getModel().addTableModelListener(new TableModelListener() {
+             @Override
+             public void tableChanged(TableModelEvent e) {
+                 if (isAdjustingFormat) {
+                     return; // Ignore events during format adjustments
+                 }
+                 if ((e.getType() == TableModelEvent.UPDATE || e.getType() == TableModelEvent.INSERT)) {
  
 EOF
 )
