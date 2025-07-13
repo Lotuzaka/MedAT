@@ -552,6 +552,7 @@ public class MedatoninDB extends JFrame {
 
         // Load the initial category and its subcategories
         loadSubcategories(currentCategory);
+        updateSolutionColumnVisibility();
 
         // Create buttons for adding and deleting questions
         JPanel buttonPanel = new JPanel();
@@ -613,31 +614,70 @@ public class MedatoninDB extends JFrame {
                 JTable table = getTableForSubcategory(subcat);
                 if (table != null) {
                     TableColumnModel colModel = table.getColumnModel();
-                    int solutionCol = getColumnIndexByName("Solution");
-                    if (solutionCol != -1) {
-                        TableColumn col = colModel.getColumn(solutionCol);
-                        if (showSolutionColumn) {
-                            // Restore column width and header
+                    DefaultTableModel model = (DefaultTableModel) table.getModel();
+                    // Find column indices in model
+                    int solutionModelIdx = -1, textModelIdx = -1;
+                    for (int i = 0; i < model.getColumnCount(); i++) {
+                        if ("Solution".equals(model.getColumnName(i))) solutionModelIdx = i;
+                        if ("Text".equals(model.getColumnName(i))) textModelIdx = i;
+                    }
+                    // Find Solution column in view
+                    int solutionViewIdx = -1;
+                    for (int i = 0; i < colModel.getColumnCount(); i++) {
+                        if ("Solution".equals(colModel.getColumn(i).getHeaderValue())) {
+                            solutionViewIdx = i;
+                            break;
+                        }
+                    }
+                    if (showSolutionColumn) {
+                        // If Solution column is missing, re-add it after "Text" column
+                        if (solutionViewIdx == -1 && solutionModelIdx != -1 && textModelIdx != -1) {
+                            TableColumn col = new TableColumn(solutionModelIdx);
+                            col.setHeaderValue("Solution");
+                            col.setMinWidth(120);
+                            col.setMaxWidth(150);
+                            col.setPreferredWidth(130);
+                            col.setWidth(130);
+                            // Insert after "Text" column
+                            int insertAt = -1;
+                            for (int i = 0; i < colModel.getColumnCount(); i++) {
+                                if (colModel.getColumn(i).getHeaderValue().equals("Text")) {
+                                    insertAt = i + 1;
+                                    break;
+                                }
+                            }
+                            if (insertAt == -1) insertAt = colModel.getColumnCount();
+                            colModel.addColumn(col);
+                            colModel.moveColumn(colModel.getColumnCount() - 1, insertAt);
+                        } else if (solutionViewIdx != -1) {
+                            // Restore width and header
+                            TableColumn col = colModel.getColumn(solutionViewIdx);
                             col.setMinWidth(120);
                             col.setMaxWidth(150);
                             col.setPreferredWidth(130);
                             col.setHeaderValue("Solution");
                             col.setWidth(130);
-                        } else {
-                            // Hide column
-                            col.setMinWidth(0);
-                            col.setMaxWidth(0);
-                            col.setPreferredWidth(0);
-                            col.setHeaderValue("");
-                            col.setWidth(0);
+                            // Ensure Solution is after Text
+                            int textViewIdx = -1;
+                            for (int i = 0; i < colModel.getColumnCount(); i++) {
+                                if (colModel.getColumn(i).getHeaderValue().equals("Text")) {
+                                    textViewIdx = i;
+                                    break;
+                                }
+                            }
+                            if (textViewIdx != -1 && solutionViewIdx != textViewIdx + 1) {
+                                colModel.moveColumn(solutionViewIdx, textViewIdx + 1);
+                            }
                         }
-                        // Remove and re-add column to force UI update
-                        // (workaround for Swing not updating hidden columns)
-                        colModel.removeColumn(col);
-                        colModel.addColumn(col);
-                        table.revalidate();
-                        table.repaint();
+                    } else {
+                        // Hide Solution column if present
+                        if (solutionViewIdx != -1) {
+                            TableColumn col = colModel.getColumn(solutionViewIdx);
+                            colModel.removeColumn(col);
+                        }
                     }
+                    table.revalidate();
+                    table.repaint();
                 }
             }
         }
@@ -1120,6 +1160,7 @@ public class MedatoninDB extends JFrame {
         subcategoryPanel.repaint();
 
         displaySubcategoriesInMainContent(category);
+        updateSolutionColumnVisibility();
     }
 
     // Method to get the corresponding background color of the category buttons
@@ -1618,6 +1659,9 @@ public class MedatoninDB extends JFrame {
         }
         loadQuestionsFromDatabase(category, subcategories, selectedSimulationId);
         loadSubcategories(currentCategory);
+        updateSolutionColumnVisibility();
+        // Restore solution column visibility after switching category
+        updateSolutionColumnVisibility();
         resetPendingDeleteState(); // Reset the deletion state when switching categories
 
         // Update the print button label immediately when switching categories
@@ -1635,10 +1679,7 @@ public class MedatoninDB extends JFrame {
             showSetColumn(); // Show the "Set" column
         }
 
-        // Apply solution column visibility setting
-        if (!solutionsVisible) {
-            hideSolutionColumn();
-        }
+        // Remove legacy solution column logic. Solution column visibility is now only controlled by showSolutionColumn and updateSolutionColumnVisibility().
 
         // Set the selected category button to blue and reset others
         resetCategoryButtons();
@@ -1698,6 +1739,9 @@ public class MedatoninDB extends JFrame {
 
         // Create the table for the subcategory
         questionTable = new JTable(tableModel);
+        updateSolutionColumnVisibility();
+        // Restore solution column visibility after switching subcategory
+        updateSolutionColumnVisibility();
         questionTable.setBorder(BorderFactory.createEmptyBorder());
         questionTable.setShowGrid(false);
         questionTable.setRowHeight(30);
