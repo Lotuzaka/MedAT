@@ -389,7 +389,22 @@ public class MedatoninDB extends JFrame {
                     // Get the simulation ID from the simulationMap
                     Integer simulationId = simulationMap.get(selectedItem);
                     if (simulationId != null) {
-                        selectedSimulationId = simulationId; // Speichere die ausgewählte Simulation
+                        // Validate simulation exists in database before setting it
+                        try {
+                            if (simulationDAO.simulationExists(simulationId)) {
+                                selectedSimulationId = simulationId;
+                                debugLog("Simulation", "Selected simulation: " + selectedItem + " (ID: " + simulationId + ")");
+                            } else {
+                                debugLog("Simulation", LogLevel.ERROR, "Simulation does not exist in database: " + selectedItem + " (ID: " + simulationId + ")");
+                                JOptionPane.showMessageDialog(MedatoninDB.this, "Selected simulation no longer exists in database.", "Error", JOptionPane.ERROR_MESSAGE);
+                                // Reload simulation options to refresh the list
+                                loadSimulationOptions();
+                                return;
+                            }
+                        } catch (SQLException ex) {
+                            debugLog("Simulation", LogLevel.ERROR, "Error validating simulation: " + ex.getMessage());
+                            selectedSimulationId = null;
+                        }
                     } else {
                         selectedSimulationId = null;
                         debugLog("Simulation", "No simulation ID found for: " + selectedItem);
@@ -401,7 +416,7 @@ public class MedatoninDB extends JFrame {
                         try {
                             testSimulationDAO newSimulation = simulationDAO.createSimulation(newSimName);
                             loadSimulationOptions(); // Refresh the simulation list
-                            simulationComboBox.setSelectedItem(newSimulation);
+                            simulationComboBox.setSelectedItem(newSimulation.getName());
                             selectedSimulationId = newSimulation.getId();
                         } catch (SQLException ex) {
                             ex.printStackTrace();
@@ -410,19 +425,49 @@ public class MedatoninDB extends JFrame {
                         }
                     }
                 }
-                loadQuestionsFromDatabase(currentCategory, categoryModels.get(currentCategory), selectedSimulationId);
+                if (selectedSimulationId != null) {
+                    loadQuestionsFromDatabase(currentCategory, categoryModels.get(currentCategory), selectedSimulationId);
+                }
             }
         });
 
-        // Create the top panel with a BorderLayout
-        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        // Create the top panel with a horizontal BoxLayout for consistent header layout
+        JPanel topPanel = new JPanel();
+        topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.X_AXIS));
         topPanel.setBackground(backgroundColor);
-        // topPanel.setPreferredSize(new Dimension(topPanel.getWidth(), 30));
-        topPanel.add(userTextField, BorderLayout.WEST);
-        topPanel.add(Box.createHorizontalStrut(-350), BorderLayout.WEST);
-        topPanel.add(simulationComboBox, BorderLayout.CENTER);
-        topPanel.add(Box.createHorizontalStrut(350), BorderLayout.EAST);
-        topPanel.add(logoutButton, BorderLayout.EAST);
+        topPanel.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+
+        userTextField.setMinimumSize(new Dimension(80, 30));
+        userTextField.setPreferredSize(new Dimension(120, 30));
+        simulationComboBox.setMinimumSize(new Dimension(120, 30));
+        simulationComboBox.setPreferredSize(new Dimension(160, 30));
+        logoutButton.setMinimumSize(new Dimension(80, 30));
+        logoutButton.setPreferredSize(new Dimension(120, 30));
+
+        // Solution toggle button setup (created below)
+        JButton solutionToggleButton = createModernButton("Solution");
+        solutionToggleButton.setBackground(new Color(127, 204, 165));
+        solutionToggleButton.setForeground(Color.WHITE);
+        solutionToggleButton.setFont(new Font("SansSerif", Font.BOLD, 14));
+        solutionToggleButton.setFocusPainted(false);
+        solutionToggleButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+        solutionToggleButton.setMinimumSize(new Dimension(120, 30));
+        solutionToggleButton.setPreferredSize(new Dimension(140, 30));
+        solutionToggleButton.addActionListener(e -> {
+            showSolutionColumn = !showSolutionColumn;
+            updateSolutionColumnVisibility();
+        });
+
+        topPanel.add(Box.createHorizontalStrut(10));
+        topPanel.add(userTextField);
+        topPanel.add(Box.createHorizontalGlue());
+        topPanel.add(simulationComboBox);
+        topPanel.add(Box.createHorizontalGlue());
+        topPanel.add(logoutButton);
+        topPanel.add(Box.createHorizontalGlue());
+        topPanel.add(solutionToggleButton);
+        topPanel.add(Box.createHorizontalStrut(10));
+
         add(topPanel, BorderLayout.NORTH);
 
         // Initialize category models
@@ -568,26 +613,10 @@ public class MedatoninDB extends JFrame {
             printAllCategoriesSolution();
         });
 
-        // Move Solution toggle button to top right next to Logout
-        JButton solutionToggleButton = createModernButton("Solution");
-        solutionToggleButton.setBackground(new Color(127, 204, 165));
-        solutionToggleButton.setForeground(Color.WHITE);
-        solutionToggleButton.setFont(new Font("SansSerif", Font.BOLD, 14));
-        solutionToggleButton.setFocusPainted(false);
-        solutionToggleButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
-        solutionToggleButton.setPreferredSize(new Dimension(120, solutionToggleButton.getPreferredSize().height));
-        solutionToggleButton.addActionListener(e -> {
-            showSolutionColumn = !showSolutionColumn;
-            updateSolutionColumnVisibility();
-        });
-
         // Add buttons to the panel and frame (bottom panel)
         buttonPanel.add(printCategoryButton);
         buttonPanel.add(printAllButton);
         add(buttonPanel, BorderLayout.SOUTH);
-
-        // Add Solution toggle button to topPanel next to Logout
-        topPanel.add(solutionToggleButton, BorderLayout.EAST);
         // Setze die Ränder von allen relevanten Panels und ScrollPane auf leer
         mainContentPanel.setBorder(BorderFactory.createEmptyBorder()); // Kein Rand für das Hauptinhalt-Panel
         scrollPane.setBorder(BorderFactory.createEmptyBorder()); // Kein Rand für das ScrollPane
@@ -604,61 +633,93 @@ public class MedatoninDB extends JFrame {
     private boolean showSolutionColumn = true;
 
     /**
-     * Show/hide the Solution column in all subcategory tables based on showSolutionColumn flag.
+     * Show/hide the Solution column in all tables (both overview and subcategory tables) based on showSolutionColumn flag.
      */
     private void updateSolutionColumnVisibility() {
+        // Update all tables in the main content panel (overview panels)
+        updateSolutionColumnVisibilityInMainContent();
+        
+        // Update individual subcategory tables (when viewing specific subcategories)
         for (Map<String, DefaultTableModel> subMap : categoryModels.values()) {
             for (String subcat : subMap.keySet()) {
                 JTable table = getTableForSubcategory(subcat);
                 if (table == null) continue;
-
-                TableColumnModel colModel = table.getColumnModel();
-
-                // "Solution" is at model index 2
-                int solutionViewIdx = table.convertColumnIndexToView(2);
-
-                // If the column is not part of the view, add it back when showing
-                if (solutionViewIdx == -1 && showSolutionColumn) {
-                    TableColumn col = new TableColumn(2);
-                    col.setHeaderValue("Solution");
-                    colModel.addColumn(col);
-
-                    int textViewIdx = table.convertColumnIndexToView(1);
-                    if (textViewIdx != -1) {
-                        colModel.moveColumn(colModel.getColumnCount() - 1, textViewIdx + 1);
-                        solutionViewIdx = textViewIdx + 1;
-                    } else {
-                        solutionViewIdx = colModel.getColumnCount() - 1;
-                    }
-                }
-
-                if (solutionViewIdx != -1) {
-                    TableColumn col = colModel.getColumn(solutionViewIdx);
-                    if (showSolutionColumn) {
-                        col.setMinWidth(120);
-                        col.setMaxWidth(150);
-                        col.setPreferredWidth(130);
-                        col.setWidth(130);
-                        col.setHeaderValue("Solution");
-
-                        int textViewIdx = table.convertColumnIndexToView(1);
-                        if (textViewIdx != -1 && solutionViewIdx != textViewIdx + 1) {
-                            colModel.moveColumn(solutionViewIdx, textViewIdx + 1);
-                            solutionViewIdx = textViewIdx + 1;
-                        }
-                    } else {
-                        col.setMinWidth(0);
-                        col.setMaxWidth(0);
-                        col.setPreferredWidth(0);
-                        col.setWidth(0);
-                        col.setHeaderValue("");
-                    }
-                }
-
-                table.revalidate();
-                table.repaint();
+                updateSolutionColumnForTable(table);
             }
         }
+    }
+
+    /**
+     * Update solution column visibility for all tables in the main content panel (overview panels).
+     */
+    private void updateSolutionColumnVisibilityInMainContent() {
+        for (Component comp : mainContentPanel.getComponents()) {
+            if (comp instanceof JPanel) {
+                JPanel panel = (JPanel) comp;
+                for (Component inner : panel.getComponents()) {
+                    if (inner instanceof JScrollPane) {
+                        JScrollPane scroll = (JScrollPane) inner;
+                        JViewport viewport = scroll.getViewport();
+                        Component view = viewport.getView();
+                        if (view instanceof JTable) {
+                            JTable table = (JTable) view;
+                            updateSolutionColumnForTable(table);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Update solution column visibility for a specific table.
+     */
+    private void updateSolutionColumnForTable(JTable table) {
+        TableColumnModel colModel = table.getColumnModel();
+
+        // "Solution" is at model index 2
+        int solutionViewIdx = table.convertColumnIndexToView(2);
+
+        // If the column is not part of the view, add it back when showing
+        if (solutionViewIdx == -1 && showSolutionColumn) {
+            TableColumn col = new TableColumn(2);
+            col.setHeaderValue("Solution");
+            colModel.addColumn(col);
+
+            int textViewIdx = table.convertColumnIndexToView(1);
+            if (textViewIdx != -1) {
+                colModel.moveColumn(colModel.getColumnCount() - 1, textViewIdx + 1);
+                solutionViewIdx = textViewIdx + 1;
+            } else {
+                solutionViewIdx = colModel.getColumnCount() - 1;
+            }
+        }
+
+        if (solutionViewIdx != -1) {
+            TableColumn col = colModel.getColumn(solutionViewIdx);
+            if (showSolutionColumn) {
+                col.setMinWidth(120);
+                col.setMaxWidth(150);
+                col.setPreferredWidth(130);
+                col.setWidth(130);
+                col.setHeaderValue("Solution");
+
+                int textViewIdx = table.convertColumnIndexToView(1);
+                if (textViewIdx != -1 && solutionViewIdx != textViewIdx + 1) {
+                    colModel.moveColumn(solutionViewIdx, textViewIdx + 1);
+                    solutionViewIdx = textViewIdx + 1;
+                }
+            } else {
+                col.setMinWidth(0);
+                col.setMaxWidth(0);
+                col.setPreferredWidth(0);
+                col.setWidth(0);
+                col.setHeaderValue("");
+            }
+        }
+
+        table.revalidate();
+        table.repaint();
     }
 
     /**
@@ -758,6 +819,16 @@ public class MedatoninDB extends JFrame {
             simulationMap.put(simulation.getName(), simulation.getId());
         }
         simulationComboBox.addItem("+"); // Add the "Create" option
+        
+        // Set default selection to first available simulation
+        if (!simulations.isEmpty()) {
+            String firstSimName = simulations.get(0).getName();
+            simulationComboBox.setSelectedItem(firstSimName);
+            selectedSimulationId = simulationMap.get(firstSimName);
+            debugLog("Simulation", "Auto-selected first simulation: " + firstSimName + " (ID: " + selectedSimulationId + ")");
+        } else {
+            debugLog("Simulation", "No simulations available, selectedSimulationId remains null");
+        }
     }
 
     // Method to adjust the spacing between subcategory buttons dynamically
@@ -1282,6 +1353,10 @@ public class MedatoninDB extends JFrame {
             subcategoryTable.setDefaultRenderer(String.class, renderer);
             subcategoryTable.setDefaultEditor(Object.class, new CustomEditor(subcategoryTable));
             adjustColumnWidths(subcategoryTable);
+            
+            // Apply solution column visibility to this table
+            updateSolutionColumnForTable(subcategoryTable);
+            
             model.addTableModelListener(e -> {
                 if (e.getColumn() == 3) {
                     SwingUtilities.invokeLater(subcategoryTable::repaint);
@@ -1310,67 +1385,70 @@ public class MedatoninDB extends JFrame {
                 }
             };
 
-            JButton addQuestionButton = createModernButton("Add Question");
-            addQuestionButton.setBackground(new Color(127, 204, 165));
-            addQuestionButton.setForeground(Color.WHITE);
-            addQuestionButton.setFont(new Font("SansSerif", Font.BOLD, 14));
-            addQuestionButton.setFocusPainted(false);
-            addQuestionButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
-            addQuestionButton.addActionListener(e -> addNewQuestionToSubcategory());
-
-            JPanel buttonPanel;
-
-            if ("KFF".equals(category)) {
-                JButton generateButton = createModernButton("Generate");
-                generateButton.setBackground(new Color(127, 204, 165));
-                generateButton.setForeground(Color.WHITE);
-                generateButton.setFont(new Font("SansSerif", Font.BOLD, 14));
-                generateButton.setFocusPainted(false);
-                generateButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
-
-                JTextField questionCountField = createStyledTextField("0", 40, new Color(127, 204, 165), Color.WHITE);
-
-                JPanel generatePanel = new JPanel(new BorderLayout());
-                generatePanel.setBackground(new Color(127, 204, 165));
-                generatePanel.add(questionCountField, BorderLayout.EAST);
-                generatePanel.add(generateButton, BorderLayout.CENTER);
-
-                generateButton.addActionListener(e -> {
-                    try {
-                        String input = questionCountField.getText().trim();
-                        int questionCount;
-                        try {
-                            questionCount = Integer.parseInt(input);
-                        } catch (NumberFormatException ex) {
-                            JOptionPane.showMessageDialog(null, "Please enter a valid number.", "Invalid Input", JOptionPane.ERROR_MESSAGE);
-                            return;
-                        }
-                        if ("Implikationen".equals(currentSubcategory)) {
-                            SyllogismGenerator generator = new SyllogismGenerator(conn, currentCategory, currentSubcategory, selectedSimulationId);
-                            generator.execute(questionCount);
-                            loadQuestionsFromDatabase(currentCategory, categoryModels.get(currentCategory), selectedSimulationId);
-                            switchSubcategory(currentCategory, currentSubcategory);
-                        }
-                        if ("Zahlenfolgen".equals(currentSubcategory)) {
-                            ZahlenfolgenGenerator generator = new ZahlenfolgenGenerator(conn, currentCategory, currentSubcategory, selectedSimulationId);
-                            generator.execute(questionCount);
-                            loadQuestionsFromDatabase(currentCategory, categoryModels.get(currentCategory), selectedSimulationId);
-                            switchSubcategory(currentCategory, currentSubcategory);
-                        }
-                    } catch (SQLException ex) {
-                        ex.printStackTrace();
-                    } catch (IOException e1) {
-                        e1.printStackTrace();
-                    }
-                });
-                buttonPanel = createButtonPanel(addQuestionButton);
-                buttonPanel.add(generatePanel);
-            } else {
-                buttonPanel = createButtonPanel(addQuestionButton);
-            }
-
             combinedPanel.add(tableScrollPane, BorderLayout.CENTER);
-            combinedPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+            // Only show Add Question, Generate, and number box in subcategory panels
+            if (currentSubcategory != null && currentSubcategory.equals(subcategoryName)) {
+                JButton addQuestionButton = createModernButton("Add Question");
+                addQuestionButton.setBackground(new Color(127, 204, 165));
+                addQuestionButton.setForeground(Color.WHITE);
+                addQuestionButton.setFont(new Font("SansSerif", Font.BOLD, 14));
+                addQuestionButton.setFocusPainted(false);
+                addQuestionButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+                addQuestionButton.addActionListener(e -> addNewQuestionToSubcategory());
+
+                JPanel buttonPanel;
+
+                if ("KFF".equals(category)) {
+                    JButton generateButton = createModernButton("Generate");
+                    generateButton.setBackground(new Color(127, 204, 165));
+                    generateButton.setForeground(Color.WHITE);
+                    generateButton.setFont(new Font("SansSerif", Font.BOLD, 14));
+                    generateButton.setFocusPainted(false);
+                    generateButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+
+                    JTextField questionCountField = createStyledTextField("0", 40, new Color(127, 204, 165), Color.WHITE);
+
+                    JPanel generatePanel = new JPanel(new BorderLayout());
+                    generatePanel.setBackground(new Color(127, 204, 165));
+                    generatePanel.add(questionCountField, BorderLayout.EAST);
+                    generatePanel.add(generateButton, BorderLayout.CENTER);
+
+                    generateButton.addActionListener(e -> {
+                        try {
+                            String input = questionCountField.getText().trim();
+                            int questionCount;
+                            try {
+                                questionCount = Integer.parseInt(input);
+                            } catch (NumberFormatException ex) {
+                                JOptionPane.showMessageDialog(null, "Please enter a valid number.", "Invalid Input", JOptionPane.ERROR_MESSAGE);
+                                return;
+                            }
+                            if ("Implikationen".equals(currentSubcategory)) {
+                                SyllogismGenerator generator = new SyllogismGenerator(conn, currentCategory, currentSubcategory, selectedSimulationId);
+                                generator.execute(questionCount);
+                                loadQuestionsFromDatabase(currentCategory, categoryModels.get(currentCategory), selectedSimulationId);
+                                switchSubcategory(currentCategory, currentSubcategory);
+                            }
+                            if ("Zahlenfolgen".equals(currentSubcategory)) {
+                                ZahlenfolgenGenerator generator = new ZahlenfolgenGenerator(conn, currentCategory, currentSubcategory, selectedSimulationId);
+                                generator.execute(questionCount);
+                                loadQuestionsFromDatabase(currentCategory, categoryModels.get(currentCategory), selectedSimulationId);
+                                switchSubcategory(currentCategory, currentSubcategory);
+                            }
+                        } catch (SQLException ex) {
+                            ex.printStackTrace();
+                        } catch (IOException e1) {
+                            e1.printStackTrace();
+                        }
+                    });
+                    buttonPanel = createButtonPanel(addQuestionButton);
+                    buttonPanel.add(generatePanel);
+                } else {
+                    buttonPanel = createButtonPanel(addQuestionButton);
+                }
+                combinedPanel.add(buttonPanel, BorderLayout.SOUTH);
+            }
             mainContentPanel.add(combinedPanel);
             mainContentPanel.add(Box.createVerticalStrut(10));
         }
@@ -1387,14 +1465,33 @@ public class MedatoninDB extends JFrame {
             return;
         }
 
+        // Validate simulation ID
+        if (selectedSimulationId == null) {
+            JOptionPane.showMessageDialog(this, "Please select a test simulation first.", "Error",
+                    JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Verify simulation exists in database
+        try {
+            if (!simulationDAO.simulationExists(selectedSimulationId)) {
+                JOptionPane.showMessageDialog(this, "Selected simulation does not exist. Please select a valid simulation.", "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+        } catch (SQLException e) {
+            debugLog("DB", LogLevel.ERROR, "addNewQuestionToSubcategory", "Error validating simulation: " + e.getMessage());
+            JOptionPane.showMessageDialog(this, "Error validating simulation: " + e.getMessage(), "Database Error",
+                    JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
         try {
             conn.setAutoCommit(false);
             int subcategoryId = getSubcategoryId(currentCategory, currentSubcategory);
             int questionNumber = questionDAO.getNextQuestionNumber(selectedSimulationId, subcategoryId);
-            int simulationId = selectedSimulationId != null ? selectedSimulationId : 0; // 0 oder null, wenn keine
-                                                                                        // Simulation ausgewählt
             int questionId = questionDAO.insertEmptyQuestion(currentCategory, currentSubcategory, questionNumber,
-                    simulationId);
+                    selectedSimulationId);
 
             if (questionId == -1) {
                 throw new SQLException("Failed to insert question");
@@ -1732,6 +1829,9 @@ public class MedatoninDB extends JFrame {
 
         // Adjust the column widths after creating the table
         adjustColumnWidths(questionTable);
+        
+        // Apply solution column visibility to this table
+        updateSolutionColumnForTable(questionTable);
 
         if ("Figuren".equals(currentSubcategory)) {
             questionTable.setRowHeight(150); // Default row height for question rows
@@ -3141,6 +3241,14 @@ public class MedatoninDB extends JFrame {
                 // Get the question number and text
                 String questionNumber = String.valueOf(model.getValueAt(row, 0)); // Treat value as a String
 
+                // Defensive: check simulationId
+                if (selectedSimulationId == null) {
+                    JOptionPane.showMessageDialog(null,
+                        "Simulation ID is not set. Please select a simulation before changing the format.",
+                        "Simulation Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
                 try {
                     // Update the question format in the database
                     int subcategoryId = getSubcategoryId(currentCategory, currentSubcategory);
@@ -3222,14 +3330,14 @@ public class MedatoninDB extends JFrame {
                     String text = answerTexts.getOrDefault(label, "");
                     Boolean isCorrect = answerCorrectness.getOrDefault(label, false);
                     // Always set Solution column to empty string
-                    model.insertRow(frageRow + 1 + i, new Object[] { label, text, isCorrect, "", "" });
+                    model.insertRow(frageRow + 1 + i, new Object[] { label, text, "", isCorrect, "" });
                 }
             } else if ("Lang".equals(newFormat)) {
                 String[] optionLabels = { "1.", "2.", "3.", "4." };
                 String[] answerLabels = { "A)", "B)", "C)", "D)", "E)" };
                 for (int i = 0; i < optionLabels.length; i++) {
                     // Always set Solution column to empty string
-                    model.insertRow(frageRow + 1 + i, new Object[] { optionLabels[i], "", null, "", "" });
+                    model.insertRow(frageRow + 1 + i, new Object[] { optionLabels[i], "", "", null, "" });
                 }
                 for (int i = 0; i < answerLabels.length; i++) {
                     String label = answerLabels[i];
@@ -3237,7 +3345,7 @@ public class MedatoninDB extends JFrame {
                     Boolean isCorrect = answerCorrectness.getOrDefault(label, false);
                     // Always set Solution column to empty string
                     model.insertRow(frageRow + 1 + optionLabels.length + i,
-                            new Object[] { label, text, isCorrect, "", "" });
+                            new Object[] { label, text, "", isCorrect, "" });
                 }
             }
 
@@ -3758,9 +3866,15 @@ public class MedatoninDB extends JFrame {
     }
 
     private void updateOption(int row, int column, Object data) {
+        // Validate selectedSimulationId first
+        if (selectedSimulationId == null) {
+            debugLog("DB", LogLevel.ERROR, "updateOption", "selectedSimulationId is null");
+            return;
+        }
+        
         int frageRow = getFrageRowForRow(row, questionTable);
         if (frageRow == -1) {
-            System.out.println("Error: Invalid frageRow detected in updateOption.");
+            debugLog("DB", LogLevel.ERROR, "updateOption", "Invalid frageRow detected");
             return; // Exit if there's no valid frageRow
         }
         Object questionNumberObj = questionTable.getValueAt(frageRow, 0);
@@ -3768,7 +3882,7 @@ public class MedatoninDB extends JFrame {
         try {
             questionNumber = Integer.parseInt(questionNumberObj.toString());
         } catch (NumberFormatException e) {
-            System.out.println("Error parsing question number in updateOption.");
+            debugLog("DB", LogLevel.ERROR, "updateOption", "Error parsing question number: " + questionNumberObj);
             return;
         }
         String label = questionTable.getValueAt(row, 0).toString();
@@ -3780,7 +3894,10 @@ public class MedatoninDB extends JFrame {
             int questionId = questionDAO.getQuestionId(currentCategory, currentSubcategory, questionNumber,
                     selectedSimulationId);
             if (questionId == -1) {
-                throw new SQLException("Question not found.");
+                debugLog("DB", LogLevel.WARN, "updateOption", "Question not found for category=" + currentCategory + 
+                    ", subcategory=" + currentSubcategory + ", questionNumber=" + questionNumber + 
+                    ", simulationId=" + selectedSimulationId);
+                return; // Silently return instead of throwing exception
             }
             switch (column) {
                 case 1: // Option text
@@ -3793,9 +3910,8 @@ public class MedatoninDB extends JFrame {
                     break;
             }
         } catch (SQLException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error updating option: " + e.getMessage(), "Error",
-                    JOptionPane.ERROR_MESSAGE);
+            debugLog("DB", LogLevel.ERROR, "updateOption", "Error updating option: " + e.getMessage());
+            // Don't show dialog for every error to avoid spam
         }
     }
 

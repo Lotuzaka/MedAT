@@ -89,4 +89,18 @@ public class testSimulationDAO {
         }
         return simulations;
     }
+    
+    // Check if a simulation exists by ID
+    public boolean simulationExists(int simulationId) throws SQLException {
+        String query = "SELECT COUNT(*) FROM test_simulations WHERE id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, simulationId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        }
+        return false;
+    }
 }

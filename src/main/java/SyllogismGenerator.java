@@ -1,11 +1,11 @@
-
-// Java program to do level order traversal
-// of a generic tree
+/**
+ * Generator for Syllogism questions used in logical reasoning tests.
+ * Creates questions based on predefined syllogism models and a word list.
+ */
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
@@ -13,15 +13,30 @@ import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 
 public class SyllogismGenerator {
 
-  private Connection conn;
-  private QuestionDAO questionDAO;
-  private OptionDAO optionDAO;
-  private String category; // e.g., "KFF"
-  private String subcategory; // e.g., "Implikationen erkennen"
-  private Integer simulationId; // Current simulation ID
-  private Random random;
-  private List<SyllogismModel> syllogismModels;
+  // Constants
+  private static final String WORDLIST_PATH = "src/main/resources/lists/wortliste.docx";
+  private static final String NO_VALID_ANSWER = "Keine Antwort ist richtig.";
+  private static final int OPTION_COUNT = 5;
+  private static final int WORDS_PER_QUESTION = 3;
 
+  // Instance variables
+  private final Connection conn;
+  private final QuestionDAO questionDAO;
+  private final OptionDAO optionDAO;
+  private final String category;
+  private final String subcategory;
+  private final Integer simulationId;
+  private final Random random;
+  private final List<SyllogismModel> syllogismModels;
+
+  /**
+   * Constructor for SyllogismGenerator.
+   * 
+   * @param conn Database connection
+   * @param category Question category (e.g., "KFF")
+   * @param subcategory Question subcategory (e.g., "Implikationen erkennen")
+   * @param simulationId Current simulation ID
+   */
   public SyllogismGenerator(Connection conn, String category, String subcategory, Integer simulationId) {
     this.conn = conn;
     this.category = category;
@@ -33,135 +48,69 @@ public class SyllogismGenerator {
     this.syllogismModels = initializeSyllogismModels();
   }
 
-  private static final String WORDLIST_PATH = "src/main/resources/lists/wortliste.docx";
-
+  /**
+   * Generates the specified number of syllogism questions and inserts them into the database.
+   * 
+   * @param numberOfQuestions Number of questions to generate
+   * @throws SQLException If database operation fails
+   * @throws IOException If word list cannot be read
+   */
   public void execute(int numberOfQuestions) throws SQLException, IOException {
-    // Read word list from file
     List<String> wordList = readWordList(WORDLIST_PATH);
     Collections.shuffle(wordList);
 
     int subcategoryId = questionDAO.getSubcategoryId(category, subcategory);
     int nextQuestionNumber = questionDAO.getNextQuestionNumber(simulationId, subcategoryId);
-
-    int wordIndex = 0; // To keep track of used words
+    int wordIndex = 0;
 
     for (int i = 0; i < numberOfQuestions; i++) {
-      // Select unique words A, B, C
-      if (wordIndex + 3 > wordList.size()) {
-        // If we've run out of words, reshuffle and reset index
-        Collections.shuffle(wordList);
-        wordIndex = 0;
-      }
-
-      String A = wordList.get(wordIndex++);
-      String B = wordList.get(wordIndex++);
-      String C = wordList.get(wordIndex++);
-
-      // Select a syllogism model
-      SyllogismModel model = syllogismModels.get(random.nextInt(syllogismModels.size()));
-
-      // Generate the major premise
-      String majorPremise = model.getMajorPremiseTemplate().replace("{A}", A).replace("{B}", B).replace("{C}", C);
-
-      // Generate the minor premise
-      String minorPremiseTemplate = model.getMinorPremiseTemplates()
-          .get(random.nextInt(model.getMinorPremiseTemplates().size()));
-      String minorPremise = minorPremiseTemplate.replace("{A}", A).replace("{B}", B).replace("{C}", C);
-
-      String correctConclusion = null;
-      if (model.isHasNoValidConclusion()) {
-        correctConclusion = "Keine Antwort ist richtig.";
-      } else {
-        // Generate the correct conclusions
-        List<String> possibleConclusions = new ArrayList<>();
-        possibleConclusions.addAll(model.getStrongConclusionTemplates());
-        possibleConclusions.addAll(model.getWeakConclusionTemplates());
-        // Randomly select one correct conclusion
-        String conclusionTemplate = possibleConclusions.get(random.nextInt(possibleConclusions.size()));
-        correctConclusion = conclusionTemplate.replace("{A}", A).replace("{B}", B).replace("{C}", C);
-      }
-
-      // Generate distractor conclusions
-      List<String> distractors = generateDistractorConclusions(A, B, C, correctConclusion);
-
-      // Prepare options
-      List<String> options = new ArrayList<>();
-      int correctOptionIndex = -1;
-
-      // If "Keine Antwort ist richtig." is the correct conclusion, place it at option E
-      if (correctConclusion.equals("Keine Antwort ist richtig.")) {
-        // Add distractors until options.size() == 4
-        while (options.size() < 4) {
-          String distractor = distractors.get(random.nextInt(distractors.size()));
-          if (!options.contains(distractor)) {
-            options.add(distractor);
-          }
-        }
-        // Add "Keine Antwort ist richtig." as option E
-        options.add("Keine Antwort ist richtig.");
-        // Correct option index is 4 (option E)
-        correctOptionIndex = 4;
-      } else {
-        // Add correct conclusion
-        options.add(correctConclusion);
-        // Add distractors until options.size() == 4
-        while (options.size() < 4) {
-          String distractor = distractors.get(random.nextInt(distractors.size()));
-          if (!options.contains(distractor)) {
-            options.add(distractor);
-          }
-        }
-        // Shuffle options A-D
-        Collections.shuffle(options);
-        // Add "Keine Antwort ist richtig." as option E
-        options.add("Keine Antwort ist richtig.");
-        // Correct option index is the index of the correct conclusion
-        correctOptionIndex = options.indexOf(correctConclusion);
-      }
-
-      // Create question text
-      String questionText = majorPremise + "\n" + minorPremise;
-      // DEBUG: Print question text before DB insert
-      MedatoninDB.debugLog("Syllogism", "Question: " + questionText);
-
-      // Insert question into database
-      int questionId = questionDAO.insertQuestion(category, subcategory, questionText, nextQuestionNumber,
-          simulationId);
-
-      // Insert options into database
-      for (int j = 0; j < options.size(); j++) {
-        String optionLabel = getOptionLabel(j);
-        String optionText = options.get(j);
-        boolean isCorrect = (j == correctOptionIndex);
-        // DEBUG: Print option text before DB insert
-        MedatoninDB.debugLog("Syllogism", "Option: " + optionText);
-        optionDAO.insertOption(questionId, optionLabel, optionText, isCorrect);
-      }
-
+      wordIndex = ensureSufficientWords(wordList, wordIndex);
+      
+      String[] words = extractWords(wordList, wordIndex);
+      wordIndex += WORDS_PER_QUESTION;
+      
+      SyllogismModel model = selectRandomModel();
+      QuestionData questionData = generateQuestion(model, words[0], words[1], words[2]);
+      
+      insertQuestionIntoDatabase(questionData, nextQuestionNumber);
       nextQuestionNumber++;
     }
   }
 
+  /**
+   * Converts an option index to its corresponding letter label (A, B, C, D, E).
+   */
   private String getOptionLabel(int index) {
     return String.valueOf((char) ('A' + index));
   }
 
+  /**
+   * Reads the word list from a Word document.
+   * 
+   * @param filename Path to the Word document
+   * @return List of words extracted from the document
+   * @throws IOException If the file cannot be read
+   */
   private List<String> readWordList(String filename) throws IOException {
     List<String> wordList = new ArrayList<>();
+    
     try (InputStream is = new java.io.FileInputStream(filename);
          XWPFDocument doc = new XWPFDocument(is)) {
+      
       for (XWPFParagraph para : doc.getParagraphs()) {
         String text = para.getText();
-        if (text != null) {
-          for (String t : text.split("\\s+")) {
-            t = t.trim();
-            if (!t.isEmpty()) {
-              wordList.add(t);
+        if (text != null && !text.trim().isEmpty()) {
+          String[] words = text.split("\\s+");
+          for (String word : words) {
+            word = word.trim();
+            if (!word.isEmpty()) {
+              wordList.add(word);
             }
           }
         }
       }
     }
+    
     return wordList;
   }
 
@@ -518,43 +467,229 @@ public class SyllogismGenerator {
     return models;
   }
 
-  private List<String> generateDistractorConclusions(String A, String B, String C, String correctConclusion) {
-    // Generate distractor conclusions
-    List<String> distractors = new ArrayList<>();
-    distractors.add("Alle " + A + " sind " + C + ".");
-    distractors.add("Einige " + A + " sind " + C + ".");
-    distractors.add("Alle " + A + " sind keine " + C + ".");
-    distractors.add("Einige " + A + " sind keine " + C + ".");
-    distractors.add("Keine " + A + " sind " + C + ".");
-    distractors.add("Alle " + C + " sind " + A + ".");
-    distractors.add("Einige " + C + " sind " + A + ".");
-    distractors.add("Alle " + C + " sind keine " + A + ".");
-    distractors.add("Einige " + C + " sind keine " + A + ".");
-    distractors.add("Keine " + C + " sind " + A + ".");
-
-    // Remove the correct conclusion and duplicates
-    distractors.remove(correctConclusion);
-    distractors = new ArrayList<>(new HashSet<>(distractors)); // Remove duplicates
-
-    return distractors;
+  /**
+   * Ensures there are enough words available for the next question.
+   * Reshuffles the word list if necessary.
+   */
+  private int ensureSufficientWords(List<String> wordList, int currentIndex) {
+    if (currentIndex + WORDS_PER_QUESTION > wordList.size()) {
+      Collections.shuffle(wordList);
+      return 0;
+    }
+    return currentIndex;
   }
 
-  public static class SyllogismModel {
-    private String majorPremiseTemplate;
-    private List<String> minorPremiseTemplates;
-    private List<String> strongConclusionTemplates;
-    private List<String> weakConclusionTemplates;
-    private boolean hasNoValidConclusion;
-    private String description;
+  /**
+   * Extracts the required number of words from the word list.
+   */
+  private String[] extractWords(List<String> wordList, int startIndex) {
+    return new String[] {
+        wordList.get(startIndex),
+        wordList.get(startIndex + 1),
+        wordList.get(startIndex + 2)
+    };
+  }
 
-    // Constructor
+  /**
+   * Selects a random syllogism model.
+   */
+  private SyllogismModel selectRandomModel() {
+    return syllogismModels.get(random.nextInt(syllogismModels.size()));
+  }
+
+  /**
+   * Generates a complete question with premises, conclusion, and options.
+   */
+  private QuestionData generateQuestion(SyllogismModel model, String wordA, String wordB, String wordC) {
+    String majorPremise = replaceVariables(model.getMajorPremiseTemplate(), wordA, wordB, wordC);
+    String minorPremise = generateMinorPremise(model, wordA, wordB, wordC);
+    String correctConclusion = generateCorrectConclusion(model, wordA, wordB, wordC);
+    
+    List<String> options = generateOptions(correctConclusion, wordA, wordB, wordC);
+    int correctOptionIndex = findCorrectOptionIndex(options, correctConclusion);
+    
+    String questionText = majorPremise + "\n" + minorPremise;
+    
+    return new QuestionData(questionText, options, correctOptionIndex);
+  }
+
+  /**
+   * Generates the minor premise from the model templates.
+   */
+  private String generateMinorPremise(SyllogismModel model, String wordA, String wordB, String wordC) {
+    List<String> templates = model.getMinorPremiseTemplates();
+    String template = templates.get(random.nextInt(templates.size()));
+    return replaceVariables(template, wordA, wordB, wordC);
+  }
+
+  /**
+   * Generates the correct conclusion based on the model.
+   */
+  private String generateCorrectConclusion(SyllogismModel model, String wordA, String wordB, String wordC) {
+    if (model.isHasNoValidConclusion()) {
+      return NO_VALID_ANSWER;
+    }
+    
+    List<String> possibleConclusions = new ArrayList<>();
+    possibleConclusions.addAll(model.getStrongConclusionTemplates());
+    possibleConclusions.addAll(model.getWeakConclusionTemplates());
+    
+    String template = possibleConclusions.get(random.nextInt(possibleConclusions.size()));
+    return replaceVariables(template, wordA, wordB, wordC);
+  }
+
+  /**
+   * Generates all options for the question.
+   */
+  private List<String> generateOptions(String correctConclusion, String wordA, String wordB, String wordC) {
+    List<String> options = new ArrayList<>();
+    
+    if (NO_VALID_ANSWER.equals(correctConclusion)) {
+      addDistractorsToOptions(options, wordA, wordB, wordC, correctConclusion, 4);
+      options.add(NO_VALID_ANSWER);
+    } else {
+      options.add(correctConclusion);
+      addDistractorsToOptions(options, wordA, wordB, wordC, correctConclusion, 3);
+      Collections.shuffle(options);
+      options.add(NO_VALID_ANSWER);
+    }
+    
+    return options;
+  }
+
+  /**
+   * Adds distractor options to the options list.
+   */
+  private void addDistractorsToOptions(List<String> options, String wordA, String wordB, String wordC, 
+                                      String correctConclusion, int count) {
+    List<String> distractors = generateDistractorConclusions(wordA, wordB, wordC, correctConclusion);
+    
+    while (options.size() < count && !distractors.isEmpty()) {
+      String distractor = distractors.get(random.nextInt(distractors.size()));
+      if (!options.contains(distractor)) {
+        options.add(distractor);
+      }
+      distractors.remove(distractor);
+    }
+  }
+
+  /**
+   * Finds the index of the correct option in the options list.
+   */
+  private int findCorrectOptionIndex(List<String> options, String correctConclusion) {
+    if (NO_VALID_ANSWER.equals(correctConclusion)) {
+      return options.size() - 1; // Last option (E)
+    }
+    return options.indexOf(correctConclusion);
+  }
+
+  /**
+   * Replaces variable placeholders in templates with actual words.
+   */
+  private String replaceVariables(String template, String wordA, String wordB, String wordC) {
+    return template.replace("{A}", wordA)
+                  .replace("{B}", wordB)
+                  .replace("{C}", wordC);
+  }
+
+  /**
+   * Inserts the generated question and options into the database.
+   */
+  private void insertQuestionIntoDatabase(QuestionData questionData, int questionNumber) throws SQLException {
+    MedatoninDB.debugLog("Syllogism", "Question: " + questionData.questionText);
+    
+    int questionId = questionDAO.insertQuestion(category, subcategory, questionData.questionText, 
+                                               questionNumber, simulationId);
+    
+    for (int i = 0; i < questionData.options.size(); i++) {
+      String optionLabel = getOptionLabel(i);
+      String optionText = questionData.options.get(i);
+      boolean isCorrect = (i == questionData.correctOptionIndex);
+      
+      MedatoninDB.debugLog("Syllogism", "Option: " + optionText);
+      optionDAO.insertOption(questionId, optionLabel, optionText, isCorrect);
+    }
+  }
+
+  /**
+   * Generates distractor conclusions that are logically incorrect.
+   * 
+   * @param wordA First word variable
+   * @param wordB Second word variable  
+   * @param wordC Third word variable
+   * @param correctConclusion The correct conclusion to exclude
+   * @return List of distractor conclusions
+   */
+  private List<String> generateDistractorConclusions(String wordA, String wordB, String wordC, String correctConclusion) {
+    Set<String> distractorSet = new LinkedHashSet<>(); // Preserve order and avoid duplicates
+    
+    // Generate all possible conclusion patterns
+    String[] patterns = {
+        "Alle {A} sind {C}.",
+        "Einige {A} sind {C}.", 
+        "Alle {A} sind keine {C}.",
+        "Einige {A} sind keine {C}.",
+        "Keine {A} sind {C}.",
+        "Alle {C} sind {A}.",
+        "Einige {C} sind {A}.",
+        "Alle {C} sind keine {A}.",
+        "Einige {C} sind keine {A}.",
+        "Keine {C} sind {A}."
+    };
+    
+    for (String pattern : patterns) {
+      String distractor = replaceVariables(pattern, wordA, wordB, wordC);
+      if (!distractor.equals(correctConclusion)) {
+        distractorSet.add(distractor);
+      }
+    }
+    
+    return new ArrayList<>(distractorSet);
+  }
+
+  /**
+   * Inner class to hold question data.
+   */
+  private static class QuestionData {
+    final String questionText;
+    final List<String> options;
+    final int correctOptionIndex;
+    
+    QuestionData(String questionText, List<String> options, int correctOptionIndex) {
+      this.questionText = questionText;
+      this.options = options;
+      this.correctOptionIndex = correctOptionIndex;
+    }
+  }
+
+  /**
+   * Model class representing a syllogism template with premises and conclusions.
+   */
+  public static class SyllogismModel {
+    private final String majorPremiseTemplate;
+    private final List<String> minorPremiseTemplates;
+    private final List<String> strongConclusionTemplates;
+    private final List<String> weakConclusionTemplates;
+    private final boolean hasNoValidConclusion;
+    private final String description;
+
+    /**
+     * Constructor for SyllogismModel.
+     * 
+     * @param majorPremiseTemplate Template for the major premise
+     * @param minorPremiseTemplates List of templates for minor premises
+     * @param strongConclusionTemplates List of strong conclusion templates
+     * @param weakConclusionTemplates List of weak conclusion templates  
+     * @param hasNoValidConclusion Whether this model has no valid logical conclusion
+     * @param description Human-readable description of the model
+     */
     public SyllogismModel(String majorPremiseTemplate, List<String> minorPremiseTemplates,
         List<String> strongConclusionTemplates, List<String> weakConclusionTemplates,
         boolean hasNoValidConclusion, String description) {
       this.majorPremiseTemplate = majorPremiseTemplate;
-      this.minorPremiseTemplates = minorPremiseTemplates;
-      this.strongConclusionTemplates = strongConclusionTemplates;
-      this.weakConclusionTemplates = weakConclusionTemplates;
+      this.minorPremiseTemplates = new ArrayList<>(minorPremiseTemplates);
+      this.strongConclusionTemplates = new ArrayList<>(strongConclusionTemplates);
+      this.weakConclusionTemplates = new ArrayList<>(weakConclusionTemplates);
       this.hasNoValidConclusion = hasNoValidConclusion;
       this.description = description;
     }
@@ -584,5 +719,4 @@ public class SyllogismGenerator {
       return description;
     }
   }
-
 }

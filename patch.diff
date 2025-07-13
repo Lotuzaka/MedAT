@@ -1,10 +1,9 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
 diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
-index f11f54945de46c3e8e950a2eaefa5da960595abd..216816116bc9817b661a31a8d6844d3d718cc812 100644
+index 38953184773a6e5ea11290ecdb421722fccb966e..63948ad4d880318b5b2db9be41fbca1428cedc5d 100644
 --- a/src/main/java/MedatoninDB.java
 +++ b/src/main/java/MedatoninDB.java
-@@ -3183,64 +3183,66 @@ public class MedatoninDB extends JFrame {
-             DefaultTableModel model = (DefaultTableModel) table.getModel();
+@@ -3200,66 +3200,66 @@ public class MedatoninDB extends JFrame {
  
              // Store existing A)-E) option texts and correctness states
              Map<String, String> answerTexts = new HashMap<>();
@@ -29,24 +28,25 @@ index f11f54945de46c3e8e950a2eaefa5da960595abd..216816116bc9817b661a31a8d6844d3d
                      String label = answerLabels[i];
                      String text = answerTexts.getOrDefault(label, "");
                      Boolean isCorrect = answerCorrectness.getOrDefault(label, false);
--                    model.insertRow(frageRow + 1 + i, new Object[] { label, text, isCorrect, "" });
-+                    model.insertRow(frageRow + 1 + i,
-+                            new Object[] { label, text, "", isCorrect, "" });
+                     // Always set Solution column to empty string
+-                    model.insertRow(frageRow + 1 + i, new Object[] { label, text, isCorrect, "", "" });
++                    model.insertRow(frageRow + 1 + i, new Object[] { label, text, "", isCorrect, "" });
                  }
              } else if ("Lang".equals(newFormat)) {
                  String[] optionLabels = { "1.", "2.", "3.", "4." };
                  String[] answerLabels = { "A)", "B)", "C)", "D)", "E)" };
                  for (int i = 0; i < optionLabels.length; i++) {
--                    model.insertRow(frageRow + 1 + i, new Object[] { optionLabels[i], "", null, "" });
-+                    model.insertRow(frageRow + 1 + i,
-+                            new Object[] { optionLabels[i], "", "", null, "" });
+                     // Always set Solution column to empty string
+-                    model.insertRow(frageRow + 1 + i, new Object[] { optionLabels[i], "", null, "", "" });
++                    model.insertRow(frageRow + 1 + i, new Object[] { optionLabels[i], "", "", null, "" });
                  }
                  for (int i = 0; i < answerLabels.length; i++) {
                      String label = answerLabels[i];
                      String text = answerTexts.getOrDefault(label, "");
                      Boolean isCorrect = answerCorrectness.getOrDefault(label, false);
+                     // Always set Solution column to empty string
                      model.insertRow(frageRow + 1 + optionLabels.length + i,
--                            new Object[] { label, text, isCorrect, "" });
+-                            new Object[] { label, text, isCorrect, "", "" });
 +                            new Object[] { label, text, "", isCorrect, "" });
                  }
              }
