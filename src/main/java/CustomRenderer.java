@@ -80,6 +80,53 @@ public class CustomRenderer extends DefaultTableCellRenderer {
         DefaultTableModel model = (DefaultTableModel) table.getModel();
         boolean isQuestionRow = isFrageRow(row, model);
 
+        // Defensive: always render FigurenOptionsData panel if value is FigurenOptionsData
+        if (value instanceof FigurenOptionsData) {
+            FigurenOptionsData data = (FigurenOptionsData) value;
+            List<OptionDAO> options = data.options;
+
+            JPanel optionsPanel = new JPanel();
+            optionsPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 20, 10));
+            optionsPanel.setBackground(Color.WHITE);
+
+            for (OptionDAO option : options) {
+                JPanel optionPanel = new JPanel(new BorderLayout());
+                optionPanel.setBackground(Color.WHITE);
+                optionPanel.setOpaque(true);
+
+                PolygonPanel shapePanel;
+
+                if ("E".equalsIgnoreCase(option.getLabel())) {
+                    JLabel optionELabel = new JLabel("Option E: X");
+                    optionELabel.setFont(optionELabel.getFont().deriveFont(Font.BOLD));
+                    optionsPanel.add(optionELabel);
+                    continue;
+                }
+
+                try {
+                    shapePanel = new PolygonPanel(
+                            Collections.singletonList(new WKTReader().read(option.getShapeData())));
+                    shapePanel.setAssembled(false);
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                    continue;
+                }
+
+                if (option.isCorrect()) {
+                    optionPanel.setBackground(new Color(127, 204, 165, 75));
+                }
+
+                shapePanel.setPreferredSize(new java.awt.Dimension(100, 100));
+                optionPanel.add(shapePanel, BorderLayout.CENTER);
+                optionPanel.add(new JLabel("Option " + option.getLabel(), SwingConstants.CENTER),
+                        BorderLayout.SOUTH);
+
+                optionsPanel.add(optionPanel);
+            }
+
+            return optionsPanel;
+        }
+
         // Render figures for question rows (Figuren)
         if (isQuestionRow) {
             PolygonPanel panel = null;
@@ -118,54 +165,6 @@ public class CustomRenderer extends DefaultTableCellRenderer {
                 panel.setPreferredSize(new java.awt.Dimension(200, 200));
                 return panel;
             }
-        }
-
-        // Always render options panel for FigurenOptionsData, regardless of subcategory
-        if (!isQuestionRow && value instanceof FigurenOptionsData) {
-            FigurenOptionsData data = (FigurenOptionsData) value;
-            List<OptionDAO> options = data.options;
-
-            JPanel optionsPanel = new JPanel();
-            optionsPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 20, 10));
-            optionsPanel.setBackground(Color.WHITE);
-
-            for (OptionDAO option : options) {
-                JPanel optionPanel = new JPanel(new BorderLayout());
-                optionPanel.setBackground(Color.WHITE);
-                optionPanel.setOpaque(true);
-
-                PolygonPanel shapePanel;
-
-                if ("E".equalsIgnoreCase(option.getLabel())) {
-                    // Handle Option E separately as a label "X"
-                    JLabel optionELabel = new JLabel("Option E: X");
-                    optionELabel.setFont(optionELabel.getFont().deriveFont(Font.BOLD));
-                    optionsPanel.add(optionELabel);
-                    continue;
-                }
-
-                try {
-                    shapePanel = new PolygonPanel(
-                            Collections.singletonList(new WKTReader().read(option.getShapeData())));
-                    shapePanel.setAssembled(false);
-                } catch (ParseException e) {
-                    e.printStackTrace();
-                    continue; // Skip this option if parsing fails
-                }
-
-                if (option.isCorrect()) {
-                    optionPanel.setBackground(new Color(127, 204, 165, 75));
-                }
-
-                shapePanel.setPreferredSize(new java.awt.Dimension(100, 100));
-                optionPanel.add(shapePanel, BorderLayout.CENTER);
-                optionPanel.add(new JLabel("Option " + option.getLabel(), SwingConstants.CENTER),
-                        BorderLayout.SOUTH);
-
-                optionsPanel.add(optionPanel);
-            }
-
-            return optionsPanel;
         }
 
         Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
@@ -319,13 +318,20 @@ public class CustomRenderer extends DefaultTableCellRenderer {
         }
 
         // Show Euler diagram for Implikationen solution column
+        // Implikationen erkennen: Lösung als breite Zelle, andere Zellen leer
         if ("Implikationen".equals(currentSubcategory) && isQuestionRow && column == 2) {
             Object qTextObj = model.getValueAt(row, 1);
             if (qTextObj instanceof String text && text.contains("\n")) {
                 String[] lines = text.split("\n");
                 if (lines.length >= 2) {
                     JPanel panel = createEulerPanel(lines[0].trim(), lines[1].trim());
-                    panel.setPreferredSize(new java.awt.Dimension(200, 200));
+                    // Make the diagram panel even smaller
+                    int preferredHeight = 120;
+                    int preferredWidth = 120;
+                    panel.setPreferredSize(new java.awt.Dimension(preferredWidth, preferredHeight));
+                    if (table.getRowHeight(row) != preferredHeight) {
+                        table.setRowHeight(row, preferredHeight);
+                    }
                     return panel;
                 }
             }
@@ -359,10 +365,11 @@ public class CustomRenderer extends DefaultTableCellRenderer {
                 labels = List.of(s1.subject(), s1.predicate(), s2.predicate());
             }
 
-            SvgBuilder svg = new SvgBuilder(300, 300);
-            svg.setupCircles(120, 150, 80,
-                            180, 150, 80,
-                            150,  80, 80);
+            // Make the SVG canvas and diagram elements larger to fill the cell
+            SvgBuilder svg = new SvgBuilder(110, 110);
+            svg.setupCircles(44, 55, 32,
+                            66, 55, 32,
+                            55, 28, 32);
 
             for (int i = 0; i < mask.length; i++) {
                 if (mask[i] == 1) {
@@ -370,9 +377,9 @@ public class CustomRenderer extends DefaultTableCellRenderer {
                 }
             }
 
-            svg.addText("labelA", labels.get(0),  60, 240);
-            svg.addText("labelB", labels.get(1), 240, 240);
-            svg.addText("labelC", labels.get(2), 150,  30);
+            svg.addText("labelA", labels.get(0), 28, 100);
+            svg.addText("labelB", labels.get(1), 82, 100);
+            svg.addText("labelC", labels.get(2), 55, 18);
 
             Path dir = Paths.get(System.getProperty("java.io.tmpdir"));
             String fileName = "diagram_" + UUID.randomUUID() + ".svg";
@@ -412,14 +419,16 @@ public class CustomRenderer extends DefaultTableCellRenderer {
             this.mask = mask;
             this.labels = labels;
             setupRegions();
-            setPreferredSize(new java.awt.Dimension(300, 300));
+            // Make default preferred size even smaller for Implikationen
+            setPreferredSize(new java.awt.Dimension(120, 120));
             setOpaque(true);
         }
 
         private void setupRegions() {
-            Geometry A = circle(120, 150, 80);
-            Geometry B = circle(180, 150, 80);
-            Geometry C = circle(150, 80, 80);
+            // Make the drawn circles larger to fill the cell
+            Geometry A = circle(44, 55, 32);
+            Geometry B = circle(66, 55, 32);
+            Geometry C = circle(55, 28, 32);
             regions.add(A.difference(B.union(C)));                //0
             regions.add(A.intersection(B).difference(C));         //1
             regions.add(B.difference(A.union(C)));                //2
@@ -450,14 +459,16 @@ public class CustomRenderer extends DefaultTableCellRenderer {
                 }
             }
 
+            // Draw larger circles to fill the cell
             g2.setColor(Color.BLACK);
-            g2.draw(new Ellipse2D.Double(40, 70, 160, 160));
-            g2.draw(new Ellipse2D.Double(120, 70, 160, 160));
-            g2.draw(new Ellipse2D.Double(80, -0, 160, 160));
+            g2.draw(new Ellipse2D.Double(12, 23, 64, 64)); // Circle A
+            g2.draw(new Ellipse2D.Double(36, 23, 64, 64)); // Circle B
+            g2.draw(new Ellipse2D.Double(24, 0, 64, 64));  // Circle C
 
-            g2.drawString(labels.get(0), 60, 260);
-            g2.drawString(labels.get(1), 240, 260);
-            g2.drawString(labels.get(2), 150, 40);
+            // Draw larger labels
+            g2.drawString(labels.get(0), 32, 98);
+            g2.drawString(labels.get(1), 88, 98);
+            g2.drawString(labels.get(2), 55, 28);
         }
     }
 }
