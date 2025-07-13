@@ -3428,24 +3428,20 @@ public class MedatoninDB extends JFrame {
             FigurenGenerator.DissectedPieces dissectedPieces = new FigurenGenerator.DissectedPieces(
                 dissectedPiecesList, dissectedPiecesList, assembledPiecesList);
 
-            // Show dissected pieces as WKT string in the 'Text' column
-            StringBuilder dissectedPiecesWKT = new StringBuilder();
-            for (Geometry piece : dissectedPiecesList) {
-                dissectedPiecesWKT.append(piece.toText()).append("; ");
-            }
-            String dissectedText = dissectedPiecesWKT.length() > 0 ? dissectedPiecesWKT.substring(0, dissectedPiecesWKT.length() - 2) : "";
-
-            // Show assembled figure as WKT string in the 'Solution' column
-            String solutionText = "";
-            if (!assembledPiecesList.isEmpty()) {
-                solutionText = assembledPiecesList.get(0).toText();
+            // Show dissected pieces as shapes (object) in the 'Text' column
+            List<OptionDAO> options = optionDAO.getOptionsForQuestion(question.getId());
+            String correctOptionText = "";
+            for (OptionDAO option : options) {
+                if (option.isCorrect()) {
+                    correctOptionText = option.getText();
+                    break;
+                }
             }
             model.addRow(new Object[] {
-                String.valueOf(question.getQuestionNumber()), dissectedText, solutionText, false, "Kurz", "MEDIUM"
+                String.valueOf(question.getQuestionNumber()), dissectedPieces, correctOptionText, false, "Kurz", "MEDIUM"
             });
 
             // Option panel: only show options in grey, no solution
-            List<OptionDAO> options = optionDAO.getOptionsForQuestion(question.getId());
             FigurenOptionsData figurenOptionsData = new FigurenOptionsData(options, dissectedPieces);
             model.addRow(new Object[] { "", figurenOptionsData, "", false, "" });
         } catch (Exception e) {
@@ -3624,35 +3620,14 @@ public class MedatoninDB extends JFrame {
             JOptionPane.showMessageDialog(this, "Error updating option: " + e.getMessage(), "Error",
                     JOptionPane.ERROR_MESSAGE);
         }
-        try {
-            int questionId = questionDAO.getQuestionId(currentCategory, currentSubcategory, questionNumber,
-                    selectedSimulationId);
-            if (questionId == -1) {
-                throw new SQLException("Question not found.");
-            }
-            switch (column) {
-                case 1: // Option text
-                    String optionText = (String) data;
-                    optionDAO.updateOptionText(questionId, label, optionText, selectedSimulationId);
-                    break;
-                case 2: // Is correct
-                    boolean isCorrect = (boolean) data;
-                    optionDAO.updateOptionCorrectness(questionId, label, isCorrect, selectedSimulationId);
-                    break;
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error updating option: " + e.getMessage(), "Error",
-                    JOptionPane.ERROR_MESSAGE);
-        }
     }
 
-    public class ModernComboBox extends JComboBox<String> {
+    class ModernComboBox extends JComboBox<String> {
         public ModernComboBox() {
             super();
             setUI(new ModernComboBoxUI());
             setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
-            setBackground(backgroundColor);
+            setBackground(Color.WHITE);
             setForeground(Color.BLACK);
             setFont(new Font("SansSerif", Font.BOLD, 16));
             setAlignmentX(CENTER_ALIGNMENT);
@@ -3726,7 +3701,7 @@ public class MedatoninDB extends JFrame {
         }
     }
 
-    private class ArrowIcon implements Icon {
+    class ArrowIcon implements Icon {
         private int width = 10;
         private int height = 5;
 
