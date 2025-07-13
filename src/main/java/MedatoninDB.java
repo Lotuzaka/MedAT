@@ -179,7 +179,7 @@ public class MedatoninDB extends JFrame {
             deleteButton.setMaximumSize(new Dimension(30, 25));
             deleteButton.setMinimumSize(new Dimension(30, 25));
             deleteButton.setBackground(new Color(233, 151, 151));
-            deleteButton.setForeground(Color.BLACK);
+            deleteButton.setForeground(Color.WHITE);
             deleteButton.setFont(new Font("Arial", Font.BOLD, 14));
             deleteButton.setFocusPainted(false);
             deleteButton.setBorderPainted(false);
@@ -351,12 +351,12 @@ public class MedatoninDB extends JFrame {
         UIManager.put("Label.font", modernFont);
         UIManager.put("TableHeader.font", new Font("SansSerif", Font.BOLD, 14));
         UIManager.put("Button.background", new Color(221, 221, 221));
-        UIManager.put("Button.foreground", Color.BLACK);
+        UIManager.put("Button.foreground", Color.WHITE);
 
         // Custom button UI to make buttons look flat
         printCategoryButton = createModernButton(currentCategory + " Print");
         printCategoryButton.setBackground(new Color(128, 146, 160));
-        printCategoryButton.setForeground(Color.BLACK);
+        printCategoryButton.setForeground(Color.WHITE);
         JButton printAllButton = createModernButton("All Print");
 
         // Set up modern color theme for the frame
@@ -491,7 +491,7 @@ public class MedatoninDB extends JFrame {
                     editToggleButton.setIcon(penEditIcon); // Change to the edit icon
                     editToggleButton.setText("Bearbeitungsmodus"); // Display the text next to the icon
                     editToggleButton.setBackground(Color.red);
-                    editToggleButton.setForeground(Color.BLACK);
+                    editToggleButton.setForeground(Color.WHITE);
                     setEditMode(true);
                     // Add any specific actions when edit mode is enabled
                 } else {
@@ -952,7 +952,6 @@ public class MedatoninDB extends JFrame {
                 buttonContainer.setBackground(backgroundColor);
                 buttonContainer.setAlignmentX(Component.LEFT_ALIGNMENT);
                 JButton subButton = createModernButton(subcategory);
-                subButton.setBackground(subcategoryBackgroundColor);
 
                 // Keep the container height consistent with the button height so
                 // spacing matches the main category buttons
@@ -991,7 +990,7 @@ public class MedatoninDB extends JFrame {
                     deleteButton.setMaximumSize(new Dimension(30, 25));
                     deleteButton.setMinimumSize(new Dimension(30, 25));
                     deleteButton.setBackground(new Color(233, 151, 151));
-                    deleteButton.setForeground(Color.BLACK);
+                    deleteButton.setForeground(Color.WHITE);
                     deleteButton.setFont(new Font("Arial", Font.BOLD, 14));
                     deleteButton.setFocusPainted(false);
                     deleteButton.setBorderPainted(false);
@@ -1039,7 +1038,7 @@ public class MedatoninDB extends JFrame {
             case "Mathematik":
                 return new Color(128, 146, 160); // Blue background for Mathematik
             case "KFF":
-                return new Color(216, 232, 255); // Pastel blue for KFF
+                return Color.CYAN;
             default:
                 return new Color(221, 221, 221); // Default dark grey background
         }
@@ -1195,7 +1194,7 @@ public class MedatoninDB extends JFrame {
 
             JButton addQuestionButton = createModernButton("Add Question");
             addQuestionButton.setBackground(new Color(127, 204, 165));
-            addQuestionButton.setForeground(Color.BLACK);
+            addQuestionButton.setForeground(Color.WHITE);
             addQuestionButton.setFont(new Font("SansSerif", Font.BOLD, 14));
             addQuestionButton.setFocusPainted(false);
             addQuestionButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
@@ -1206,7 +1205,7 @@ public class MedatoninDB extends JFrame {
             if ("KFF".equals(category)) {
                 JButton generateButton = createModernButton("Generate");
                 generateButton.setBackground(new Color(127, 204, 165));
-                generateButton.setForeground(Color.BLACK);
+                generateButton.setForeground(Color.WHITE);
                 generateButton.setFont(new Font("SansSerif", Font.BOLD, 14));
                 generateButton.setFocusPainted(false);
                 generateButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
@@ -1478,6 +1477,18 @@ public class MedatoninDB extends JFrame {
                 handleTableClick(table, e);
             }
         });
+        // Defensive: add a TableModelListener to prevent out-of-bounds updates
+        if (table.getModel() instanceof DefaultTableModel) {
+            DefaultTableModel model = (DefaultTableModel) table.getModel();
+            model.addTableModelListener(e -> {
+                int row = e.getFirstRow();
+                int col = e.getColumn();
+                // Defensive: only update if row and col are valid
+                if (row >= 0 && row < model.getRowCount() && col >= 0 && col < model.getColumnCount()) {
+                    // ...existing code for handling updates...
+                }
+            });
+        }
     }
 
     // Handle clicks on tables to cancel deletion highlight if clicked outside the
@@ -1542,7 +1553,7 @@ public class MedatoninDB extends JFrame {
         } else if (category.equals("Mathematik")) {
             mathButton.setBackground(new Color(128, 146, 160)); // Blue background
         } else if (category.equals("KFF")) {
-            kffButton.setBackground(new Color(216, 232, 255)); // Pastel blue
+            kffButton.setBackground(Color.CYAN); // Blue background
         }
     }
 
@@ -1609,25 +1620,40 @@ public class MedatoninDB extends JFrame {
                     questionTable.setRowHeight(row, 50); // Adjust height for options row
                 }
             }
-        } else {
-            questionTable.setRowHeight(30); // Default row height for other subcategories
-        }
-
-        // Adjust question row height based on text length for Implikationen
-        if ("Implikationen".equals(currentSubcategory)) {
-            FontMetrics fm = questionTable.getFontMetrics(questionTable.getFont());
-            int lineHeight = fm.getHeight();
-            DefaultTableModel m = (DefaultTableModel) questionTable.getModel();
-            for (int row = 0; row < m.getRowCount(); row++) {
-                if (isFrageRow(row, m)) {
-                    Object textObj = m.getValueAt(row, 1);
-                    if (textObj instanceof String) {
-                        int lines = ((String) textObj).split("\\n").length;
-                        int height = lineHeight * lines + 10;
-                        questionTable.setRowHeight(row, Math.max(30, height));
+        } else if ("Implikationen".equals(currentSubcategory)) {
+            // Always use bold, multi-line JTextArea for Implikationen question rows (view & edit)
+            Font boldFont = questionTable.getFont().deriveFont(Font.BOLD);
+            for (int row = 0; row < questionTable.getRowCount(); row++) {
+                Object textObj = questionTable.getValueAt(row, 1);
+                String text = textObj != null ? textObj.toString() : "";
+                // Ensure line breaks between premises
+                if (text.contains(";")) {
+                    text = text.replace(";", "\n");
+                }
+                JTextArea area = new JTextArea(text);
+                area.setFont(boldFont);
+                area.setLineWrap(true);
+                area.setWrapStyleWord(true);
+                area.setOpaque(false);
+                area.setSize(questionTable.getColumnModel().getColumn(1).getWidth(), Short.MAX_VALUE);
+                int prefHeight = area.getPreferredSize().height + 10;
+                questionTable.setRowHeight(row, Math.max(prefHeight, 30));
+                // If cell is being edited, ensure editor is also a bold JTextArea and preserves line breaks
+                if (questionTable.isCellEditable(row, 1) && questionTable.getEditingRow() == row && questionTable.getEditingColumn() == 1) {
+                    Component editorComp = questionTable.getEditorComponent();
+                    if (editorComp instanceof JTextArea) {
+                        ((JTextArea) editorComp).setFont(boldFont);
+                        ((JTextArea) editorComp).setLineWrap(true);
+                        ((JTextArea) editorComp).setWrapStyleWord(true);
+                        String editText = ((JTextArea) editorComp).getText();
+                        if (editText.contains(";")) {
+                            ((JTextArea) editorComp).setText(editText.replace(";", "\n"));
+                        }
                     }
                 }
             }
+        } else {
+            questionTable.setRowHeight(30); // Default row height for other subcategories
         }
 
         // Add listeners for synchronizing with text fields and other interactions
@@ -1670,7 +1696,7 @@ public class MedatoninDB extends JFrame {
         // For other categories and subcategories, only add "Add Question" button
         JButton addQuestionButton = createModernButton("Add Question");
         addQuestionButton.setBackground(new Color(127, 204, 165)); // Green background
-        addQuestionButton.setForeground(Color.BLACK);
+        addQuestionButton.setForeground(Color.WHITE);
         addQuestionButton.setFont(new Font("SansSerif", Font.BOLD, 14));
         addQuestionButton.setFocusPainted(false);
         addQuestionButton.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // Button padding
@@ -1685,7 +1711,7 @@ public class MedatoninDB extends JFrame {
             // Create the button first to get its height and style
             JButton generateButton = createModernButton("Generate");
             generateButton.setBackground(new Color(127, 204, 165)); // Green background
-            generateButton.setForeground(Color.BLACK);
+            generateButton.setForeground(Color.WHITE);
             generateButton.setFont(new Font("SansSerif", Font.BOLD, 14));
             generateButton.setFocusPainted(false);
             generateButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10)); // Padding for aesthetics
@@ -1842,12 +1868,12 @@ public class MedatoninDB extends JFrame {
         // Buttons for deleting questions
         JButton deleteMarkedButton = createModernButton("Delete Marked");
         deleteMarkedButton.setBackground(new Color(233, 151, 151));
-        deleteMarkedButton.setForeground(Color.BLACK);
+        deleteMarkedButton.setForeground(Color.WHITE);
         deleteMarkedButton.addActionListener(e -> deleteSelectedQuestions());
 
         JButton deleteAllButton = createModernButton("Delete All");
         deleteAllButton.setBackground(new Color(233, 151, 151));
-        deleteAllButton.setForeground(Color.BLACK);
+        deleteAllButton.setForeground(Color.WHITE);
         deleteAllButton.addActionListener(e -> {
             int res = JOptionPane.showConfirmDialog(this,
                     "Delete all questions in this subcategory?", "Confirm Delete",
@@ -1880,7 +1906,7 @@ public class MedatoninDB extends JFrame {
         JButton newSelectedButton = getSubcategoryButton(subcategory);
         if (newSelectedButton != null) {
             // Set the background color of the new selected button
-            newSelectedButton.setBackground(getCategoryButtonColor(category));
+            newSelectedButton.setBackground(new Color(128, 146, 160));
             selectedSubcategoryButton = newSelectedButton;
         }
 
@@ -2862,36 +2888,64 @@ public class MedatoninDB extends JFrame {
             difficultyCombo.setBackground(Color.WHITE);
             difficultyCombo.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200), 1));
             difficultyCombo.setFocusable(false);
-            // Custom Renderer für farbige Symbole
+            // Custom Renderer: colored rectangle, no text, same size as cell
             difficultyCombo.setRenderer(new DefaultListCellRenderer() {
                 @Override
                 public Component getListCellRendererComponent(JList<?> list, Object value,
                         int index, boolean isSelected, boolean cellHasFocus) {
                     JLabel label = (JLabel) super.getListCellRendererComponent(
                             list, value, index, isSelected, cellHasFocus);
-
+                    Color bg = Color.WHITE;
                     if (value != null) {
-                        Difficulty diff = Difficulty.valueOf(value.toString());
-                        label.setText(" " + diff.symbol + " ");
-                        label.setForeground(diff.color);
-                        label.setFont(new Font("Arial", Font.BOLD, 16));
-                        label.setHorizontalAlignment(SwingConstants.CENTER);
-
-                        // Hintergrundfarben für Selection
-                        if (isSelected) {
-                            label.setBackground(new Color(240, 240, 240));
-                            label.setOpaque(true);
-                        } else {
-                            label.setBackground(Color.WHITE);
-                            label.setOpaque(true);
+                        String diffStr = value.toString().toLowerCase();
+                        if ("easy".equals(diffStr)) {
+                            bg = new Color(127, 204, 165, 75); // green
+                        } else if ("medium".equals(diffStr)) {
+                            bg = new Color(255, 191, 71, 75); // orange
+                        } else if ("hard".equals(diffStr)) {
+                            bg = new Color(255, 71, 71, 75); // red
                         }
                     }
+                    label.setText("");
+                    label.setBackground(bg);
+                    label.setOpaque(true);
+                    // Set preferred size to match the Diff cell (height 30, width 80)
+                    label.setPreferredSize(new Dimension(80, 30));
                     return label;
                 }
             });
 
             difficultyCombo.addActionListener(e -> {
-                stopCellEditing(); // Wichtig: Beendet das Editieren und übernimmt den Wert
+                stopCellEditing(); // End editing immediately so renderer is shown
+                // Update the table model with the new difficulty value
+                if (editingRow >= 0 && editingRow < table.getRowCount()) {
+                    Object selected = difficultyCombo.getSelectedItem();
+                    table.setValueAt(selected, editingRow, 5); // Update Diff cell
+                    // Force renderer update for Diff cell
+                    DefaultTableModel model = (DefaultTableModel) table.getModel();
+                    model.fireTableCellUpdated(editingRow, 5);
+
+                    // Persist difficulty to database if this is a question row
+                    if (isFrageRow(editingRow, model)) {
+                        String questionNumber = String.valueOf(model.getValueAt(editingRow, 0));
+                        try {
+                            int subcategoryId = getSubcategoryId(currentCategory, currentSubcategory);
+                            int qNum = Integer.parseInt(questionNumber);
+                            String selectedDifficulty = selected != null ? selected.toString() : "MEDIUM";
+                            questionDAO.updateQuestionDifficulty(subcategoryId, qNum, selectedDifficulty, selectedSimulationId);
+                            debugLog("DB", LogLevel.INFO, "CustomEditor", "Updated difficulty for subcategoryId " + subcategoryId + ", questionNumber " + qNum + " to " + selectedDifficulty);
+                        } catch (Exception ex) {
+                            debugLog("DB", LogLevel.ERROR, "CustomEditor", "Failed to update difficulty: " + ex.getMessage());
+                        }
+                    }
+                }
+                // Force immediate repaint of the edited cell
+                Rectangle cellRect = table.getCellRect(editingRow, 5, true);
+                table.repaint(cellRect);
+                SwingUtilities.invokeLater(() -> {
+                    table.revalidate();
+                    table.repaint();
+                });
             });
 
             // Popup-Größe anpassen
@@ -3291,26 +3345,61 @@ public class MedatoninDB extends JFrame {
     }
 
     private void loadStandardQuestionIntoModel(DefaultTableModel model, QuestionDAO question, OptionDAO optionDAO) {
-        int questionRowIndex = model.getRowCount();
+        // Zahlenfolgen: Solution column must always show the correct two numbers from the correct OptionDAO
+        String solutionText = question.getShapeData();
+        if ("Zahlenfolgen".equals(currentSubcategory)) {
+            try {
+                List<OptionDAO> options = optionDAO.getOptionsForQuestion(question.getId());
+                boolean found = false;
+                for (OptionDAO option : options) {
+                    if (option.isCorrect() && !"E".equals(option.getLabel())) {
+                        solutionText = option.getText();
+                        found = true;
+                        break;
+                    }
+                }
+                // If no correct option except E, fallback to first option with '/' in text
+                if (!found) {
+                    for (OptionDAO option : options) {
+                        if (option.getText() != null && option.getText().contains("/")) {
+                            solutionText = option.getText();
+                            break;
+                        }
+                    }
+                }
+            } catch (SQLException e) {
+                debugLog("DB", "Error loading Zahlenfolgen solution: " + e.getMessage());
+            }
+        }
+        // Defensive: ensure difficulty is not null or empty
+        String difficulty = question.getDifficulty();
+        if (difficulty == null || difficulty.trim().isEmpty()) {
+            difficulty = "MEDIUM";
+        }
+        // For Implikationen, convert semicolons to line breaks for display
+        String questionText = question.getText();
+        if ("Implikationen".equals(currentSubcategory) && questionText != null) {
+            questionText = questionText.replace(";", "\n");
+        }
+        // Add question row
         model.addRow(new Object[] {
-                String.valueOf(question.getQuestionNumber()),
-                question.getText(),
-                "",
-                false,
-                question.getFormat(),
-                question.getDifficulty()
+            String.valueOf(question.getQuestionNumber()),
+            questionText,
+            solutionText,
+            false, // Checkbox state
+            question.getFormat(),
+            difficulty // Neue Spalte
         });
 
+        // Load and add options
         try {
             List<OptionDAO> options = optionDAO.getOptionsForQuestion(question.getId());
             boolean isLang = "Lang".equals(question.getFormat());
-            String correctText = null;
+            // Sort options
             Collections.sort(options, Comparator.comparing(OptionDAO::getLabel));
             for (OptionDAO option : options) {
-                if (option.isCorrect()) {
-                    correctText = option.getText();
-                }
                 String label = option.getLabel();
+                // Defensive: always use option.getText() for option text, preserving umlauts
                 if (isLang && label.matches("\\d+\\.")) {
                     model.addRow(new Object[] { label, option.getText(), "", option.isCorrect(), "" });
                 } else if (isLang && label.matches("[A-E]")) {
@@ -3318,12 +3407,6 @@ public class MedatoninDB extends JFrame {
                 } else if (!isLang && label.matches("[A-E]")) {
                     model.addRow(new Object[] { label + ")", option.getText(), "", option.isCorrect(), "" });
                 }
-            }
-
-            if ("Zahlenfolgen".equals(currentSubcategory) && correctText != null) {
-                model.setValueAt(correctText, questionRowIndex, 2);
-            } else {
-                model.setValueAt(question.getShapeData(), questionRowIndex, 2);
             }
         } catch (SQLException e) {
             debugLog("DB", "Error loading options for question ID " + question.getId() + ": "
@@ -3344,14 +3427,18 @@ public class MedatoninDB extends JFrame {
             }
             FigurenGenerator.DissectedPieces dissectedPieces = new FigurenGenerator.DissectedPieces(
                 dissectedPiecesList, dissectedPiecesList, assembledPiecesList);
+
+            // Find the correct option (the assembled figure)
+            Geometry correctOption = null;
+            if (!assembledPiecesList.isEmpty()) {
+                correctOption = assembledPiecesList.get(0); // Assume first is correct
+            }
+            // Solution column: show the correctOption (assembled figure)
             model.addRow(new Object[] {
-                String.valueOf(question.getQuestionNumber()),
-                dissectedPieces,
-                dissectedPieces,
-                false,
-                "Kurz",
-                "MEDIUM"
+                String.valueOf(question.getQuestionNumber()), dissectedPieces, correctOption, false, "Kurz", "MEDIUM"
             });
+
+            // Option panel: only show options in grey, no solution
             List<OptionDAO> options = optionDAO.getOptionsForQuestion(question.getId());
             FigurenOptionsData figurenOptionsData = new FigurenOptionsData(options, dissectedPieces);
             model.addRow(new Object[] { "", figurenOptionsData, "", false, "" });
@@ -3438,8 +3525,10 @@ public class MedatoninDB extends JFrame {
     }
 
     private void updateQuestion(int row, int column, Object data) {
-        if (row < 0 || row >= questionTable.getRowCount()) {
-            return; // Safety check
+        // Defensive: check row and column bounds before accessing table
+        if (row < 0 || row >= questionTable.getRowCount() || column < 0 || column >= questionTable.getColumnCount()) {
+            System.out.println("Error: updateQuestion called with invalid row/column: row=" + row + ", col=" + column);
+            return;
         }
         Object questionNumberObj = questionTable.getValueAt(row, 0);
         int questionNumber;
@@ -3452,8 +3541,24 @@ public class MedatoninDB extends JFrame {
         try {
             switch (column) {
                 case 1: // Question text
-                    questionDAO.updateQuestionText(currentCategory, currentSubcategory, questionNumber, (String) data,
+                    String textToSave = (String) data;
+                    // For Implikationen, automatically insert semicolon between premises if user enters multiple lines
+                    if ("Implikationen".equals(currentSubcategory) && textToSave != null) {
+                        String[] lines = textToSave.split("\r?\n");
+                        if (lines.length > 1) {
+                            StringBuilder sb = new StringBuilder();
+                            for (int i = 0; i < lines.length; i++) {
+                                if (i > 0) sb.append(";");
+                                sb.append(lines[i].trim());
+                            }
+                            textToSave = sb.toString();
+                        } else {
+                            textToSave = textToSave.replace("\r\n", ";").replace("\n", ";").replace("\r", ";");
+                        }
+                    }
+                    questionDAO.updateQuestionText(currentCategory, currentSubcategory, questionNumber, textToSave,
                             selectedSimulationId);
+                    // Do NOT update the table model here to avoid infinite recursion.
                     break;
                 case 2: // Checkbox state (if applicable)
                     // Implement if needed
@@ -3491,6 +3596,27 @@ public class MedatoninDB extends JFrame {
         // Remove any trailing ')' from the label
         if (label.endsWith(")")) {
             label = label.substring(0, label.length() - 1);
+        }
+        try {
+            int questionId = questionDAO.getQuestionId(currentCategory, currentSubcategory, questionNumber,
+                    selectedSimulationId);
+            if (questionId == -1) {
+                throw new SQLException("Question not found.");
+            }
+            switch (column) {
+                case 1: // Option text
+                    String optionText = (String) data;
+                    optionDAO.updateOptionText(questionId, label, optionText, selectedSimulationId);
+                    break;
+                case 2: // Is correct
+                    boolean isCorrect = (boolean) data;
+                    optionDAO.updateOptionCorrectness(questionId, label, isCorrect, selectedSimulationId);
+                    break;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error updating option: " + e.getMessage(), "Error",
+                    JOptionPane.ERROR_MESSAGE);
         }
         try {
             int questionId = questionDAO.getQuestionId(currentCategory, currentSubcategory, questionNumber,

@@ -32,6 +32,23 @@ enum Difficulty {
 }
 
 public class CustomRenderer extends DefaultTableCellRenderer {
+    // Helper for difficulty color
+    private Color getDifficultyColor(String difficulty) {
+        if (difficulty == null) return Color.WHITE;
+        switch (difficulty.toLowerCase()) {
+            case "easy":
+            case "leicht":
+                return new Color(150, 190, 152); // green
+            case "medium":
+            case "mittel":
+                return new Color(247, 181, 127); // orange
+            case "hard":
+            case "schwer":
+                return new Color(233, 151, 151); // red
+            default:
+                return Color.WHITE;
+        }
+    }
     private final String currentSubcategory;
     private final Set<QuestionIdentifier> pendingDeleteQuestions;
     private final Icon gearIcon;
@@ -129,14 +146,22 @@ public class CustomRenderer extends DefaultTableCellRenderer {
         Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 
         // Handle multiline text for Syllogism premises
-        if (isQuestionRow && column == 1 && value instanceof String && ((String) value).contains("\n")) {
+        // Implikationen: always use bold, multi-line JTextArea for question cell (column 1)
+        if (isQuestionRow && column == 1 && value instanceof String) {
             JTextArea area = new JTextArea((String) value);
             area.setLineWrap(true);
             area.setWrapStyleWord(true);
             area.setOpaque(true);
             area.setBackground(c.getBackground());
             area.setForeground(Color.BLACK);
-            area.setFont(c.getFont());
+            area.setFont(c.getFont().deriveFont(Font.BOLD));
+            area.setBorder(BorderFactory.createEmptyBorder(2, 4, 2, 4));
+            // Dynamically set row height to fit text
+            int lines = area.getLineCount();
+            int preferredHeight = area.getPreferredSize().height;
+            if (table.getRowHeight(row) != preferredHeight) {
+                table.setRowHeight(row, preferredHeight);
+            }
             return area;
         }
 
@@ -158,8 +183,16 @@ public class CustomRenderer extends DefaultTableCellRenderer {
             }
         } else {
             c.setBackground(Color.WHITE);
-            Boolean isChecked = (Boolean) model.getValueAt(row, 3);
-            if (isChecked != null && isChecked) {
+            Boolean isChecked = false;
+            Object cellValue = model.getValueAt(row, 3);
+            if (cellValue instanceof Boolean) {
+                isChecked = (Boolean) cellValue;
+            } else if (cellValue instanceof String) {
+                // Defensive: treat "true" or "1" as checked
+                String str = (String) cellValue;
+                isChecked = str.equalsIgnoreCase("true") || str.equals("1");
+            }
+            if (isChecked) {
                 c.setBackground(new Color(127, 204, 165, 75));
             }
         }
@@ -172,9 +205,17 @@ public class CustomRenderer extends DefaultTableCellRenderer {
                 deleteLabel.setOpaque(true);
                 return deleteLabel;
             } else {
-                Boolean checked = false;
+                // Defensive: handle Boolean, String, null, and any other type
+                boolean checked = false;
                 if (value instanceof Boolean) {
                     checked = (Boolean) value;
+                } else if (value instanceof String) {
+                    String str = (String) value;
+                    checked = str.equalsIgnoreCase("true") || str.equals("1");
+                } else if (value != null) {
+                    // Fallback: try toString and check for "true" or "1"
+                    String str = value.toString();
+                    checked = str.equalsIgnoreCase("true") || str.equals("1");
                 }
                 JCheckBox checkBox = new JCheckBox();
                 checkBox.setSelected(checked);
@@ -196,10 +237,20 @@ public class CustomRenderer extends DefaultTableCellRenderer {
                 return gearLabel;
             } else {
                 // Option row: highlight cell green if correct
-                Boolean isChecked = (Boolean) model.getValueAt(row, 3);
+                boolean isChecked = false;
+                Object cellValue = model.getValueAt(row, 3);
+                if (cellValue instanceof Boolean) {
+                    isChecked = (Boolean) cellValue;
+                } else if (cellValue instanceof String) {
+                    String str = (String) cellValue;
+                    isChecked = str.equalsIgnoreCase("true") || str.equals("1");
+                } else if (cellValue != null) {
+                    String str = cellValue.toString();
+                    isChecked = str.equalsIgnoreCase("true") || str.equals("1");
+                }
                 JLabel empty = new JLabel();
                 empty.setOpaque(true);
-                if (isChecked != null && isChecked) {
+                if (isChecked) {
                     empty.setBackground(new Color(127, 204, 165, 75));
                 } else {
                     empty.setBackground(c.getBackground());
@@ -215,37 +266,32 @@ public class CustomRenderer extends DefaultTableCellRenderer {
         if (isQuestionRow) {
             c.setFont(c.getFont().deriveFont(Font.BOLD));
         } else if (!isPendingDeletion) {
-            Boolean isChecked = (Boolean) model.getValueAt(row, 3);
-            if (isChecked != null && isChecked) {
+            // Defensive: handle Boolean, String, null, and any other type for option rows
+            boolean isChecked = false;
+            Object cellValue = model.getValueAt(row, 3);
+            if (cellValue instanceof Boolean) {
+                isChecked = (Boolean) cellValue;
+            } else if (cellValue instanceof String) {
+                String str = (String) cellValue;
+                isChecked = str.equalsIgnoreCase("true") || str.equals("1");
+            } else if (cellValue != null) {
+                String str = cellValue.toString();
+                isChecked = str.equalsIgnoreCase("true") || str.equals("1");
+            }
+            if (isChecked) {
                 c.setBackground(new Color(127, 204, 165, 75));
             }
         }
 
+        // Diff cell: editable dropdown, colored background only (no text/symbols)
         if (column == 5 && isFrageRow(row, (DefaultTableModel) table.getModel())) {
-            String difficulty = (String) value;
-            if (difficulty != null && !difficulty.isEmpty()) {
-                try {
-                    Difficulty diff = Difficulty.valueOf(difficulty.toUpperCase());
-
-                    JPanel panel = new JPanel(new GridBagLayout());
-                    panel.setOpaque(true);
-                    panel.setBackground(c.getBackground());
-
-                    JLabel badge = new JLabel(diff.symbol);
-                    badge.setForeground(diff.color);
-                    badge.setFont(new Font("Arial", Font.BOLD, 18));
-
-                    GridBagConstraints gbc = new GridBagConstraints();
-                    gbc.gridx = 0;
-                    gbc.gridy = 0;
-                    gbc.anchor = GridBagConstraints.CENTER;
-
-                    panel.add(badge, gbc);
-                    return panel;
-                } catch (IllegalArgumentException e) {
-                    return c;
-                }
+            String difficulty = (value != null) ? value.toString().toLowerCase() : "";
+            c.setBackground(getDifficultyColor(difficulty));
+            if (c instanceof JLabel) {
+                // Remove any text/symbols, just show colored rectangle
+                ((JLabel) c).setText("");
             }
+            return c;
         }
         return c;
     }
