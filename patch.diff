@@ -1,134 +1,95 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
-diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
-index 89de1713ffdecc19dda48d18ebd264107fd1dd2f..f80aa600c7f5136b0a1b44503643786a2a503198 100644
---- a/src/main/java/MedatoninDB.java
-+++ b/src/main/java/MedatoninDB.java
-@@ -1591,50 +1591,67 @@ public class MedatoninDB extends JFrame {
-         questionTable.setDefaultRenderer(Object.class, renderer);
-         questionTable.setDefaultRenderer(Boolean.class, renderer);
-         questionTable.setDefaultRenderer(Integer.class, renderer);
-         questionTable.setDefaultRenderer(String.class, renderer);
-         questionTable.setDefaultEditor(Object.class, new CustomEditor(questionTable));
+diff --git a/src/main/java/CustomRenderer.java b/src/main/java/CustomRenderer.java
+index 8a8fe6b30c0b530497bdd8ebd9122baee0889fd8..4d49318c40fed4451007dd9aae695b0700583816 100644
+--- a/src/main/java/CustomRenderer.java
++++ b/src/main/java/CustomRenderer.java
+@@ -55,69 +55,81 @@ public class CustomRenderer extends DefaultTableCellRenderer {
  
-         // After initializing your questionTable
-         TableColumn korrektColumn = questionTable.getColumnModel().getColumn(3);
-         korrektColumn.setCellEditor(new CustomEditor(questionTable));
+     public CustomRenderer(String currentSubcategory, Set<QuestionIdentifier> pendingDeleteQuestions, Icon gearIcon) {
+         this.currentSubcategory = currentSubcategory;
+         this.pendingDeleteQuestions = pendingDeleteQuestions;
+         this.gearIcon = gearIcon;
+     }
  
-         // Adjust the column widths after creating the table
-         adjustColumnWidths(questionTable);
+     private boolean isFrageRow(int row, DefaultTableModel model) {
+         // A row is a question row if the value in column 0 is a string of digits
+         if (row < 0 || row >= model.getRowCount()) return false;
+         Object value = model.getValueAt(row, 0);
+         if (value == null) return false;
+         String strValue = value.toString();
+         return strValue.matches("\\d+");
+     }
  
-         if ("Figuren".equals(currentSubcategory)) {
-             questionTable.setRowHeight(150); // Default row height for question rows
-             for (int row = 0; row < questionTable.getRowCount(); row++) {
-                 Object value = questionTable.getValueAt(row, 1);
-                 if (value instanceof List<?>) {
-                     questionTable.setRowHeight(row, 50); // Adjust height for options row
-                 }
-             }
-         } else {
-             questionTable.setRowHeight(30); // Default row height for other subcategories
-         }
+     @Override
+     public Component getTableCellRendererComponent(JTable table, Object value,
+             boolean isSelected, boolean hasFocus, int row, int column) {
+         DefaultTableModel model = (DefaultTableModel) table.getModel();
+         boolean isQuestionRow = isFrageRow(row, model);
  
-+        // Adjust question row height based on text length for Implikationen
-+        if ("Implikationen".equals(currentSubcategory)) {
-+            FontMetrics fm = questionTable.getFontMetrics(questionTable.getFont());
-+            int lineHeight = fm.getHeight();
-+            DefaultTableModel m = (DefaultTableModel) questionTable.getModel();
-+            for (int row = 0; row < m.getRowCount(); row++) {
-+                if (isFrageRow(row, m)) {
-+                    Object textObj = m.getValueAt(row, 1);
-+                    if (textObj instanceof String) {
-+                        int lines = ((String) textObj).split("\\n").length;
-+                        int height = lineHeight * lines + 10;
-+                        questionTable.setRowHeight(row, Math.max(30, height));
-+                    }
-+                }
-+            }
-+        }
+         // Render figures for question rows (Figuren)
+         if (isQuestionRow) {
+             PolygonPanel panel = null;
 +
-         // Add listeners for synchronizing with text fields and other interactions
-         addTableListeners(questionTable);
- 
-         // Dynamically show or hide the "Set" column based on the category
-         if (isSetColumnNotVisible(category)) {
-             hideSetColumn(); // Hide the "Set" column
-         } else {
-             showSetColumn(); // Show the "Set" column
-         }
- 
-         questionTable.addMouseListener(new MouseAdapter() {
-             @Override
-             public void mousePressed(MouseEvent e) {
-                 int row = questionTable.rowAtPoint(e.getPoint());
-                 int col = questionTable.columnAtPoint(e.getPoint());
- 
-                 if (col != 3 || !isFrageRow(row, (DefaultTableModel) questionTable.getModel())) {
-                     pendingDeleteQuestions.clear();
-                     questionTable.repaint();
+             if (column == 1 && value instanceof FigurenGenerator.DissectedPieces) {
+                 FigurenGenerator.DissectedPieces dissectedPieces = (FigurenGenerator.DissectedPieces) value;
+                 panel = new PolygonPanel(dissectedPieces.rotatedPieces);
+                 panel.setAssembled(false); // Display dissected pieces
++
+             } else if (column == 2) {
+-                if (value instanceof OptionDAO) {
++                FigurenGenerator.DissectedPieces pieces = null;
++                // Column 1 holds the DissectedPieces for this row
++                Object questionValue = model.getValueAt(row, 1);
++                if (questionValue instanceof FigurenGenerator.DissectedPieces) {
++                    pieces = (FigurenGenerator.DissectedPieces) questionValue;
++                } else if (value instanceof FigurenGenerator.DissectedPieces) {
++                    pieces = (FigurenGenerator.DissectedPieces) value;
++                }
++
++                if (pieces != null) {
++                    panel = new PolygonPanel(pieces.originalPieces);
++                    panel.setAssembled(true); // Show assembled figure from pieces
++                } else if (value instanceof OptionDAO) {
++                    // Fallback: render option shape directly
+                     try {
+                         Geometry shape = new WKTReader().read(((OptionDAO) value).getShapeData());
+                         panel = new PolygonPanel(Collections.singletonList(shape));
+                         panel.setAssembled(false);
+                     } catch (ParseException e) {
+                         e.printStackTrace();
+                     }
+-                } else if (value instanceof FigurenGenerator.DissectedPieces) {
+-                    FigurenGenerator.DissectedPieces dissectedPieces = (FigurenGenerator.DissectedPieces) value;
+-                    panel = new PolygonPanel(dissectedPieces.originalPieces);
+-                    panel.setAssembled(true); // Fallback: assembled figure
                  }
              }
-         });
- 
-         // Add TableModelListener to repaint the table when checkbox changes
-         tableModel.addTableModelListener(e -> {
-diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
-index 89de1713ffdecc19dda48d18ebd264107fd1dd2f..f80aa600c7f5136b0a1b44503643786a2a503198 100644
---- a/src/main/java/MedatoninDB.java
-+++ b/src/main/java/MedatoninDB.java
-@@ -3399,50 +3416,53 @@ public class MedatoninDB extends JFrame {
-                     debugLog("DB", "Found subcategory ID: " + id);
-                     return id;
-                 }
++
+             if (panel != null) {
+                 panel.setPreferredSize(new Dimension(200, 200));
+                 return panel;
              }
          }
-         debugLog("DB", "Subcategory not found");
-         return -1; // Return -1 if subcategory not found
-     }
  
-     private void saveSubcategoryToDatabase(String category, String subcategoryName) {
-         String sql = "INSERT INTO subcategories (name, category_id, order_index) VALUES (?, ?, ?)";
-         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-             int categoryId = getCategoryID(category);
-             int orderIndex = subcategoryOrder.get(category).size() - 1; // New subcategory is added at the end
-             stmt.setString(1, subcategoryName);
-             stmt.setInt(2, categoryId);
-             stmt.setInt(3, orderIndex);
-             stmt.executeUpdate();
-             System.out.println("Saved new subcategory to database: " + subcategoryName);
-         } catch (SQLException e) {
-             e.printStackTrace();
-         }
-     }
+         // Always render options panel for FigurenOptionsData, regardless of subcategory
+         if (!isQuestionRow && value instanceof FigurenOptionsData) {
+             FigurenOptionsData data = (FigurenOptionsData) value;
+             List<OptionDAO> options = data.options;
  
-     private void updateQuestion(int row, int column, Object data) {
-+        if (row < 0 || row >= questionTable.getRowCount()) {
-+            return; // Safety check
-+        }
-         Object questionNumberObj = questionTable.getValueAt(row, 0);
-         int questionNumber;
-         try {
-             questionNumber = Integer.parseInt(questionNumberObj.toString());
-         } catch (NumberFormatException e) {
-             System.out.println("Error parsing question number in updateQuestion.");
-             return;
-         }
-         try {
-             switch (column) {
-                 case 1: // Question text
-                     questionDAO.updateQuestionText(currentCategory, currentSubcategory, questionNumber, (String) data,
-                             selectedSimulationId);
-                     break;
-                 case 2: // Checkbox state (if applicable)
-                     // Implement if needed
-                     break;
-                 case 4: // Difficulty
-                     questionDAO.updateQuestionDifficulty(
-                             getSubcategoryId(currentCategory, currentSubcategory),
-                             questionNumber,
-                             (String) data,
-                             selectedSimulationId);
-                     break;
-             }
+             JPanel optionsPanel = new JPanel();
+             optionsPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 20, 10));
+             optionsPanel.setBackground(Color.WHITE);
+ 
+             for (OptionDAO option : options) {
+                 JPanel optionPanel = new JPanel(new BorderLayout());
+                 optionPanel.setBackground(Color.WHITE);
+                 optionPanel.setOpaque(true);
+ 
+                 PolygonPanel shapePanel;
+ 
+                 if ("E".equalsIgnoreCase(option.getLabel())) {
+                     // Handle Option E separately as a label "X"
+                     JLabel optionELabel = new JLabel("Option E: X");
  
 EOF
 )

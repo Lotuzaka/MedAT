@@ -1980,25 +1980,33 @@ public class MedatoninDB extends JFrame {
                 selectedSimulationId);
         List<OptionDAO> options = optionDAO.getOptionsForQuestion(questionId);
 
+        OptionDAO correctOption = null;
+        for (OptionDAO o : options) {
+            if (o.isCorrect()) {
+                correctOption = o;
+                break;
+            }
+        }
+
         // Add the question to the table model
         DefaultTableModel model = categoryModels.get(currentCategory).get(currentSubcategory);
         model.addRow(new Object[] {
                 String.valueOf(questionNumber),
                 dissectedPieces, // Use the dissectedPieces as the question content
+                correctOption,
                 false, // Checkbox state
-                "Kurz" // Default format
+                "Kurz",
+                "MEDIUM"
         });
 
-        // Lese die assembledPieces direkt aus dem DissectedPieces-Objekt
-        // List<Geometry> assembledPieces = dissectedPieces.getAssembledPieces(); // Removed unused variable
-        // Create FigurenOptionsData
         FigurenOptionsData figurenOptionsData = new FigurenOptionsData(options, dissectedPieces);
 
         // Add the options row
         model.addRow(new Object[] {
                 "", // No number for options row
                 figurenOptionsData, // Store the FigurenOptionsData object
-                false, // Checkbox state (unused)
+                "",
+                false,
                 ""
         });
 
@@ -3430,15 +3438,15 @@ public class MedatoninDB extends JFrame {
 
             // Show dissected pieces as shapes (object) in the 'Text' column
             List<OptionDAO> options = optionDAO.getOptionsForQuestion(question.getId());
-            String correctOptionText = "";
+            OptionDAO correctOption = null;
             for (OptionDAO option : options) {
                 if (option.isCorrect()) {
-                    correctOptionText = option.getText();
+                    correctOption = option;
                     break;
                 }
             }
             model.addRow(new Object[] {
-                String.valueOf(question.getQuestionNumber()), dissectedPieces, correctOptionText, false, "Kurz", "MEDIUM"
+                String.valueOf(question.getQuestionNumber()), dissectedPieces, correctOption, false, "Kurz", "MEDIUM"
             });
 
             // Option panel: only show options in grey, no solution

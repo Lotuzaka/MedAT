@@ -75,18 +75,39 @@ public class CustomRenderer extends DefaultTableCellRenderer {
         boolean isQuestionRow = isFrageRow(row, model);
 
         // Render figures for question rows (Figuren)
-        if (isQuestionRow && value instanceof FigurenGenerator.DissectedPieces) {
-            FigurenGenerator.DissectedPieces dissectedPieces = (FigurenGenerator.DissectedPieces) value;
-            PolygonPanel panel;
-            if (column == 1) {
+        if (isQuestionRow) {
+            PolygonPanel panel = null;
+
+            if (column == 1 && value instanceof FigurenGenerator.DissectedPieces) {
+                FigurenGenerator.DissectedPieces dissectedPieces = (FigurenGenerator.DissectedPieces) value;
                 panel = new PolygonPanel(dissectedPieces.rotatedPieces);
                 panel.setAssembled(false); // Display dissected pieces
+
             } else if (column == 2) {
-                panel = new PolygonPanel(dissectedPieces.originalPieces);
-                panel.setAssembled(true); // Display assembled figure as solution
-            } else {
-                panel = null;
+                FigurenGenerator.DissectedPieces pieces = null;
+                // Column 1 holds the DissectedPieces for this row
+                Object questionValue = model.getValueAt(row, 1);
+                if (questionValue instanceof FigurenGenerator.DissectedPieces) {
+                    pieces = (FigurenGenerator.DissectedPieces) questionValue;
+                } else if (value instanceof FigurenGenerator.DissectedPieces) {
+                    pieces = (FigurenGenerator.DissectedPieces) value;
+                }
+
+                if (pieces != null) {
+                    panel = new PolygonPanel(pieces.originalPieces);
+                    panel.setAssembled(true); // Show assembled figure from pieces
+                } else if (value instanceof OptionDAO) {
+                    // Fallback: render option shape directly
+                    try {
+                        Geometry shape = new WKTReader().read(((OptionDAO) value).getShapeData());
+                        panel = new PolygonPanel(Collections.singletonList(shape));
+                        panel.setAssembled(false);
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                    }
+                }
             }
+
             if (panel != null) {
                 panel.setPreferredSize(new Dimension(200, 200));
                 return panel;
@@ -115,21 +136,19 @@ public class CustomRenderer extends DefaultTableCellRenderer {
                     optionELabel.setFont(optionELabel.getFont().deriveFont(Font.BOLD));
                     optionsPanel.add(optionELabel);
                     continue;
-                } else if (option.isCorrect()) {
-                    List<Geometry> assembled = data.dissectedPieces.originalPieces;
-                    shapePanel = new PolygonPanel(assembled);
-                    shapePanel.setAssembled(true);
+                }
+
+                try {
+                    shapePanel = new PolygonPanel(
+                            Collections.singletonList(new WKTReader().read(option.getShapeData())));
+                    shapePanel.setAssembled(false);
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                    continue; // Skip this option if parsing fails
+                }
+
+                if (option.isCorrect()) {
                     optionPanel.setBackground(new Color(127, 204, 165, 75));
-                } else {
-                    // Distractor option
-                    try {
-                        shapePanel = new PolygonPanel(
-                                Collections.singletonList(new WKTReader().read(option.getShapeData())));
-                        shapePanel.setAssembled(false);
-                    } catch (ParseException e) {
-                        e.printStackTrace();
-                        continue; // Skip this option if parsing fails
-                    }
                 }
 
                 shapePanel.setPreferredSize(new Dimension(100, 100));
