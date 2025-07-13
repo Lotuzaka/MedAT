@@ -19,6 +19,7 @@ OptionDAO.class
 CustomRenderer.class
 RoundedTextField.class
 MedatoninDB$1.class
+util\SyllogismUtils$1.class
 MedatoninDB$13.class
 QuestionIdentifier.class
 MedatoninDB.class

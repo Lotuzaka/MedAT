@@ -4025,7 +4025,15 @@ public class MedatoninDB extends JFrame {
     /**
      * Data holder for Figuren options and dissected pieces.
      */
-
+    static class FigurenOptionsData {
+        public final List<OptionDAO> options;
+        public final FigurenGenerator.DissectedPieces dissectedPieces;
+        
+        public FigurenOptionsData(List<OptionDAO> options, FigurenGenerator.DissectedPieces dissectedPieces) {
+            this.options = options;
+            this.dissectedPieces = dissectedPieces;
+        }
+    }
 
     // Schwierigkeitsgrad-Konstanten
     /**

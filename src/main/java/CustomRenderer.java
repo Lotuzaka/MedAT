@@ -1,12 +1,16 @@
 import javax.swing.*;
 import javax.swing.table.*;
 import java.awt.*;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
 import java.util.List;
-import java.util.Set;
-import java.util.Collections;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
+import svg.SvgBuilder;
+import util.*;
 
 // Data holder for Figuren options and dissected pieces (copied from MedatoninDB)
 class FigurenOptionsData {
@@ -176,7 +180,6 @@ public class CustomRenderer extends DefaultTableCellRenderer {
             area.setFont(c.getFont().deriveFont(Font.BOLD));
             area.setBorder(BorderFactory.createEmptyBorder(2, 4, 2, 4));
             // Dynamically set row height to fit text
-            int lines = area.getLineCount();
             int preferredHeight = area.getPreferredSize().height;
             if (table.getRowHeight(row) != preferredHeight) {
                 table.setRowHeight(row, preferredHeight);
@@ -313,5 +316,41 @@ public class CustomRenderer extends DefaultTableCellRenderer {
             return c;
         }
         return c;
+    }
+
+    /**
+     * Renders the Euler diagram for two premises as an SVG file.
+     *
+     * @param major first premise (e.g. "Alle A sind B.")
+     * @param minor second premise (e.g. "Einige B sind nicht C.")
+     * @param terms optional labels for the circles; if null labels are taken from the premises
+     * @return path to the generated SVG file
+     */
+    public static Path renderEuler(String major, String minor, List<String> terms) throws IOException {
+        Sentence s1 = SyllogismUtils.parseSentence(major);
+        Sentence s2 = SyllogismUtils.parseSentence(minor);
+        int[] mask = SyllogismUtils.DIAGRAM_MASKS.getOrDefault(Pair.of(s1.type(), s2.type()), new int[8]);
+
+        List<String> labels;
+        if (terms != null && terms.size() >= 3) {
+            labels = terms;
+        } else {
+            labels = Arrays.asList(s1.subject(), s1.predicate(), s2.predicate());
+        }
+
+        SvgBuilder svg = new SvgBuilder(300, 300);
+        svg.setupCircles(120, 150, 80, 180, 150, 80, 150, 80, 80);
+        for (int i = 0; i < mask.length; i++) {
+            if (mask[i] == 1) {
+                svg.fillRegion(i, Color.LIGHT_GRAY);
+            }
+        }
+        svg.addText("labelA", labels.get(0), 60, 240);
+        svg.addText("labelB", labels.get(1), 240, 240);
+        svg.addText("labelC", labels.get(2), 150, 30);
+
+        Path dir = Paths.get(System.getProperty("java.io.tmpdir"));
+        String fileName = "diagram_" + UUID.randomUUID() + ".svg";
+        return svg.saveSvg(dir, fileName);
     }
 }
