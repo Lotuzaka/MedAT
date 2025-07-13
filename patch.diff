@@ -1,95 +1,82 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
-diff --git a/src/main/java/CustomRenderer.java b/src/main/java/CustomRenderer.java
-index 8a8fe6b30c0b530497bdd8ebd9122baee0889fd8..4d49318c40fed4451007dd9aae695b0700583816 100644
---- a/src/main/java/CustomRenderer.java
-+++ b/src/main/java/CustomRenderer.java
-@@ -55,69 +55,81 @@ public class CustomRenderer extends DefaultTableCellRenderer {
- 
-     public CustomRenderer(String currentSubcategory, Set<QuestionIdentifier> pendingDeleteQuestions, Icon gearIcon) {
-         this.currentSubcategory = currentSubcategory;
-         this.pendingDeleteQuestions = pendingDeleteQuestions;
-         this.gearIcon = gearIcon;
+diff --git a/src/main/java/FigurenGenerator.java b/src/main/java/FigurenGenerator.java
+index f2e5de838738dbbde2d6a2d2977d4824641ab425..9779fcc080d5cc3caa0778f2c4f9845c8fa2ae45 100644
+--- a/src/main/java/FigurenGenerator.java
++++ b/src/main/java/FigurenGenerator.java
+@@ -370,66 +370,57 @@ public class FigurenGenerator {
      }
  
-     private boolean isFrageRow(int row, DefaultTableModel model) {
-         // A row is a question row if the value in column 0 is a string of digits
-         if (row < 0 || row >= model.getRowCount()) return false;
-         Object value = model.getValueAt(row, 0);
-         if (value == null) return false;
-         String strValue = value.toString();
-         return strValue.matches("\\d+");
-     }
+     /** Distraktoren (andere Formen) */
+     public List<Geometry> generateDistractorShapes(int num) {
+         // Nur die passenden Pools je nach Ausgangsform
+         List<String> polygonShapes = List.of("hexagon", "heptagon", "octagon", "pentagon");
+         List<String> circleShapes = List.of("circle", "half circle", "quarter circle", "three-quarter circle");
  
-     @Override
-     public Component getTableCellRendererComponent(JTable table, Object value,
-             boolean isSelected, boolean hasFocus, int row, int column) {
-         DefaultTableModel model = (DefaultTableModel) table.getModel();
-         boolean isQuestionRow = isFrageRow(row, model);
- 
-         // Render figures for question rows (Figuren)
-         if (isQuestionRow) {
-             PolygonPanel panel = null;
-+
-             if (column == 1 && value instanceof FigurenGenerator.DissectedPieces) {
-                 FigurenGenerator.DissectedPieces dissectedPieces = (FigurenGenerator.DissectedPieces) value;
-                 panel = new PolygonPanel(dissectedPieces.rotatedPieces);
-                 panel.setAssembled(false); // Display dissected pieces
-+
-             } else if (column == 2) {
--                if (value instanceof OptionDAO) {
-+                FigurenGenerator.DissectedPieces pieces = null;
-+                // Column 1 holds the DissectedPieces for this row
-+                Object questionValue = model.getValueAt(row, 1);
-+                if (questionValue instanceof FigurenGenerator.DissectedPieces) {
-+                    pieces = (FigurenGenerator.DissectedPieces) questionValue;
-+                } else if (value instanceof FigurenGenerator.DissectedPieces) {
-+                    pieces = (FigurenGenerator.DissectedPieces) value;
-+                }
-+
-+                if (pieces != null) {
-+                    panel = new PolygonPanel(pieces.originalPieces);
-+                    panel.setAssembled(true); // Show assembled figure from pieces
-+                } else if (value instanceof OptionDAO) {
-+                    // Fallback: render option shape directly
-                     try {
-                         Geometry shape = new WKTReader().read(((OptionDAO) value).getShapeData());
-                         panel = new PolygonPanel(Collections.singletonList(shape));
-                         panel.setAssembled(false);
-                     } catch (ParseException e) {
-                         e.printStackTrace();
-                     }
--                } else if (value instanceof FigurenGenerator.DissectedPieces) {
--                    FigurenGenerator.DissectedPieces dissectedPieces = (FigurenGenerator.DissectedPieces) value;
--                    panel = new PolygonPanel(dissectedPieces.originalPieces);
--                    panel.setAssembled(true); // Fallback: assembled figure
-                 }
-             }
-+
-             if (panel != null) {
-                 panel.setPreferredSize(new Dimension(200, 200));
-                 return panel;
-             }
+         // Wähle Pool basierend auf shapeType
+         List<String> pool;
+         if (polygonShapes.contains(shapeType)) {
+             pool = new ArrayList<>(polygonShapes);
+         } else if (circleShapes.contains(shapeType)) {
+             pool = new ArrayList<>(circleShapes);
+         } else {
+             // Fallback: im Zweifel alle Formen
+             pool = new ArrayList<>();
+             pool.addAll(polygonShapes);
+             pool.addAll(circleShapes);
          }
  
-         // Always render options panel for FigurenOptionsData, regardless of subcategory
-         if (!isQuestionRow && value instanceof FigurenOptionsData) {
-             FigurenOptionsData data = (FigurenOptionsData) value;
-             List<OptionDAO> options = data.options;
+         // Entferne die Ursprungsshape selbst
+         pool.remove(shapeType);
  
-             JPanel optionsPanel = new JPanel();
-             optionsPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 20, 10));
-             optionsPanel.setBackground(Color.WHITE);
+         List<Geometry> out = new ArrayList<>(num);
+-        for (int i = 0; i < num; i++) {
+-            String candidate;
+-            boolean used;
+-            do {
+-                // 1) neuen Kandidaten ziehen
+-                candidate = pool.get(RAND.nextInt(pool.size()));
+-                // 2) prüfen, ob er in einem existing-Shape vorkommt
+-                used = false;
+-                for (Geometry g : out) {
+-                    if (g.toString().contains(candidate)) {
+-                        used = true;
+-                        break;
+-                    }
+-                }
+-            } while (used);
+-            // 3) akzeptierten Kandidaten hinzufügen
++        for (int i = 0; i < num && !pool.isEmpty(); i++) {
++            // Ziehe einen zufälligen Kandidaten und entferne ihn, damit keine
++            // Form mehrmals verwendet wird
++            int index = RAND.nextInt(pool.size());
++            String candidate = pool.remove(index);
++
++            // Füge die gewählte Form als Distraktor hinzu
+             out.add(createShape(candidate, 200, 200, 100));
+         }
+         Collections.shuffle(out);
+         return out;
+     }
  
-             for (OptionDAO option : options) {
-                 JPanel optionPanel = new JPanel(new BorderLayout());
-                 optionPanel.setBackground(Color.WHITE);
-                 optionPanel.setOpaque(true);
- 
-                 PolygonPanel shapePanel;
- 
-                 if ("E".equalsIgnoreCase(option.getLabel())) {
-                     // Handle Option E separately as a label "X"
-                     JLabel optionELabel = new JLabel("Option E: X");
+     /** Panel → Bild */
+     public static BufferedImage getPanelImage(JPanel panel) {
+         Dimension d = panel.getSize();
+         if (d.width <= 0 || d.height <= 0) {
+             d = panel.getPreferredSize();
+             panel.setSize(d.width > 0 ? d.width : 400,
+                     d.height > 0 ? d.height : 400);
+         }
+         BufferedImage img = new BufferedImage(
+                 panel.getWidth(), panel.getHeight(),
+                 BufferedImage.TYPE_INT_ARGB);
+         Graphics2D g2 = img.createGraphics();
+         g2.setColor(Color.WHITE);
+         g2.fillRect(0, 0, panel.getWidth(), panel.getHeight());
+         if (panel.isVisible())
+             panel.printAll(g2);
+         g2.dispose();
+         return img;
+     }
  
 EOF
 )

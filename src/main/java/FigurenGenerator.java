@@ -392,22 +392,13 @@ public class FigurenGenerator {
         pool.remove(shapeType);
 
         List<Geometry> out = new ArrayList<>(num);
-        for (int i = 0; i < num; i++) {
-            String candidate;
-            boolean used;
-            do {
-                // 1) neuen Kandidaten ziehen
-                candidate = pool.get(RAND.nextInt(pool.size()));
-                // 2) prüfen, ob er in einem existing-Shape vorkommt
-                used = false;
-                for (Geometry g : out) {
-                    if (g.toString().contains(candidate)) {
-                        used = true;
-                        break;
-                    }
-                }
-            } while (used);
-            // 3) akzeptierten Kandidaten hinzufügen
+        for (int i = 0; i < num && !pool.isEmpty(); i++) {
+            // Ziehe einen zufälligen Kandidaten und entferne ihn, damit keine
+            // Form mehrmals verwendet wird
+            int index = RAND.nextInt(pool.size());
+            String candidate = pool.remove(index);
+
+            // Füge die gewählte Form als Distraktor hinzu
             out.add(createShape(candidate, 200, 200, 100));
         }
         Collections.shuffle(out);
