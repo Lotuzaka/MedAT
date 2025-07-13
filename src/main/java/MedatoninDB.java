@@ -126,8 +126,6 @@ public class MedatoninDB extends JFrame {
     private Color backgroundColor = Color.WHITE;
     private int buttonBorderRadius = 15; // Border radius for buttons
 
-    private boolean solutionsVisible = true;
-    private TableColumn hiddenSolutionColumn;
 
     // Dropdown to select test simulations
     private JComboBox<String> simulationComboBox;
@@ -612,68 +610,53 @@ public class MedatoninDB extends JFrame {
         for (Map<String, DefaultTableModel> subMap : categoryModels.values()) {
             for (String subcat : subMap.keySet()) {
                 JTable table = getTableForSubcategory(subcat);
-                if (table != null) {
-                    TableColumnModel colModel = table.getColumnModel();
+                if (table == null) continue;
 
-                    int solutionViewIdx = -1;
-                    for (int i = 0; i < colModel.getColumnCount(); i++) {
-                        if ("Solution".equals(colModel.getColumn(i).getHeaderValue())) {
-                            solutionViewIdx = i;
-                            break;
-                        }
+                TableColumnModel colModel = table.getColumnModel();
+
+                // "Solution" is at model index 2
+                int solutionViewIdx = table.convertColumnIndexToView(2);
+
+                // If the column is not part of the view, add it back when showing
+                if (solutionViewIdx == -1 && showSolutionColumn) {
+                    TableColumn col = new TableColumn(2);
+                    col.setHeaderValue("Solution");
+                    colModel.addColumn(col);
+
+                    int textViewIdx = table.convertColumnIndexToView(1);
+                    if (textViewIdx != -1) {
+                        colModel.moveColumn(colModel.getColumnCount() - 1, textViewIdx + 1);
+                        solutionViewIdx = textViewIdx + 1;
+                    } else {
+                        solutionViewIdx = colModel.getColumnCount() - 1;
                     }
-
-                    // If column is missing (legacy state), re-add it in the correct position
-                    if (solutionViewIdx == -1) {
-                        if (showSolutionColumn) {
-                            DefaultTableModel model = (DefaultTableModel) table.getModel();
-                            int modelIdx = -1;
-                            for (int i = 0; i < model.getColumnCount(); i++) {
-                                if ("Solution".equals(model.getColumnName(i))) {
-                                    modelIdx = i;
-                                    break;
-                                }
-                            }
-                            if (modelIdx != -1) {
-                                TableColumn col = new TableColumn(modelIdx);
-                                col.setHeaderValue("Solution");
-                                colModel.addColumn(col);
-                                // place column after "Text" if possible
-                                int textIdx = -1;
-                                for (int i = 0; i < colModel.getColumnCount(); i++) {
-                                    if ("Text".equals(colModel.getColumn(i).getHeaderValue())) {
-                                        textIdx = i;
-                                        break;
-                                    }
-                                }
-                                if (textIdx != -1) {
-                                    colModel.moveColumn(colModel.getColumnCount() - 1, textIdx + 1);
-                                }
-                                solutionViewIdx = textIdx + 1;
-                            }
-                        }
-                    }
-
-                    if (solutionViewIdx != -1) {
-                        TableColumn col = colModel.getColumn(solutionViewIdx);
-                        if (showSolutionColumn) {
-                            col.setMinWidth(120);
-                            col.setMaxWidth(150);
-                            col.setPreferredWidth(130);
-                            col.setWidth(130);
-                            col.setHeaderValue("Solution");
-                        } else {
-                            col.setMinWidth(0);
-                            col.setMaxWidth(0);
-                            col.setPreferredWidth(0);
-                            col.setWidth(0);
-                            col.setHeaderValue("");
-                        }
-                    }
-
-                    table.revalidate();
-                    table.repaint();
                 }
+
+                if (solutionViewIdx != -1) {
+                    TableColumn col = colModel.getColumn(solutionViewIdx);
+                    if (showSolutionColumn) {
+                        col.setMinWidth(120);
+                        col.setMaxWidth(150);
+                        col.setPreferredWidth(130);
+                        col.setWidth(130);
+                        col.setHeaderValue("Solution");
+
+                        int textViewIdx = table.convertColumnIndexToView(1);
+                        if (textViewIdx != -1 && solutionViewIdx != textViewIdx + 1) {
+                            colModel.moveColumn(solutionViewIdx, textViewIdx + 1);
+                            solutionViewIdx = textViewIdx + 1;
+                        }
+                    } else {
+                        col.setMinWidth(0);
+                        col.setMaxWidth(0);
+                        col.setPreferredWidth(0);
+                        col.setWidth(0);
+                        col.setHeaderValue("");
+                    }
+                }
+
+                table.revalidate();
+                table.repaint();
             }
         }
     }
@@ -1655,8 +1638,6 @@ public class MedatoninDB extends JFrame {
         loadQuestionsFromDatabase(category, subcategories, selectedSimulationId);
         loadSubcategories(currentCategory);
         updateSolutionColumnVisibility();
-        // Restore solution column visibility after switching category
-        updateSolutionColumnVisibility();
         resetPendingDeleteState(); // Reset the deletion state when switching categories
 
         // Update the print button label immediately when switching categories
@@ -2466,40 +2447,6 @@ public class MedatoninDB extends JFrame {
         }
     }
 
-    // Method to hide the "Solution" column
-    private void hideSolutionColumn() {
-        if (questionTable == null || !solutionsVisible) return;
-        TableColumnModel columnModel = questionTable.getColumnModel();
-        int columnIndex = getColumnIndexByName("Solution");
-        if (columnIndex != -1) {
-            hiddenSolutionColumn = columnModel.getColumn(columnIndex);
-            columnModel.removeColumn(hiddenSolutionColumn);
-            hiddenSolutionColumn.setHeaderValue("Solution");
-            solutionsVisible = false;
-        }
-    }
-
-    // Method to show the "Solution" column
-    private void showSolutionColumn() {
-        if (questionTable == null || solutionsVisible) return;
-        TableColumnModel columnModel = questionTable.getColumnModel();
-        if (hiddenSolutionColumn != null) {
-            columnModel.addColumn(hiddenSolutionColumn);
-            hiddenSolutionColumn.setHeaderValue("Solution");
-            int last = columnModel.getColumnCount() - 1;
-            columnModel.moveColumn(last, 2); // place back at index 2
-            adjustColumnWidths(questionTable);
-        }
-        solutionsVisible = true;
-    }
-
-    private void toggleSolutionColumn() {
-        if (solutionsVisible) {
-            hideSolutionColumn();
-        } else {
-            showSolutionColumn();
-        }
-    }
 
     // Helper method to get the index of a column by name
     private int getColumnIndexByName(String columnName) {
@@ -3037,7 +2984,15 @@ public class MedatoninDB extends JFrame {
 
             actionButton.addActionListener(e -> {
                 if (editingRow >= 0 && editingRow < table.getRowCount()) {
-                    String currentFormat = (String) table.getModel().getValueAt(editingRow, 3);
+                    Object formatObj = table.getModel().getValueAt(editingRow, 3);
+                    String currentFormat;
+                    if (formatObj instanceof String) {
+                        currentFormat = (String) formatObj;
+                    } else if (formatObj != null) {
+                        currentFormat = formatObj.toString();
+                    } else {
+                        currentFormat = "Kurz";
+                    }
                     if (currentFormat == null || currentFormat.isEmpty()) {
                         currentFormat = "Kurz";
                     }
@@ -3169,7 +3124,15 @@ public class MedatoninDB extends JFrame {
                 return;
             }
 
-            String currentFormat = (String) table.getModel().getValueAt(row, 3);
+            Object formatObj = table.getModel().getValueAt(row, 3);
+            String currentFormat;
+            if (formatObj instanceof String) {
+                currentFormat = (String) formatObj;
+            } else if (formatObj != null) {
+                currentFormat = formatObj.toString();
+            } else {
+                currentFormat = "Kurz";
+            }
             if (currentFormat == null) {
                 currentFormat = "Kurz";
             }
@@ -3258,20 +3221,23 @@ public class MedatoninDB extends JFrame {
                     String label = answerLabels[i];
                     String text = answerTexts.getOrDefault(label, "");
                     Boolean isCorrect = answerCorrectness.getOrDefault(label, false);
-                    model.insertRow(frageRow + 1 + i, new Object[] { label, text, isCorrect, "" });
+                    // Always set Solution column to empty string
+                    model.insertRow(frageRow + 1 + i, new Object[] { label, text, isCorrect, "", "" });
                 }
             } else if ("Lang".equals(newFormat)) {
                 String[] optionLabels = { "1.", "2.", "3.", "4." };
                 String[] answerLabels = { "A)", "B)", "C)", "D)", "E)" };
                 for (int i = 0; i < optionLabels.length; i++) {
-                    model.insertRow(frageRow + 1 + i, new Object[] { optionLabels[i], "", null, "" });
+                    // Always set Solution column to empty string
+                    model.insertRow(frageRow + 1 + i, new Object[] { optionLabels[i], "", null, "", "" });
                 }
                 for (int i = 0; i < answerLabels.length; i++) {
                     String label = answerLabels[i];
                     String text = answerTexts.getOrDefault(label, "");
                     Boolean isCorrect = answerCorrectness.getOrDefault(label, false);
+                    // Always set Solution column to empty string
                     model.insertRow(frageRow + 1 + optionLabels.length + i,
-                            new Object[] { label, text, isCorrect, "" });
+                            new Object[] { label, text, isCorrect, "", "" });
                 }
             }
 
@@ -3337,9 +3303,15 @@ public class MedatoninDB extends JFrame {
                     editorComponent = deleteButton;
                     return editorComponent; // Return immediately
                 } else {
+                    // Defensive: handle Boolean, String, or null
                     Boolean checked = false;
                     if (value instanceof Boolean) {
                         checked = (Boolean) value;
+                    } else if (value instanceof String) {
+                        // Accept "true"/"false" strings
+                        checked = Boolean.parseBoolean((String) value);
+                    } else {
+                        checked = false;
                     }
                     checkBox.setSelected(checked != null && checked);
                     editorComponent = checkBox;
@@ -3356,7 +3328,12 @@ public class MedatoninDB extends JFrame {
             }
 
             if (column == 5 && isFrageRow(row, (DefaultTableModel) table.getModel())) {
-                difficultyCombo.setSelectedItem(value != null ? value.toString() : "MEDIUM");
+                // Defensive: always use string representation for difficulty
+                String diffValue = "MEDIUM";
+                if (value != null) {
+                    diffValue = value.toString();
+                }
+                difficultyCombo.setSelectedItem(diffValue);
                 editorComponent = difficultyCombo;
                 return difficultyCombo;
             }
