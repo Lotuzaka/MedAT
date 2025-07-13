@@ -2402,10 +2402,13 @@ public class MedatoninDB extends JFrame {
                 if ("Figuren".equals(currentSubcategory)) {
                     Object value = getValueAt(row, 1);
                     if (value instanceof FigurenOptionsData || value instanceof List<?>) {
-                        return false; // Make the options row not editable
+                        return false; // Options row not editable
                     }
-                    // The question row is not editable in "Figuren"
-                    return column == 3;
+                    // Allow editing of the checkmark and difficulty for question rows
+                    if (column == 3 || column == 5) {
+                        return true;
+                    }
+                    return false;
                 } else {
                     // For other subcategories, "Text" column is editable
                     if (column == 1) {

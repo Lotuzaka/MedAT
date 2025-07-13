@@ -1,82 +1,69 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
-diff --git a/src/main/java/FigurenGenerator.java b/src/main/java/FigurenGenerator.java
-index f2e5de838738dbbde2d6a2d2977d4824641ab425..9779fcc080d5cc3caa0778f2c4f9845c8fa2ae45 100644
---- a/src/main/java/FigurenGenerator.java
-+++ b/src/main/java/FigurenGenerator.java
-@@ -370,66 +370,57 @@ public class FigurenGenerator {
+diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
+index 330f6f27bdb1675dd012898cdf27ac17d6f2ac80..d47ca30c96d7375f3f04a1d44fd90173c1137788 100644
+--- a/src/main/java/MedatoninDB.java
++++ b/src/main/java/MedatoninDB.java
+@@ -2380,54 +2380,57 @@ public class MedatoninDB extends JFrame {
+         TableColumn column = table.getColumnModel().getColumn(col);
+         column.setMinWidth(min);
+         column.setMaxWidth(max);
+         column.setPreferredWidth(pref);
      }
  
-     /** Distraktoren (andere Formen) */
-     public List<Geometry> generateDistractorShapes(int num) {
-         // Nur die passenden Pools je nach Ausgangsform
-         List<String> polygonShapes = List.of("hexagon", "heptagon", "octagon", "pentagon");
-         List<String> circleShapes = List.of("circle", "half circle", "quarter circle", "three-quarter circle");
- 
-         // Wähle Pool basierend auf shapeType
-         List<String> pool;
-         if (polygonShapes.contains(shapeType)) {
-             pool = new ArrayList<>(polygonShapes);
-         } else if (circleShapes.contains(shapeType)) {
-             pool = new ArrayList<>(circleShapes);
-         } else {
-             // Fallback: im Zweifel alle Formen
-             pool = new ArrayList<>();
-             pool.addAll(polygonShapes);
-             pool.addAll(circleShapes);
+     // Reset the background color of all category buttons to default
+     /**
+      * Resets all category buttons to the default background color.
+      */
+     private void resetCategoryButtons() {
+         Color defaultColor = new Color(221, 221, 221);
+         for (JButton btn : Arrays.asList(bioButton, chemButton, physButton, mathButton, kffButton)) {
+             btn.setBackground(defaultColor);
          }
- 
-         // Entferne die Ursprungsshape selbst
-         pool.remove(shapeType);
- 
-         List<Geometry> out = new ArrayList<>(num);
--        for (int i = 0; i < num; i++) {
--            String candidate;
--            boolean used;
--            do {
--                // 1) neuen Kandidaten ziehen
--                candidate = pool.get(RAND.nextInt(pool.size()));
--                // 2) prüfen, ob er in einem existing-Shape vorkommt
--                used = false;
--                for (Geometry g : out) {
--                    if (g.toString().contains(candidate)) {
--                        used = true;
--                        break;
--                    }
--                }
--            } while (used);
--            // 3) akzeptierten Kandidaten hinzufügen
-+        for (int i = 0; i < num && !pool.isEmpty(); i++) {
-+            // Ziehe einen zufälligen Kandidaten und entferne ihn, damit keine
-+            // Form mehrmals verwendet wird
-+            int index = RAND.nextInt(pool.size());
-+            String candidate = pool.remove(index);
-+
-+            // Füge die gewählte Form als Distraktor hinzu
-             out.add(createShape(candidate, 200, 200, 100));
-         }
-         Collections.shuffle(out);
-         return out;
      }
  
-     /** Panel → Bild */
-     public static BufferedImage getPanelImage(JPanel panel) {
-         Dimension d = panel.getSize();
-         if (d.width <= 0 || d.height <= 0) {
-             d = panel.getPreferredSize();
-             panel.setSize(d.width > 0 ? d.width : 400,
-                     d.height > 0 ? d.height : 400);
-         }
-         BufferedImage img = new BufferedImage(
-                 panel.getWidth(), panel.getHeight(),
-                 BufferedImage.TYPE_INT_ARGB);
-         Graphics2D g2 = img.createGraphics();
-         g2.setColor(Color.WHITE);
-         g2.fillRect(0, 0, panel.getWidth(), panel.getHeight());
-         if (panel.isVisible())
-             panel.printAll(g2);
-         g2.dispose();
-         return img;
-     }
+     // Method to create a new table model with an additional button column
+     private DefaultTableModel createTableModel() {
+         return new DefaultTableModel(new String[] { "Nr.", "Text", "Solution", "✓", "Set", "Diff" }, 0) {
+             @Override
+             public boolean isCellEditable(int row, int column) {
+                 if ("Figuren".equals(currentSubcategory)) {
+                     Object value = getValueAt(row, 1);
+                     if (value instanceof FigurenOptionsData || value instanceof List<?>) {
+-                        return false; // Make the options row not editable
++                        return false; // Options row not editable
+                     }
+-                    // The question row is not editable in "Figuren"
+-                    return column == 3;
++                    // Allow editing of the checkmark and difficulty for question rows
++                    if (column == 3 || column == 5) {
++                        return true;
++                    }
++                    return false;
+                 } else {
+                     // For other subcategories, "Text" column is editable
+                     if (column == 1) {
+                         return true;
+                     }
+                 }
+                 if (column == 3) {
+                     // "✓" column is editable for both question and answer rows
+                     return true;
+                 }
+                 if (column == 4)
+                     return isFrageRow(row, this); // Only allow editing the "Set" column for question rows
+ 
+                 if (column == 5)
+                     return isFrageRow(row, this); // Difficulty nur bei Fragen editierbar
+ 
+                 return false; // "Nr." column is not editable
+             }
+ 
+             @Override
+             public Class<?> getColumnClass(int columnIndex) {
+                 if (columnIndex == 0)
+                     return String.class; // Ensure the first column is always String
+                 if (columnIndex == 1)
+                     return Object.class;
  
 EOF
 )
