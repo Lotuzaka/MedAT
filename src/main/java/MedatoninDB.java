@@ -126,6 +126,9 @@ public class MedatoninDB extends JFrame {
     private Color backgroundColor = Color.WHITE;
     private int buttonBorderRadius = 15; // Border radius for buttons
 
+    private boolean solutionsVisible = true;
+    private TableColumn hiddenSolutionColumn;
+
     // Dropdown to select test simulations
     private JComboBox<String> simulationComboBox;
     private Map<String, Integer> simulationMap; // Maps simulation names to their IDs
@@ -475,10 +478,11 @@ public class MedatoninDB extends JFrame {
         editToggleButton = createModernButton("Arbeitsmodus");
         editToggleButton.setIcon(penIcon);
 
-        // Create a panel for the toggle button
+        // Create a panel for the toggle buttons
         JPanel toggleButtonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         toggleButtonPanel.setBackground(backgroundColor); // Match the panel background to existing layout
         toggleButtonPanel.add(editToggleButton);
+
 
         editToggleButton.setPreferredSize(new Dimension(300, editToggleButton.getPreferredSize().height)); // Adjust the
                                                                                                            // size as
@@ -1631,6 +1635,11 @@ public class MedatoninDB extends JFrame {
             showSetColumn(); // Show the "Set" column
         }
 
+        // Apply solution column visibility setting
+        if (!solutionsVisible) {
+            hideSolutionColumn();
+        }
+
         // Set the selected category button to blue and reset others
         resetCategoryButtons();
         updateCategoryButtonColors(category);
@@ -2414,6 +2423,41 @@ public class MedatoninDB extends JFrame {
             setColumn.setMaxWidth(35);
             setColumn.setPreferredWidth(35);
             setColumn.setHeaderValue("Set");
+        }
+    }
+
+    // Method to hide the "Solution" column
+    private void hideSolutionColumn() {
+        if (questionTable == null || !solutionsVisible) return;
+        TableColumnModel columnModel = questionTable.getColumnModel();
+        int columnIndex = getColumnIndexByName("Solution");
+        if (columnIndex != -1) {
+            hiddenSolutionColumn = columnModel.getColumn(columnIndex);
+            columnModel.removeColumn(hiddenSolutionColumn);
+            hiddenSolutionColumn.setHeaderValue("Solution");
+            solutionsVisible = false;
+        }
+    }
+
+    // Method to show the "Solution" column
+    private void showSolutionColumn() {
+        if (questionTable == null || solutionsVisible) return;
+        TableColumnModel columnModel = questionTable.getColumnModel();
+        if (hiddenSolutionColumn != null) {
+            columnModel.addColumn(hiddenSolutionColumn);
+            hiddenSolutionColumn.setHeaderValue("Solution");
+            int last = columnModel.getColumnCount() - 1;
+            columnModel.moveColumn(last, 2); // place back at index 2
+            adjustColumnWidths(questionTable);
+        }
+        solutionsVisible = true;
+    }
+
+    private void toggleSolutionColumn() {
+        if (solutionsVisible) {
+            hideSolutionColumn();
+        } else {
+            showSolutionColumn();
         }
     }
 
