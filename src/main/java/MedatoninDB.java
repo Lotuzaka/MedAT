@@ -13,7 +13,7 @@ import javax.swing.plaf.basic.*;
 import javax.swing.table.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.FileOutputStream;
+// import java.io.FileOutputStream; // Removed unused import
 import java.io.IOException;
 import java.net.URL;
 import java.sql.*;
@@ -85,6 +85,7 @@ public class MedatoninDB extends JFrame {
     private QuestionDAO questionDAO;
     private OptionDAO optionDAO;
     private testSimulationDAO simulationDAO;
+    private HikariDataSource ds; // Store datasource for proper lifecycle
 
     private String currentUsername; // To store the logged-in username
     // Store sub-databases for each category
@@ -200,12 +201,11 @@ public class MedatoninDB extends JFrame {
         cfg.setJdbcUrl("jdbc:mysql://localhost:3306/medatonindb?useUnicode=true&characterEncoding=UTF-8");
         cfg.setUsername("root");
         cfg.setPassword("288369Ma;");
-        HikariDataSource ds = new HikariDataSource(cfg); // TODO: Close this resource if not managed elsewhere
+        ds = new HikariDataSource(cfg); // Store as a field for later cleanup
         conn = ds.getConnection();
         questionDAO = new QuestionDAO(conn);
         optionDAO = new OptionDAO(conn);
         simulationDAO = new testSimulationDAO(conn);
-
         // SwingUtilities.invokeLater(() -> createLoginWindow());
         createMainWindow();
     }
@@ -565,11 +565,26 @@ public class MedatoninDB extends JFrame {
             printAllCategoriesSolution();
         });
 
-        // Add buttons to the panel and frame
+        // Move Solution toggle button to top right next to Logout
+        JButton solutionToggleButton = createModernButton("Solution");
+        solutionToggleButton.setBackground(new Color(127, 204, 165));
+        solutionToggleButton.setForeground(Color.WHITE);
+        solutionToggleButton.setFont(new Font("SansSerif", Font.BOLD, 14));
+        solutionToggleButton.setFocusPainted(false);
+        solutionToggleButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+        solutionToggleButton.setPreferredSize(new Dimension(120, solutionToggleButton.getPreferredSize().height));
+        solutionToggleButton.addActionListener(e -> {
+            showSolutionColumn = !showSolutionColumn;
+            updateSolutionColumnVisibility();
+        });
+
+        // Add buttons to the panel and frame (bottom panel)
         buttonPanel.add(printCategoryButton);
         buttonPanel.add(printAllButton);
         add(buttonPanel, BorderLayout.SOUTH);
 
+        // Add Solution toggle button to topPanel next to Logout
+        topPanel.add(solutionToggleButton, BorderLayout.EAST);
         // Setze die Ränder von allen relevanten Panels und ScrollPane auf leer
         mainContentPanel.setBorder(BorderFactory.createEmptyBorder()); // Kein Rand für das Hauptinhalt-Panel
         scrollPane.setBorder(BorderFactory.createEmptyBorder()); // Kein Rand für das ScrollPane
@@ -582,9 +597,89 @@ public class MedatoninDB extends JFrame {
         setVisible(true);
     }
 
+    // Flag to control Solution column visibility
+    private boolean showSolutionColumn = true;
+
+    /**
+     * Show/hide the Solution column in all subcategory tables based on showSolutionColumn flag.
+     */
+    private void updateSolutionColumnVisibility() {
+        for (Map<String, DefaultTableModel> subMap : categoryModels.values()) {
+            for (String subcat : subMap.keySet()) {
+                JTable table = getTableForSubcategory(subcat);
+                if (table != null) {
+                    TableColumnModel colModel = table.getColumnModel();
+                    int solutionCol = getColumnIndexByName("Solution");
+                    if (solutionCol != -1) {
+                        TableColumn col = colModel.getColumn(solutionCol);
+                        if (showSolutionColumn) {
+                            // Restore column width and header
+                            col.setMinWidth(120);
+                            col.setMaxWidth(150);
+                            col.setPreferredWidth(130);
+                            col.setHeaderValue("Solution");
+                            col.setWidth(130);
+                        } else {
+                            // Hide column
+                            col.setMinWidth(0);
+                            col.setMaxWidth(0);
+                            col.setPreferredWidth(0);
+                            col.setHeaderValue("");
+                            col.setWidth(0);
+                        }
+                        // Remove and re-add column to force UI update
+                        // (workaround for Swing not updating hidden columns)
+                        colModel.removeColumn(col);
+                        colModel.addColumn(col);
+                        table.revalidate();
+                        table.repaint();
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Helper to get the JTable for a subcategory name (if visible in UI).
+     */
+    private JTable getTableForSubcategory(String subcategory) {
+        for (Component comp : mainContentPanel.getComponents()) {
+            if (comp instanceof JPanel) {
+                JPanel panel = (JPanel) comp;
+                for (Component inner : panel.getComponents()) {
+                    if (inner instanceof JScrollPane) {
+                        JScrollPane scroll = (JScrollPane) inner;
+                        JViewport viewport = scroll.getViewport();
+                        Component view = viewport.getView();
+                        if (view instanceof JTable) {
+                            JTable table = (JTable) view;
+                            if (table.getModel() instanceof DefaultTableModel) {
+                                DefaultTableModel model = (DefaultTableModel) table.getModel();
+                                // Try to match subcategory by model reference
+                                if (categoryModels.get(currentCategory) != null &&
+                                    categoryModels.get(currentCategory).get(subcategory) == model) {
+                                    return table;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
     private void logout() {
         // Close the main window
         this.dispose();
+
+        // Close DB connection and datasource
+        try {
+            if (conn != null && !conn.isClosed()) conn.close();
+            if (ds != null && !ds.isClosed()) ds.close();
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
 
         // Clear the current user
         currentUsername = null;
