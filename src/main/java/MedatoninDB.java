@@ -2232,6 +2232,7 @@ public class MedatoninDB extends JFrame {
                 figurenOptionsData, // Store the FigurenOptionsData object
                 "",
                 false,
+                "",
                 ""
         });
 
@@ -3121,6 +3122,18 @@ public class MedatoninDB extends JFrame {
             checkBox = new JCheckBox();
             checkBox.setHorizontalAlignment(SwingConstants.CENTER);
             checkBox.addActionListener(e -> {
+                // Update the model with a real Boolean value
+                if (editingRow >= 0 && editingColumn == 3) {
+                    table.getModel().setValueAt(checkBox.isSelected(), editingRow, 3);
+                    ((DefaultTableModel) table.getModel()).fireTableCellUpdated(editingRow, 3);
+                    
+                    // Persist to database for option rows
+                    try {
+                        updateOption(editingRow, 3, checkBox.isSelected());
+                    } catch (Exception ex) {
+                        debugLog("DB", LogLevel.ERROR, "CustomEditor", "Failed to update option correctness: " + ex.getMessage());
+                    }
+                }
                 stopCellEditing();
                 table.repaint(); // Force the table to repaint
             });
@@ -3130,9 +3143,54 @@ public class MedatoninDB extends JFrame {
 
             // Difficulty ComboBox initialisieren
             difficultyCombo = new JComboBox<>(new String[] { "EASY", "MEDIUM", "HARD" });
-            difficultyCombo.setBackground(Color.WHITE);
             difficultyCombo.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200), 1));
             difficultyCombo.setFocusable(false);
+            
+            // Custom UI to remove arrow and maintain background color
+            difficultyCombo.setUI(new BasicComboBoxUI() {
+                @Override
+                protected JButton createArrowButton() {
+                    // Return a completely empty button with no space
+                    JButton button = new JButton();
+                    button.setPreferredSize(new Dimension(0, 0));
+                    button.setMinimumSize(new Dimension(0, 0));
+                    button.setMaximumSize(new Dimension(0, 0));
+                    button.setVisible(false);
+                    button.setBorder(null);
+                    return button;
+                }
+                
+                @Override
+                protected Rectangle rectangleForCurrentValue() {
+                    // Make the current value area take up the entire component
+                    int width = comboBox.getWidth();
+                    int height = comboBox.getHeight();
+                    Insets insets = getInsets();
+                    return new Rectangle(insets.left, insets.top, 
+                        width - (insets.left + insets.right), 
+                        height - (insets.top + insets.bottom));
+                }
+                
+                @Override
+                public void paintCurrentValueBackground(Graphics g, Rectangle bounds, boolean hasFocus) {
+                    // Paint the background with the difficulty color
+                    String currentValue = (String) difficultyCombo.getSelectedItem();
+                    Color bg = Color.WHITE;
+                    if (currentValue != null) {
+                        String diffStr = currentValue.toLowerCase();
+                        if ("easy".equals(diffStr)) {
+                            bg = new Color(127, 204, 165, 75); // green
+                        } else if ("medium".equals(diffStr)) {
+                            bg = new Color(255, 191, 71, 75); // orange
+                        } else if ("hard".equals(diffStr)) {
+                            bg = new Color(255, 71, 71, 75); // red
+                        }
+                    }
+                    g.setColor(bg);
+                    g.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
+                }
+            });
+            
             // Custom Renderer: colored rectangle, no text, same size as cell
             difficultyCombo.setRenderer(new DefaultListCellRenderer() {
                 @Override
@@ -3315,7 +3373,7 @@ public class MedatoninDB extends JFrame {
                 String label = model.getValueAt(rowIndex, 0).toString();
                 if (label.matches("[A-E]\\)")) {
                     answerTexts.put(label, model.getValueAt(rowIndex, 1).toString());
-                    Object correctObj = model.getValueAt(rowIndex, 2);
+                    Object correctObj = model.getValueAt(rowIndex, 3); // ✓ column is index 3, not 2
                     answerCorrectness.put(label, correctObj instanceof Boolean && (Boolean) correctObj);
                 }
                 model.removeRow(rowIndex);
@@ -3330,14 +3388,14 @@ public class MedatoninDB extends JFrame {
                     String text = answerTexts.getOrDefault(label, "");
                     Boolean isCorrect = answerCorrectness.getOrDefault(label, false);
                     // Always set Solution column to empty string
-                    model.insertRow(frageRow + 1 + i, new Object[] { label, text, "", isCorrect, "" });
+                    model.insertRow(frageRow + 1 + i, new Object[] { label, text, "", isCorrect, "", "" });
                 }
             } else if ("Lang".equals(newFormat)) {
                 String[] optionLabels = { "1.", "2.", "3.", "4." };
                 String[] answerLabels = { "A)", "B)", "C)", "D)", "E)" };
                 for (int i = 0; i < optionLabels.length; i++) {
-                    // Always set Solution column to empty string
-                    model.insertRow(frageRow + 1 + i, new Object[] { optionLabels[i], "", "", null, "" });
+                    // Set ✓ column to false (not null) for option rows
+                    model.insertRow(frageRow + 1 + i, new Object[] { optionLabels[i], "", "", false, "", "" });
                 }
                 for (int i = 0; i < answerLabels.length; i++) {
                     String label = answerLabels[i];
@@ -3345,7 +3403,7 @@ public class MedatoninDB extends JFrame {
                     Boolean isCorrect = answerCorrectness.getOrDefault(label, false);
                     // Always set Solution column to empty string
                     model.insertRow(frageRow + 1 + optionLabels.length + i,
-                            new Object[] { label, text, "", isCorrect, "" });
+                            new Object[] { label, text, "", isCorrect, "", "" });
                 }
             }
 
@@ -3375,7 +3433,7 @@ public class MedatoninDB extends JFrame {
 
         @Override
         public Object getCellEditorValue() {
-            if (editingColumn == 2) {
+            if (editingColumn == 3) {
                 if (editorComponent == deleteButton) {
                     return "X";
                 } else if (editorComponent == checkBox) {
@@ -3676,11 +3734,11 @@ public class MedatoninDB extends JFrame {
                 String label = option.getLabel();
                 // Defensive: always use option.getText() for option text, preserving umlauts
                 if (isLang && label.matches("\\d+\\.")) {
-                    model.addRow(new Object[] { label, option.getText(), "", option.isCorrect(), "" });
+                    model.addRow(new Object[] { label, option.getText(), "", option.isCorrect(), "", "" });
                 } else if (isLang && label.matches("[A-E]")) {
-                    model.addRow(new Object[] { label, option.getText(), "", option.isCorrect(), "" });
+                    model.addRow(new Object[] { label, option.getText(), "", option.isCorrect(), "", "" });
                 } else if (!isLang && label.matches("[A-E]")) {
-                    model.addRow(new Object[] { label + ")", option.getText(), "", option.isCorrect(), "" });
+                    model.addRow(new Object[] { label + ")", option.getText(), "", option.isCorrect(), "", "" });
                 }
             }
         } catch (SQLException e) {
@@ -3728,7 +3786,7 @@ public class MedatoninDB extends JFrame {
 
             // Option panel: only show options in grey, no solution
             FigurenOptionsData figurenOptionsData = new FigurenOptionsData(options, dissectedPieces);
-            model.addRow(new Object[] { "", figurenOptionsData, "", false, "" });
+            model.addRow(new Object[] { "", figurenOptionsData, "", false, "", "" });
         } catch (Exception e) {
             debugLog("DB", "Error loading Figuren question ID " + question.getId() + ": " + e.getMessage());
             e.printStackTrace();
@@ -3904,9 +3962,12 @@ public class MedatoninDB extends JFrame {
                     String optionText = (String) data;
                     optionDAO.updateOptionText(questionId, label, optionText, selectedSimulationId);
                     break;
-                case 2: // Is correct
+                case 2: // Solution column (not used for options)
+                    break;
+                case 3: // Is correct (✓ column)
                     boolean isCorrect = (boolean) data;
                     optionDAO.updateOptionCorrectness(questionId, label, isCorrect, selectedSimulationId);
+                    debugLog("DB", LogLevel.INFO, "updateOption", "Updated correctness for option " + label + " to " + isCorrect);
                     break;
             }
         } catch (SQLException e) {

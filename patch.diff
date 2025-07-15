@@ -1,35 +1,35 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
 diff --git a/src/main/java/CustomRenderer.java b/src/main/java/CustomRenderer.java
-index f811b20c964006dbb82156e113f002e6a7023ebe..5a3045097aaf701db28158937e24302ea6c4c2cf 100644
+index c41a09e2591d8dab794d5c608ed640901a99d269..43db0f94549e3d76ab8a835fb2e4d64367537209 100644
 --- a/src/main/java/CustomRenderer.java
 +++ b/src/main/java/CustomRenderer.java
-@@ -1,36 +1,37 @@
+@@ -1,51 +1,41 @@
  import javax.swing.*;
  import javax.swing.table.*;
  import java.awt.*;
+ import java.awt.geom.Ellipse2D;
  import java.io.IOException;
  import java.nio.file.Path;
  import java.nio.file.Paths;
  import java.util.*;
  import java.util.List;
--import org.locationtech.jts.geom.Geometry;
-+import org.locationtech.jts.geom.*;
+ import org.locationtech.jts.geom.*;
  import org.locationtech.jts.io.ParseException;
  import org.locationtech.jts.io.WKTReader;
-+import org.locationtech.jts.awt.ShapeWriter;
+ import org.locationtech.jts.awt.ShapeWriter;
  import svg.SvgBuilder;
  import util.*;
  
- // Data holder for Figuren options and dissected pieces (copied from MedatoninDB)
- class FigurenOptionsData {
-     public final List<OptionDAO> options;
-     public final FigurenGenerator.DissectedPieces dissectedPieces;
-     public FigurenOptionsData(List<OptionDAO> options, FigurenGenerator.DissectedPieces dissectedPieces) {
-         this.options = options;
-         this.dissectedPieces = dissectedPieces;
-     }
- }
- 
+-// Data holder for Figuren options and dissected pieces (copied from MedatoninDB)
+-class FigurenOptionsData {
+-    public final List<OptionDAO> options;
+-    public final FigurenGenerator.DissectedPieces dissectedPieces;
+-    public FigurenOptionsData(List<OptionDAO> options, FigurenGenerator.DissectedPieces dissectedPieces) {
+-        this.options = options;
+-        this.dissectedPieces = dissectedPieces;
+-    }
+-}
+-
  // Enum for question difficulty (copied from MedatoninDB)
  enum Difficulty {
      EASY(new Color(150, 190, 152), "●"),
@@ -42,165 +42,78 @@ index f811b20c964006dbb82156e113f002e6a7023ebe..5a3045097aaf701db28158937e24302e
          this.symbol = symbol;
      }
  }
+ 
+ public class CustomRenderer extends DefaultTableCellRenderer {
+     // Helper for difficulty color
+     private Color getDifficultyColor(String difficulty) {
+         if (difficulty == null) return Color.WHITE;
+         switch (difficulty.toLowerCase()) {
+             case "easy":
+             case "leicht":
+                 return new Color(150, 190, 152); // green
+             case "medium":
+             case "mittel":
+                 return new Color(247, 181, 127); // orange
+             case "hard":
 diff --git a/src/main/java/CustomRenderer.java b/src/main/java/CustomRenderer.java
-index f811b20c964006dbb82156e113f002e6a7023ebe..5a3045097aaf701db28158937e24302ea6c4c2cf 100644
+index c41a09e2591d8dab794d5c608ed640901a99d269..43db0f94549e3d76ab8a835fb2e4d64367537209 100644
 --- a/src/main/java/CustomRenderer.java
 +++ b/src/main/java/CustomRenderer.java
-@@ -293,71 +294,154 @@ public class CustomRenderer extends DefaultTableCellRenderer {
-             Object cellValue = model.getValueAt(row, 3);
-             if (cellValue instanceof Boolean) {
-                 isChecked = (Boolean) cellValue;
-             } else if (cellValue instanceof String) {
-                 String str = (String) cellValue;
-                 isChecked = str.equalsIgnoreCase("true") || str.equals("1");
-             } else if (cellValue != null) {
-                 String str = cellValue.toString();
-                 isChecked = str.equalsIgnoreCase("true") || str.equals("1");
-             }
-             if (isChecked) {
-                 c.setBackground(new Color(127, 204, 165, 75));
-             }
-         }
+@@ -59,52 +49,52 @@ public class CustomRenderer extends DefaultTableCellRenderer {
+     private final Set<QuestionIdentifier> pendingDeleteQuestions;
+     private final Icon gearIcon;
  
-         // Diff cell: editable dropdown, colored background only (no text/symbols)
-         if (column == 5 && isFrageRow(row, (DefaultTableModel) table.getModel())) {
-             String difficulty = (value != null) ? value.toString().toLowerCase() : "";
-             c.setBackground(getDifficultyColor(difficulty));
-             if (c instanceof JLabel) {
-                 // Remove any text/symbols, just show colored rectangle
-                 ((JLabel) c).setText("");
-             }
-             return c;
-         }
-+
-+        // Show Euler diagram for Implikationen solution column
-+        if ("Implikationen".equals(currentSubcategory) && isQuestionRow && column == 2) {
-+            Object qTextObj = model.getValueAt(row, 1);
-+            if (qTextObj instanceof String text && text.contains("\n")) {
-+                String[] lines = text.split("\n");
-+                if (lines.length >= 2) {
-+                    JPanel panel = createEulerPanel(lines[0].trim(), lines[1].trim());
-+                    panel.setPreferredSize(new Dimension(200, 200));
-+                    return panel;
-+                }
-+            }
-+        }
-         return c;
+     public CustomRenderer(String currentSubcategory, Set<QuestionIdentifier> pendingDeleteQuestions, Icon gearIcon) {
+         this.currentSubcategory = currentSubcategory;
+         this.pendingDeleteQuestions = pendingDeleteQuestions;
+         this.gearIcon = gearIcon;
      }
  
-     /**
-      * Renders the Euler diagram for two premises as an SVG file.
-      *
-      * @param major first premise (e.g. "Alle A sind B.")
-      * @param minor second premise (e.g. "Einige B sind nicht C.")
-      * @param terms optional labels for the circles; if null labels are taken from the premises
-      * @return path to the generated SVG file
-      */
-     public static Path renderEuler(String major, String minor, List<String> terms) throws IOException {
-         Sentence s1 = SyllogismUtils.parseSentence(major);
-         Sentence s2 = SyllogismUtils.parseSentence(minor);
- 
-         int[] mask = Objects.requireNonNull(
-                 SyllogismUtils.DIAGRAM_MASKS.get(Pair.of(s1.type(), s2.type())),
-                 "unknown combination");
- 
-         List<String> labels;
-         if (terms != null && terms.size() >= 3) {
-             labels = terms;
-         } else {
-             labels = List.of(s1.subject(), s1.predicate(), s2.predicate());
-         }
- 
-         SvgBuilder svg = new SvgBuilder(300, 300);
-         svg.setupCircles(120, 150, 80,
-                         180, 150, 80,
-                         150,  80, 80);
- 
-         for (int i = 0; i < mask.length; i++) {
-             if (mask[i] == 1) {
-                 svg.fillRegion(i, Color.LIGHT_GRAY);
-             }
-         }
- 
-         svg.addText("labelA", labels.get(0),  60, 240);
-         svg.addText("labelB", labels.get(1), 240, 240);
-         svg.addText("labelC", labels.get(2), 150,  30);
- 
-         Path dir = Paths.get(System.getProperty("java.io.tmpdir"));
-         String fileName = "diagram_" + UUID.randomUUID() + ".svg";
-         return svg.saveSvg(dir, fileName);
+     private boolean isFrageRow(int row, DefaultTableModel model) {
+         // A row is a question row if the value in column 0 is a string of digits
+         if (row < 0 || row >= model.getRowCount()) return false;
+         Object value = model.getValueAt(row, 0);
+         if (value == null) return false;
+         String strValue = value.toString();
+         return strValue.matches("\\d+");
      }
-+
-+    private static JPanel createEulerPanel(String major, String minor) {
-+        Sentence s1 = SyllogismUtils.parseSentence(major);
-+        Sentence s2 = SyllogismUtils.parseSentence(minor);
-+        int[] mask = Objects.requireNonNull(
-+                SyllogismUtils.DIAGRAM_MASKS.get(Pair.of(s1.type(), s2.type())),
-+                "unknown combination");
-+        List<String> lbl = List.of(s1.subject(), s1.predicate(), s2.predicate());
-+        return new EulerPanel(mask, lbl);
-+    }
-+
-+    private static class EulerPanel extends JPanel {
-+        private final List<Geometry> regions = new ArrayList<>();
-+        private final int[] mask;
-+        private final List<String> labels;
-+        private final GeometryFactory gf = new GeometryFactory();
-+        private final ShapeWriter sw = new ShapeWriter();
-+
-+        EulerPanel(int[] mask, List<String> labels) {
-+            this.mask = mask;
-+            this.labels = labels;
-+            setupRegions();
-+            setPreferredSize(new Dimension(300, 300));
-+            setOpaque(true);
-+        }
-+
-+        private void setupRegions() {
-+            Geometry A = circle(120, 150, 80);
-+            Geometry B = circle(180, 150, 80);
-+            Geometry C = circle(150, 80, 80);
-+            regions.add(A.difference(B.union(C)));                //0
-+            regions.add(A.intersection(B).difference(C));         //1
-+            regions.add(B.difference(A.union(C)));                //2
-+            regions.add(A.intersection(B).intersection(C));       //3
-+            regions.add(C.difference(A.union(B)));                //4
-+            regions.add(A.intersection(C).difference(B));         //5
-+            regions.add(B.intersection(C).difference(A));         //6
-+            regions.add(gf.createPolygon());                      //7
-+        }
-+
-+        private Polygon circle(double x, double y, double r) {
-+            return (Polygon) gf.createPoint(new Coordinate(x, y)).buffer(r);
-+        }
-+
-+        @Override
-+        protected void paintComponent(Graphics g) {
-+            super.paintComponent(g);
-+            Graphics2D g2 = (Graphics2D) g;
-+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-+            g2.setColor(Color.WHITE);
-+            g2.fillRect(0, 0, getWidth(), getHeight());
-+
-+            g2.setColor(Color.LIGHT_GRAY);
-+            for (int i = 0; i < mask.length && i < regions.size(); i++) {
-+                if (mask[i] == 1) {
-+                    Shape s = sw.toShape(regions.get(i));
-+                    g2.fill(s);
-+                }
-+            }
-+
-+            g2.setColor(Color.BLACK);
-+            g2.draw(new Ellipse2D.Double(40, 70, 160, 160));
-+            g2.draw(new Ellipse2D.Double(120, 70, 160, 160));
-+            g2.draw(new Ellipse2D.Double(80, -0, 160, 160));
-+
-+            g2.drawString(labels.get(0), 60, 260);
-+            g2.drawString(labels.get(1), 240, 260);
-+            g2.drawString(labels.get(2), 150, 40);
-+        }
-+    }
- }
+ 
+     @Override
+     public Component getTableCellRendererComponent(JTable table, Object value,
+             boolean isSelected, boolean hasFocus, int row, int column) {
+         DefaultTableModel model = (DefaultTableModel) table.getModel();
+         boolean isQuestionRow = isFrageRow(row, model);
+ 
+         // Defensive: always render FigurenOptionsData panel if value is FigurenOptionsData
+-        if (value instanceof FigurenOptionsData) {
+-            FigurenOptionsData data = (FigurenOptionsData) value;
++        if (value instanceof MedatoninDB.FigurenOptionsData) {
++            MedatoninDB.FigurenOptionsData data = (MedatoninDB.FigurenOptionsData) value;
+             List<OptionDAO> options = data.options;
+ 
+             JPanel optionsPanel = new JPanel();
+             optionsPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 20, 10));
+             optionsPanel.setBackground(Color.WHITE);
+ 
+             for (OptionDAO option : options) {
+                 JPanel optionPanel = new JPanel(new BorderLayout());
+                 optionPanel.setBackground(Color.WHITE);
+                 optionPanel.setOpaque(true);
+ 
+                 PolygonPanel shapePanel;
+ 
+                 if ("E".equalsIgnoreCase(option.getLabel())) {
+                     JLabel optionELabel = new JLabel("Option E: X");
+                     optionELabel.setFont(optionELabel.getFont().deriveFont(Font.BOLD));
+                     optionsPanel.add(optionELabel);
+                     continue;
+                 }
+ 
+                 try {
+                     shapePanel = new PolygonPanel(
+                             Collections.singletonList(new WKTReader().read(option.getShapeData())));
+                     shapePanel.setAssembled(false);
+                 } catch (ParseException e) {
  
 EOF
 )

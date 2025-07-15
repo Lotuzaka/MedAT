@@ -82,6 +82,31 @@ public class SvgBuilder {
                 id, x, y, text));
     }
 
+    /**
+     * Adds a green dot marker to indicate existence claims in the specified region.
+     */
+    public void addExistenceMarker(int regionIndex) {
+        // Define approximate center points for each region (matching EulerPanel)
+        double[] regionCenters = {
+            28, 45,   // Region 0: A only
+            44, 45,   // Region 1: A ∩ B only  
+            60, 45,   // Region 2: B only
+            50, 38,   // Region 3: A ∩ B ∩ C
+            50, 18,   // Region 4: C only
+            40, 30,   // Region 5: A ∩ C only
+            60, 30,   // Region 6: B ∩ C only
+            80, 80    // Region 7: Outside (unused)
+        };
+        
+        if (regionIndex < regionCenters.length / 2) {
+            double x = regionCenters[regionIndex * 2];
+            double y = regionCenters[regionIndex * 2 + 1];
+            
+            // Add a small green circle with white border
+            sb.append(String.format("<circle cx='%.1f' cy='%.1f' r='3' fill='rgb(0,150,0)' stroke='white' stroke-width='1'/>", x, y));
+        }
+    }
+
     public Path saveSvg(Path dir, String fileName) throws IOException {
         Files.createDirectories(dir);
         Path out = dir.resolve(fileName);

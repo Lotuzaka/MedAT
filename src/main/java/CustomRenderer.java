@@ -14,15 +14,7 @@ import org.locationtech.jts.awt.ShapeWriter;
 import svg.SvgBuilder;
 import util.*;
 
-// Data holder for Figuren options and dissected pieces (copied from MedatoninDB)
-class FigurenOptionsData {
-    public final List<OptionDAO> options;
-    public final FigurenGenerator.DissectedPieces dissectedPieces;
-    public FigurenOptionsData(List<OptionDAO> options, FigurenGenerator.DissectedPieces dissectedPieces) {
-        this.options = options;
-        this.dissectedPieces = dissectedPieces;
-    }
-}
+
 
 // Enum for question difficulty (copied from MedatoninDB)
 enum Difficulty {
@@ -80,9 +72,9 @@ public class CustomRenderer extends DefaultTableCellRenderer {
         DefaultTableModel model = (DefaultTableModel) table.getModel();
         boolean isQuestionRow = isFrageRow(row, model);
 
-        // Defensive: always render FigurenOptionsData panel if value is FigurenOptionsData
-        if (value instanceof FigurenOptionsData) {
-            FigurenOptionsData data = (FigurenOptionsData) value;
+        // Defensive: always render FigurenOptionsData panel if value is MedatoninDB.FigurenOptionsData
+        if (value instanceof MedatoninDB.FigurenOptionsData) {
+            MedatoninDB.FigurenOptionsData data = (MedatoninDB.FigurenOptionsData) value;
             List<OptionDAO> options = data.options;
 
             JPanel optionsPanel = new JPanel();
@@ -125,6 +117,13 @@ public class CustomRenderer extends DefaultTableCellRenderer {
             }
 
             return optionsPanel;
+        }
+        // Fange den Fall ab, dass value ein String ist, der wie ein Objekt aussieht
+        if (value instanceof String && ((String)value).startsWith("MedatoninDB$FigurenOptionsData@")) {
+            JPanel errorPanel = new JPanel();
+            errorPanel.setBackground(Color.WHITE);
+            errorPanel.add(new JLabel("[Fehler] FigurenOptionsData als String!"));
+            return errorPanel;
         }
 
         // Render figures for question rows (Figuren)
@@ -357,6 +356,9 @@ public class CustomRenderer extends DefaultTableCellRenderer {
             int[] mask = Objects.requireNonNull(
                     SyllogismUtils.DIAGRAM_MASKS.get(Pair.of(s1.type(), s2.type())),
                     "unknown combination");
+            int[] existenceMarkers = Objects.requireNonNull(
+                    SyllogismUtils.EXISTENCE_MARKERS.get(Pair.of(s1.type(), s2.type())),
+                    "unknown existence markers");
 
             List<String> labels;
             if (terms != null && terms.size() >= 3) {
@@ -371,9 +373,17 @@ public class CustomRenderer extends DefaultTableCellRenderer {
                             66, 55, 32,
                             55, 28, 32);
 
+            // Fill eliminated regions
             for (int i = 0; i < mask.length; i++) {
                 if (mask[i] == 1) {
                     svg.fillRegion(i, Color.LIGHT_GRAY);
+                }
+            }
+
+            // Add existence markers (green dots) for particular claims
+            for (int i = 0; i < existenceMarkers.length; i++) {
+                if (existenceMarkers[i] == 1 && mask[i] == 0) { // Only if region not eliminated
+                    svg.addExistenceMarker(i);
                 }
             }
 
@@ -397,8 +407,11 @@ public class CustomRenderer extends DefaultTableCellRenderer {
             int[] mask = Objects.requireNonNull(
                     SyllogismUtils.DIAGRAM_MASKS.get(Pair.of(s1.type(), s2.type())),
                     "unknown combination");
+            int[] existenceMarkers = Objects.requireNonNull(
+                    SyllogismUtils.EXISTENCE_MARKERS.get(Pair.of(s1.type(), s2.type())),
+                    "unknown existence markers");
             List<String> lbl = List.of(s1.subject(), s1.predicate(), s2.predicate());
-            return new EulerPanel(mask, lbl);
+            return new EulerPanel(mask, existenceMarkers, lbl);
         } catch (IllegalArgumentException e) {
             // If sentence parsing fails, return a simple error panel
             JPanel errorPanel = new JPanel();
@@ -411,12 +424,14 @@ public class CustomRenderer extends DefaultTableCellRenderer {
     private static class EulerPanel extends JPanel {
         private final List<Geometry> regions = new ArrayList<>();
         private final int[] mask;
+        private final int[] existenceMarkers;
         private final List<String> labels;
         private final GeometryFactory gf = new GeometryFactory();
         private final ShapeWriter sw = new ShapeWriter();
 
-        EulerPanel(int[] mask, List<String> labels) {
+        EulerPanel(int[] mask, int[] existenceMarkers, List<String> labels) {
             this.mask = mask;
+            this.existenceMarkers = existenceMarkers;
             this.labels = labels;
             setupRegions();
             // Make default preferred size even smaller for Implikationen
@@ -451,6 +466,7 @@ public class CustomRenderer extends DefaultTableCellRenderer {
             g2.setColor(Color.WHITE);
             g2.fillRect(0, 0, getWidth(), getHeight());
 
+            // Fill eliminated regions with light gray
             g2.setColor(Color.LIGHT_GRAY);
             for (int i = 0; i < mask.length && i < regions.size(); i++) {
                 if (mask[i] == 1) {
@@ -465,10 +481,49 @@ public class CustomRenderer extends DefaultTableCellRenderer {
             g2.draw(new Ellipse2D.Double(36, 23, 64, 64)); // Circle B
             g2.draw(new Ellipse2D.Double(24, 0, 64, 64));  // Circle C
 
+            // Draw existence markers (green dots) for particular claims
+            g2.setColor(new Color(0, 150, 0)); // Dark green
+            for (int i = 0; i < existenceMarkers.length && i < regions.size(); i++) {
+                if (existenceMarkers[i] == 1 && mask[i] == 0) { // Only if region not eliminated
+                    drawExistenceMarker(g2, i);
+                }
+            }
+
             // Draw larger labels
+            g2.setColor(Color.BLACK);
             g2.drawString(labels.get(0), 32, 98);
             g2.drawString(labels.get(1), 88, 98);
             g2.drawString(labels.get(2), 55, 28);
+        }
+
+        /**
+         * Draws a small green dot in the specified region to indicate existence claims.
+         */
+        private void drawExistenceMarker(Graphics2D g2, int regionIndex) {
+            // Define approximate center points for each region
+            int[] regionCenters = {
+                28, 45,   // Region 0: A only
+                44, 45,   // Region 1: A ∩ B only  
+                60, 45,   // Region 2: B only
+                50, 38,   // Region 3: A ∩ B ∩ C
+                50, 18,   // Region 4: C only
+                40, 30,   // Region 5: A ∩ C only
+                60, 30,   // Region 6: B ∩ C only
+                80, 80    // Region 7: Outside (unused)
+            };
+            
+            if (regionIndex < regionCenters.length / 2) {
+                int x = regionCenters[regionIndex * 2];
+                int y = regionCenters[regionIndex * 2 + 1];
+                
+                // Draw a small filled circle (dot)
+                g2.fillOval(x - 3, y - 3, 6, 6);
+                
+                // Add a white border for better visibility
+                g2.setColor(Color.WHITE);
+                g2.drawOval(x - 3, y - 3, 6, 6);
+                g2.setColor(new Color(0, 150, 0)); // Restore green color
+            }
         }
     }
 }
