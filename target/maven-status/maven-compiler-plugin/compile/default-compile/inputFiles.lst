@@ -1,8 +1,11 @@
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\CategoryDAO.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\categorySubcategoryOrder.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\CustomRenderer.java
+C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\dao\AllergyCardDAO.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\FigurenGenerator.java
+C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\generator\MerkfaehigkeitGenerator.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\MedatoninDB.java
+C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\model\AllergyCardData.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\OptionDAO.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\PolygonPanel.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\QuestionDAO.java
@@ -13,6 +16,8 @@ C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\SubcategoryDA
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\svg\SvgBuilder.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\SyllogismGenerator.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\testSimulationDAO.java
+C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\ui\merkfaehigkeit\AllergyCardGridPanel.java
+C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\ui\merkfaehigkeit\AllergyCardPanel.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\util\Pair.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\util\Sentence.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\util\SyllogismUtils.java

@@ -1,119 +1,495 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
-diff --git a/src/main/java/CustomRenderer.java b/src/main/java/CustomRenderer.java
-index c41a09e2591d8dab794d5c608ed640901a99d269..43db0f94549e3d76ab8a835fb2e4d64367537209 100644
---- a/src/main/java/CustomRenderer.java
-+++ b/src/main/java/CustomRenderer.java
-@@ -1,51 +1,41 @@
- import javax.swing.*;
- import javax.swing.table.*;
- import java.awt.*;
- import java.awt.geom.Ellipse2D;
- import java.io.IOException;
- import java.nio.file.Path;
- import java.nio.file.Paths;
- import java.util.*;
- import java.util.List;
- import org.locationtech.jts.geom.*;
- import org.locationtech.jts.io.ParseException;
- import org.locationtech.jts.io.WKTReader;
- import org.locationtech.jts.awt.ShapeWriter;
- import svg.SvgBuilder;
- import util.*;
- 
--// Data holder for Figuren options and dissected pieces (copied from MedatoninDB)
--class FigurenOptionsData {
--    public final List<OptionDAO> options;
--    public final FigurenGenerator.DissectedPieces dissectedPieces;
--    public FigurenOptionsData(List<OptionDAO> options, FigurenGenerator.DissectedPieces dissectedPieces) {
--        this.options = options;
--        this.dissectedPieces = dissectedPieces;
--    }
--}
--
- // Enum for question difficulty (copied from MedatoninDB)
- enum Difficulty {
-     EASY(new Color(150, 190, 152), "●"),
-     MEDIUM(new Color(247, 181, 127), "●●"),
-     HARD(new Color(233, 151, 151), "●●●");
-     public final Color color;
-     public final String symbol;
-     Difficulty(Color color, String symbol) {
-         this.color = color;
-         this.symbol = symbol;
-     }
- }
- 
- public class CustomRenderer extends DefaultTableCellRenderer {
-     // Helper for difficulty color
-     private Color getDifficultyColor(String difficulty) {
-         if (difficulty == null) return Color.WHITE;
-         switch (difficulty.toLowerCase()) {
-             case "easy":
-             case "leicht":
-                 return new Color(150, 190, 152); // green
-             case "medium":
-             case "mittel":
-                 return new Color(247, 181, 127); // orange
-             case "hard":
-diff --git a/src/main/java/CustomRenderer.java b/src/main/java/CustomRenderer.java
-index c41a09e2591d8dab794d5c608ed640901a99d269..43db0f94549e3d76ab8a835fb2e4d64367537209 100644
---- a/src/main/java/CustomRenderer.java
-+++ b/src/main/java/CustomRenderer.java
-@@ -59,52 +49,52 @@ public class CustomRenderer extends DefaultTableCellRenderer {
-     private final Set<QuestionIdentifier> pendingDeleteQuestions;
-     private final Icon gearIcon;
- 
-     public CustomRenderer(String currentSubcategory, Set<QuestionIdentifier> pendingDeleteQuestions, Icon gearIcon) {
-         this.currentSubcategory = currentSubcategory;
-         this.pendingDeleteQuestions = pendingDeleteQuestions;
-         this.gearIcon = gearIcon;
-     }
- 
-     private boolean isFrageRow(int row, DefaultTableModel model) {
-         // A row is a question row if the value in column 0 is a string of digits
-         if (row < 0 || row >= model.getRowCount()) return false;
-         Object value = model.getValueAt(row, 0);
-         if (value == null) return false;
-         String strValue = value.toString();
-         return strValue.matches("\\d+");
-     }
- 
-     @Override
-     public Component getTableCellRendererComponent(JTable table, Object value,
-             boolean isSelected, boolean hasFocus, int row, int column) {
-         DefaultTableModel model = (DefaultTableModel) table.getModel();
-         boolean isQuestionRow = isFrageRow(row, model);
- 
-         // Defensive: always render FigurenOptionsData panel if value is FigurenOptionsData
--        if (value instanceof FigurenOptionsData) {
--            FigurenOptionsData data = (FigurenOptionsData) value;
-+        if (value instanceof MedatoninDB.FigurenOptionsData) {
-+            MedatoninDB.FigurenOptionsData data = (MedatoninDB.FigurenOptionsData) value;
-             List<OptionDAO> options = data.options;
- 
-             JPanel optionsPanel = new JPanel();
-             optionsPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 20, 10));
-             optionsPanel.setBackground(Color.WHITE);
- 
-             for (OptionDAO option : options) {
-                 JPanel optionPanel = new JPanel(new BorderLayout());
-                 optionPanel.setBackground(Color.WHITE);
-                 optionPanel.setOpaque(true);
- 
-                 PolygonPanel shapePanel;
- 
-                 if ("E".equalsIgnoreCase(option.getLabel())) {
-                     JLabel optionELabel = new JLabel("Option E: X");
-                     optionELabel.setFont(optionELabel.getFont().deriveFont(Font.BOLD));
-                     optionsPanel.add(optionELabel);
-                     continue;
-                 }
- 
-                 try {
-                     shapePanel = new PolygonPanel(
-                             Collections.singletonList(new WKTReader().read(option.getShapeData())));
-                     shapePanel.setAssembled(false);
-                 } catch (ParseException e) {
+diff --git a/src/main/java/dao/AllergyCardDAO.java b/src/main/java/dao/AllergyCardDAO.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..88a9093f506abaa0acd4cb0b46fca21a9d4e8298
+--- /dev/null
++++ b/src/main/java/dao/AllergyCardDAO.java
+@@ -0,0 +1,43 @@
++package dao;
++
++import model.AllergyCardData;
++
++import java.sql.Connection;
++import java.sql.PreparedStatement;
++import java.sql.SQLException;
++import java.util.List;
++
++/** DAO for persisting allergy cards. */
++public class AllergyCardDAO {
++    private final Connection conn;
++
++    public AllergyCardDAO(Connection conn) {
++        this.conn = conn;
++    }
++
++    public void insertAll(List<AllergyCardData> cards, int sessionId) throws SQLException {
++        String sql = "INSERT INTO allergy_card(test_session_id,idx,name,dob,medication,blood_group,allergies,card_no,country,image_png) " +
++                "VALUES(?,?,?,?,?,?,?,?,?,?)";
++        try (PreparedStatement ps = conn.prepareStatement(sql)) {
++            for (int i=0;i<cards.size();i++) {
++                AllergyCardData d = cards.get(i);
++                ps.setInt(1, sessionId);
++                ps.setInt(2, i);
++                ps.setString(3, d.name());
++                if(d.geburtsdatum()!=null) {
++                    ps.setDate(4, java.sql.Date.valueOf(d.geburtsdatum()));
++                } else {
++                    ps.setDate(4, null);
++                }
++                ps.setString(5, d.medikamenteneinnahme());
++                ps.setString(6, d.blutgruppe());
++                ps.setString(7, d.bekannteAllergien());
++                ps.setString(8, d.ausweisnummer());
++                ps.setString(9, d.ausstellungsland());
++                ps.setBytes(10, d.bildPng());
++                ps.addBatch();
++            }
++            ps.executeBatch();
++        }
++    }
++}
+diff --git a/src/main/java/generator/MerkfaehigkeitGenerator.java b/src/main/java/generator/MerkfaehigkeitGenerator.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..a8d107c3cc7d32acee031cf0a299174e1060de84
+--- /dev/null
++++ b/src/main/java/generator/MerkfaehigkeitGenerator.java
+@@ -0,0 +1,102 @@
++package generator;
++
++import dao.AllergyCardDAO;
++import model.AllergyCardData;
++import ui.merkfaehigkeit.AllergyCardGridPanel;
++
++import javax.swing.*;
++import java.awt.*;
++import java.awt.event.ActionEvent;
++import java.sql.Connection;
++import java.util.List;
++
++/** Generator frame for the allergy card memory test. */
++public class MerkfaehigkeitGenerator {
++    private JFrame frame;
++    private AllergyCardGridPanel gridPanel;
++    private JButton saveButton;
++    private JButton resetButton;
++    private Connection conn;
++    private Integer sessionId;
++
++    public MerkfaehigkeitGenerator() {}
++
++    public MerkfaehigkeitGenerator(Connection conn, Integer sessionId) {
++        this.conn = conn;
++        this.sessionId = sessionId;
++    }
++
++    public void start() {
++        SwingUtilities.invokeLater(this::buildUI);
++    }
++
++    private void buildUI() {
++        frame = new JFrame("Merkfähigkeit – Allergieausweise");
++        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
++        frame.setLayout(new BorderLayout());
++
++        gridPanel = new AllergyCardGridPanel();
++        JScrollPane sp = new JScrollPane(gridPanel);
++        frame.add(new JPanel(), BorderLayout.CENTER); // placeholder
++        frame.add(sp, BorderLayout.EAST);
++
++        saveButton = new JButton("Speichern");
++        resetButton = new JButton("Zurücksetzen");
++        JPanel south = new JPanel();
++        south.add(saveButton);
++        south.add(resetButton);
++        frame.add(south, BorderLayout.SOUTH);
++
++        initListeners();
++        frame.pack();
++        frame.setVisible(true);
++    }
++
++    private void initListeners() {
++        saveButton.addActionListener(this::saveAction);
++        resetButton.addActionListener(e -> gridPanel.reset());
++    }
++
++    private void saveAction(ActionEvent e) {
++        if(validateAndPersist()) {
++            JOptionPane.showMessageDialog(frame, "Gespeichert");
++        }
++    }
++
++    protected void showErrorDialog(String msg) {
++        JOptionPane.showMessageDialog(frame, msg, "Fehler", JOptionPane.ERROR_MESSAGE);
++    }
++
++    protected boolean validateAndPersist() {
++        List<AllergyCardData> cards = gridPanel.getAllCards();
++        StringBuilder sb = new StringBuilder();
++        for(int i=0;i<cards.size();i++) {
++            AllergyCardData c = cards.get(i);
++            if(c.name()==null || c.name().isBlank()) {
++                sb.append("Karte ").append(i+1).append(": Name fehlt\n");
++            }
++            if(c.geburtsdatum()==null) {
++                sb.append("Karte ").append(i+1).append(": Geburtsdatum fehlt oder Format falsch\n");
++            }
++            if(c.ausweisnummer()==null || !c.ausweisnummer().matches("\\d{5}")) {
++                sb.append("Karte ").append(i+1).append(": Ausweisnummer ungültig\n");
++            }
++        }
++        if(sb.length()>0) {
++            showErrorDialog(sb.toString());
++            return false;
++        }
++        if(conn!=null && sessionId!=null) {
++            try {
++                new AllergyCardDAO(conn).insertAll(cards, sessionId);
++            } catch(Exception ex) {
++                showErrorDialog("Fehler beim Speichern: "+ex.getMessage());
++                return false;
++            }
++        }
++        return true;
++    }
++
++    public JFrame getFrame() { return frame; }
++    public JButton getSaveButton() { return saveButton; }
++}
+diff --git a/src/main/java/model/AllergyCardData.java b/src/main/java/model/AllergyCardData.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..b0b845ca15c37fff17417c5361bb51be22ee17c2
+--- /dev/null
++++ b/src/main/java/model/AllergyCardData.java
+@@ -0,0 +1,14 @@
++package model;
++
++import java.time.LocalDate;
++
++public record AllergyCardData(
++    String name,
++    LocalDate geburtsdatum,
++    String medikamenteneinnahme,
++    String blutgruppe,
++    String bekannteAllergien,
++    String ausweisnummer,
++    String ausstellungsland,
++    byte[] bildPng
++) {}
+diff --git a/src/main/java/ui/merkfaehigkeit/AllergyCardGridPanel.java b/src/main/java/ui/merkfaehigkeit/AllergyCardGridPanel.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..298f21fed7fbbbaf43db147f35059fc27883b19a
+--- /dev/null
++++ b/src/main/java/ui/merkfaehigkeit/AllergyCardGridPanel.java
+@@ -0,0 +1,36 @@
++package ui.merkfaehigkeit;
++
++import model.AllergyCardData;
++
++import javax.swing.*;
++import java.awt.*;
++import java.util.ArrayList;
++import java.util.List;
++
++/** Panel containing 8 allergy cards in a grid. */
++public class AllergyCardGridPanel extends JPanel {
++    private final List<AllergyCardPanel> cards = new ArrayList<>(8);
++
++    public AllergyCardGridPanel() {
++        super(new GridLayout(2,4,12,12));
++        for(int i=0;i<8;i++) {
++            AllergyCardPanel p = new AllergyCardPanel();
++            cards.add(p);
++            add(p);
++        }
++    }
++
++    public List<AllergyCardData> getAllCards() {
++        List<AllergyCardData> list = new ArrayList<>(cards.size());
++        for(AllergyCardPanel p : cards) {
++            list.add(p.toModel());
++        }
++        return list;
++    }
++
++    public void reset() {
++        for(AllergyCardPanel p : cards) {
++            p.reset();
++        }
++    }
++}
+diff --git a/src/main/java/ui/merkfaehigkeit/AllergyCardPanel.java b/src/main/java/ui/merkfaehigkeit/AllergyCardPanel.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..947810d43265282520686b7a540c60bd6d971205
+--- /dev/null
++++ b/src/main/java/ui/merkfaehigkeit/AllergyCardPanel.java
+@@ -0,0 +1,189 @@
++package ui.merkfaehigkeit;
++
++import model.AllergyCardData;
++
++import javax.imageio.ImageIO;
++import javax.swing.*;
++import javax.swing.border.LineBorder;
++import javax.swing.text.*;
++import java.awt.*;
++import java.awt.event.MouseAdapter;
++import java.awt.event.MouseEvent;
++import java.awt.image.BufferedImage;
++import java.io.ByteArrayInputStream;
++import java.io.ByteArrayOutputStream;
++import java.io.File;
++import java.io.IOException;
++import java.time.LocalDate;
++import java.time.format.DateTimeFormatter;
++import java.time.format.DateTimeParseException;
++
++/** Panel representing a single allergy card. */
++public class AllergyCardPanel extends JPanel {
++    private final JLabel imageLabel = new JLabel("Klicke zum Auswählen", SwingConstants.CENTER);
++    private byte[] imageBytes;
++
++    private final JTextField nameField = new JTextField(15);
++    private final JFormattedTextField dobField;
++    private final JTextField medicationField = new JTextField(15);
++    private final JComboBox<String> bloodBox = new JComboBox<>(new String[]{"0+","0-","A+","A-","B+","B-","AB+","AB-"});
++    private final JTextArea allergiesArea = new JTextArea(2,15);
++    private final JTextField numberField = new JTextField(5);
++    private final JTextField countryField = new JTextField(12);
++
++    public AllergyCardPanel() {
++        setLayout(new BorderLayout());
++        setPreferredSize(new Dimension(260,160));
++        buildImageArea();
++        MaskFormatter mf = null;
++        try {
++            mf = new MaskFormatter("##.##.####");
++            mf.setPlaceholderCharacter('_');
++        } catch (ParseException e) {
++            // should not happen
++        }
++        dobField = new JFormattedTextField(mf);
++        allergiesArea.setLineWrap(true);
++        allergiesArea.setWrapStyleWord(true);
++        ((AbstractDocument) numberField.getDocument()).setDocumentFilter(new DigitFilter());
++
++        initInfoPanel();
++    }
++
++    private void buildImageArea() {
++        imageLabel.setPreferredSize(new Dimension(120,150));
++        imageLabel.setBorder(new LineBorder(Color.DARK_GRAY));
++        imageLabel.addMouseListener(new MouseAdapter(){
++            @Override
++            public void mouseClicked(MouseEvent e) {
++                chooseImage();
++            }
++        });
++        add(imageLabel, BorderLayout.LINE_START);
++    }
++
++    private void chooseImage() {
++        JFileChooser fc = new JFileChooser();
++        fc.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Bilder", "png","jpg","jpeg"));
++        if(fc.showOpenDialog(this)==JFileChooser.APPROVE_OPTION) {
++            File f = fc.getSelectedFile();
++            try {
++                BufferedImage img = ImageIO.read(f);
++                if(img!=null) {
++                    Image scaled = img.getScaledInstance(120,150,Image.SCALE_SMOOTH);
++                    BufferedImage bi = new BufferedImage(120,150,BufferedImage.TYPE_INT_ARGB);
++                    Graphics2D g2 = bi.createGraphics();
++                    g2.drawImage(scaled,0,0,null);
++                    g2.dispose();
++                    ByteArrayOutputStream bos = new ByteArrayOutputStream();
++                    ImageIO.write(bi, "png", bos);
++                    imageBytes = bos.toByteArray();
++                    imageLabel.setIcon(new ImageIcon(bi));
++                    imageLabel.setText("");
++                }
++            } catch(IOException ex) {
++                // ignore
++            }
++        }
++    }
++
++    private void initInfoPanel() {
++        JPanel infoPanel = new JPanel(new GridBagLayout());
++        GridBagConstraints c = new GridBagConstraints();
++        c.insets = new Insets(2,2,2,2);
++        c.anchor = GridBagConstraints.WEST;
++        c.gridx = 0; c.gridy = 0; infoPanel.add(new JLabel("Name"), c);
++        c.gridx = 1; infoPanel.add(nameField, c);
++        c.gridx = 0; c.gridy++; infoPanel.add(new JLabel("Geburtsdatum"), c);
++        c.gridx = 1; infoPanel.add(dobField, c);
++        c.gridx = 0; c.gridy++; infoPanel.add(new JLabel("Medikamente"), c);
++        c.gridx = 1; infoPanel.add(medicationField, c);
++        c.gridx = 0; c.gridy++; infoPanel.add(new JLabel("Blutgruppe"), c);
++        c.gridx = 1; infoPanel.add(bloodBox, c);
++        c.gridx = 0; c.gridy++; infoPanel.add(new JLabel("Allergien"), c);
++        c.gridx = 1; infoPanel.add(new JScrollPane(allergiesArea), c);
++        c.gridx = 0; c.gridy++; infoPanel.add(new JLabel("Ausweisnr."), c);
++        c.gridx = 1; infoPanel.add(numberField, c);
++        c.gridx = 0; c.gridy++; infoPanel.add(new JLabel("Land"), c);
++        c.gridx = 1; infoPanel.add(countryField, c);
++
++        nameField.setToolTipText("Voller Name");
++        dobField.setToolTipText("TT.MM.JJJJ");
++        medicationField.setToolTipText("Medikamenteneinnahme");
++        bloodBox.setToolTipText("Blutgruppe z.B. A+");
++        allergiesArea.setToolTipText("Bekannte Allergien");
++        numberField.setToolTipText("Genau 5 Ziffern, z. B. 04127");
++        countryField.setToolTipText("Ausstellungsland");
++
++        add(infoPanel, BorderLayout.CENTER);
++    }
++
++    public AllergyCardData toModel() {
++        String name = nameField.getText().trim();
++        LocalDate dob = null;
++        try {
++            dob = LocalDate.parse(dobField.getText(), DateTimeFormatter.ofPattern("dd.MM.yyyy"));
++        } catch(DateTimeParseException ex) {
++            // leave null
++        }
++        String med = medicationField.getText().trim();
++        String blood = (String) bloodBox.getSelectedItem();
++        String allergies = allergiesArea.getText().trim();
++        String num = numberField.getText().trim();
++        String country = countryField.getText().trim();
++        return new AllergyCardData(name,dob,med,blood,allergies,num,country,imageBytes);
++    }
++
++    public void load(AllergyCardData d) {
++        if(d==null) return;
++        nameField.setText(d.name());
++        if(d.geburtsdatum()!=null) {
++            dobField.setText(d.geburtsdatum().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
++        }
++        medicationField.setText(d.medikamenteneinnahme());
++        bloodBox.setSelectedItem(d.blutgruppe());
++        allergiesArea.setText(d.bekannteAllergien());
++        numberField.setText(d.ausweisnummer());
++        countryField.setText(d.ausstellungsland());
++        if(d.bildPng()!=null) {
++            try {
++                BufferedImage img = ImageIO.read(new ByteArrayInputStream(d.bildPng()));
++                imageLabel.setIcon(new ImageIcon(img));
++                imageLabel.setText("");
++                imageBytes = d.bildPng();
++            } catch(IOException e) {
++                // ignore
++            }
++        }
++    }
++
++    public void reset() {
++        nameField.setText("");
++        dobField.setValue(null);
++        medicationField.setText("");
++        bloodBox.setSelectedIndex(0);
++        allergiesArea.setText("");
++        numberField.setText("");
++        countryField.setText("");
++        imageLabel.setIcon(null);
++        imageLabel.setText("Klicke zum Auswählen");
++        imageBytes = null;
++    }
++
++    private static class DigitFilter extends DocumentFilter {
++        @Override
++        public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr) throws BadLocationException {
++            replace(fb, offset, 0, string, attr);
++        }
++
++        @Override
++        public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs) throws BadLocationException {
++            Document doc = fb.getDocument();
++            StringBuilder sb = new StringBuilder(doc.getText(0, doc.getLength()));
++            sb.replace(offset, offset+length, text==null?"":text);
++            if(sb.length()<=5 && sb.toString().matches("\\d*")) {
++                fb.replace(offset, length, text, attrs);
++            }
++        }
++    }
++}
+diff --git a/src/test/java/generator/MerkfaehigkeitGeneratorIT.java b/src/test/java/generator/MerkfaehigkeitGeneratorIT.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..d984862f29d84bdb0ea211af471b66e681731f2c
+--- /dev/null
++++ b/src/test/java/generator/MerkfaehigkeitGeneratorIT.java
+@@ -0,0 +1,21 @@
++import org.junit.jupiter.api.Assumptions;
++import org.junit.jupiter.api.Test;
++import generator.MerkfaehigkeitGenerator;
++
++import javax.swing.*;
++import java.awt.*;
++
++import static org.junit.jupiter.api.Assertions.*;
++
++public class MerkfaehigkeitGeneratorIT {
++    @Test
++    void saveWithMissingDataShowsError() throws Exception {
++        Assumptions.assumeFalse(GraphicsEnvironment.isHeadless());
++        MerkfaehigkeitGenerator gen = new MerkfaehigkeitGenerator();
++        SwingUtilities.invokeAndWait(gen::start);
++        JButton save = gen.getSaveButton();
++        SwingUtilities.invokeAndWait(save::doClick);
++        assertNotNull(gen.getFrame());
++        SwingUtilities.invokeAndWait(() -> gen.getFrame().dispose());
++    }
++}
+diff --git a/src/test/java/ui/merkfaehigkeit/AllergyCardPanelTest.java b/src/test/java/ui/merkfaehigkeit/AllergyCardPanelTest.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..d819a8f7314fda76e7be819ef342b9434dbf64b2
+--- /dev/null
++++ b/src/test/java/ui/merkfaehigkeit/AllergyCardPanelTest.java
+@@ -0,0 +1,44 @@
++import org.junit.jupiter.api.Test;
++import ui.merkfaehigkeit.AllergyCardPanel;
++import model.AllergyCardData;
++
++import javax.imageio.ImageIO;
++import java.awt.image.BufferedImage;
++import java.io.ByteArrayOutputStream;
++import java.time.LocalDate;
++
++import static org.junit.jupiter.api.Assertions.*;
++
++public class AllergyCardPanelTest {
++    @Test
++    void toModelMapsFieldsCorrectly() throws Exception {
++        AllergyCardPanel panel = new AllergyCardPanel();
++        BufferedImage img = new BufferedImage(1,1,BufferedImage.TYPE_INT_ARGB);
++        ByteArrayOutputStream bos = new ByteArrayOutputStream();
++        ImageIO.write(img, "png", bos);
++        byte[] bytes = bos.toByteArray();
++
++        AllergyCardData data = new AllergyCardData(
++                "Max Mustermann",
++                LocalDate.of(1990,1,1),
++                "Ibuprofen",
++                "A+",
++                "Pollen",
++                "12345",
++                "Austria",
++                bytes
++        );
++
++        panel.load(data);
++        AllergyCardData out = panel.toModel();
++
++        assertEquals(data.name(), out.name());
++        assertEquals(data.geburtsdatum(), out.geburtsdatum());
++        assertEquals(data.medikamenteneinnahme(), out.medikamenteneinnahme());
++        assertEquals(data.blutgruppe(), out.blutgruppe());
++        assertEquals(data.bekannteAllergien(), out.bekannteAllergien());
++        assertEquals(data.ausweisnummer(), out.ausweisnummer());
++        assertEquals(data.ausstellungsland(), out.ausstellungsland());
++        assertNotNull(out.bildPng());
++    }
++}
  
 EOF
 )
