@@ -44,7 +44,7 @@ public class MerkQuestionGenerator {
             int subId = (Integer) getSubcategoryIdMethod.invoke(questionDAO, category, subcategory);
             
             // Get next question number  
-            var getNextQuestionNumberMethod = questionDAOClass.getMethod("getNextQuestionNumber", Integer.class, Integer.class);
+            var getNextQuestionNumberMethod = questionDAOClass.getMethod("getNextQuestionNumber", Integer.class, int.class);
             int qNum = (Integer) getNextQuestionNumberMethod.invoke(questionDAO, simulationId, subId);
             
             // Generate questions
@@ -56,12 +56,12 @@ public class MerkQuestionGenerator {
                 System.out.println("Correct answer: " + q.correctAnswer());
                 
                 // Insert question
-                var insertQuestionMethod = questionDAOClass.getMethod("insertQuestion", String.class, String.class, String.class, Integer.class, Integer.class);
+                var insertQuestionMethod = questionDAOClass.getMethod("insertQuestion", String.class, String.class, String.class, int.class, Integer.class);
                 int qId = (Integer) insertQuestionMethod.invoke(questionDAO, category, subcategory, q.text(), qNum, simulationId);
                 System.out.println("Inserted question with ID: " + qId);
                 
                 // Insert options
-                var insertOptionMethod = optionDAOClass.getMethod("insertOption", Integer.class, String.class, String.class, Boolean.class);
+                var insertOptionMethod = optionDAOClass.getMethod("insertOption", int.class, String.class, String.class, boolean.class);
                 for (int j = 0; j < q.options().size(); j++) {
                     String label = String.valueOf((char)('A' + j));
                     boolean isCorrect = (j == q.correctIndex());

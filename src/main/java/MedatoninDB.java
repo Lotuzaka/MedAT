@@ -1,3 +1,4 @@
+import merk.MerkQuestionEngine;
 
 
 import dao.AllergyCardDAO;
@@ -2006,172 +2007,7 @@ public class MedatoninDB extends JFrame {
         addQuestionButton.setPreferredSize(new Dimension(150, addQuestionButton.getPreferredSize().height));
 
         // Create buttons according to category and subcategory
-        if ("KFF".equals(currentCategory) || "Figuren".equals(currentSubcategory) || "Merkfähigkeiten".equals(currentSubcategory)) {
-
-            // Create the button first to get its height and style
-            JButton generateButton = createModernButton("Generate");
-            generateButton.setBackground(new Color(127, 204, 165)); // Green background
-            generateButton.setForeground(Color.WHITE);
-            generateButton.setFont(new Font("SansSerif", Font.BOLD, 14));
-            generateButton.setFocusPainted(false);
-            generateButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10)); // Padding for aesthetics
-            generateButton.setPreferredSize(new Dimension(150, generateButton.getPreferredSize().height));
-
-            // Match the border radius and font size to the button
-            int buttonBorderRadius = 16; // Match the button's roundness (see createModernButton)
-            int numberBoxHeight = generateButton.getPreferredSize().height;
-            // Font numberBoxFont = generateButton.getFont();
-            JTextField questionCountField = new RoundedTextField("0", buttonBorderRadius, new Color(127,204,165), Color.WHITE, numberBoxHeight);
-
-            // Fix: Set larger row height for FigurenOptionsData rows in KFF overview
-            if (questionTable != null) {
-                for (int row = 0; row < questionTable.getRowCount(); row++) {
-                    Object value = questionTable.getValueAt(row, 1);
-                    if (value != null && value.getClass().getSimpleName().equals("FigurenOptionsData")) {
-                        questionTable.setRowHeight(row, 150); // Make Figuren options panel less squished
-                    }
-                }
-            }
-
-            // Set number box width and height to match button
-            questionCountField.setPreferredSize(new Dimension(60, numberBoxHeight));
-
-            // Set up action listeners
-            if ("Figuren".equals(currentSubcategory)) {
-                // Only generateButton is added
-                // Add buttons and text field to buttonPanel
-                buttonPanel.add(generateButton);
-                buttonPanel.add(questionCountField);
-                generateButton.addActionListener(e -> {
-                    try {
-                        // Get the value from the text field
-                        String input = questionCountField.getText().trim();
-                        int questionCount;
-
-                        // Validate the input as a number
-                        try {
-                            questionCount = Integer.parseInt(input);
-                        } catch (NumberFormatException ex) {
-                            JOptionPane.showMessageDialog(null, "Please enter a valid number.", "Invalid Input",
-                                    JOptionPane.ERROR_MESSAGE);
-                            return; // Exit if input is invalid
-                        }
-
-                        // Generate questions
-                        for (int i = 0; i < questionCount; i++) {
-                            addNewFigurenQuestion();
-                        }
-
-                        // Refresh the table
-                        tableModel.fireTableDataChanged();
-
-                        // Scroll to the newly added question
-                        if (questionTable != null && tableModel != null) {
-                            questionTable.scrollRectToVisible(
-                                    questionTable.getCellRect(tableModel.getRowCount() - 1, 0, true));
-                        }
-
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
-                    }
-                });
-            } else {
-                // For "KFF" category or its subcategories
-
-                // Add button to buttonPanel
-                buttonPanel.add(addQuestionButton);
-                // Add buttons and text field to buttonPanel
-                buttonPanel.add(generateButton);
-                buttonPanel.add(questionCountField);
-
-                // Set up action listener for "Add Question" button
-                addQuestionButton.addActionListener(e -> {
-                    addNewQuestionToSubcategory();
-                    // Scroll to the newly added question if needed
-                    if (questionTable != null && tableModel != null) {
-                        questionTable
-                                .scrollRectToVisible(questionTable.getCellRect(tableModel.getRowCount() - 1, 0, true));
-                    }
-                });
-
-                generateButton.addActionListener(e -> {
-                    try {
-                        // Get the value from the text field
-                        String input = questionCountField.getText().trim();
-                        int questionCount;
-
-                        // Validate the input as a number
-                        try {
-                            questionCount = Integer.parseInt(input);
-                        } catch (NumberFormatException ex) {
-                            JOptionPane.showMessageDialog(null, "Please enter a valid number.", "Invalid Input",
-                                    JOptionPane.ERROR_MESSAGE);
-                            return; // Exit if input is invalid
-                        }
-
-                        if ("Wortflüssigkeit".equals(currentSubcategory)) {
-                            WortfluessigkeitGenerator gen = new WortfluessigkeitGenerator(conn, currentCategory,
-                                    currentSubcategory, selectedSimulationId);
-                            gen.execute(questionCount);
-                            loadQuestionsFromDatabase(currentCategory, categoryModels.get(currentCategory),
-                                    selectedSimulationId);
-                            switchSubcategory(currentCategory, currentSubcategory);
-                        } else if ("Implikationen".equals(currentSubcategory)) {
-                            SyllogismGenerator generator = new SyllogismGenerator(conn, currentCategory,
-                                    currentSubcategory,
-                                    selectedSimulationId);
-                            generator.execute(questionCount);
-
-                            // Reload questions and refresh UI
-                            loadQuestionsFromDatabase(currentCategory, categoryModels.get(currentCategory),
-                                    selectedSimulationId);
-                            tableModel.fireTableDataChanged();
-                        } else if ("Zahlenfolgen".equals(currentSubcategory)) {
-                            ZahlenfolgenGenerator generator = new ZahlenfolgenGenerator(conn, currentCategory,
-                                    currentSubcategory, selectedSimulationId);
-                            generator.execute(questionCount);
-
-                            // Reload questions and refresh UI
-                            loadQuestionsFromDatabase(currentCategory, categoryModels.get(currentCategory),
-                                    selectedSimulationId);
-                            tableModel.fireTableDataChanged();
-                        } else if ("Merkfähigkeiten".equals(currentSubcategory)) {
-                            try {
-                                debugLog("QuestionGen", "Starting Merkfähigkeiten generation for " + questionCount + " questions");
-                                JSplitPane sp = (JSplitPane) subcategoryContentPanel.getComponent(0);
-                                JScrollPane asp = (JScrollPane) sp.getRightComponent();
-                                ui.merkfaehigkeit.AllergyCardGridPanel grid = (ui.merkfaehigkeit.AllergyCardGridPanel) asp.getViewport().getView();
-                                java.util.List<model.AllergyCardData> cards = grid.getAllCards();
-                                debugLog("QuestionGen", "Retrieved " + cards.size() + " allergy cards");
-                                generator.MerkQuestionGenerator gen = new generator.MerkQuestionGenerator(
-                                        conn, currentCategory, currentSubcategory, selectedSimulationId, cards);
-                                gen.execute(questionCount);
-                                debugLog("QuestionGen", "Successfully executed MerkQuestionGenerator");
-                                loadQuestionsFromDatabase(currentCategory, categoryModels.get(currentCategory),
-                                        selectedSimulationId);
-                                tableModel.fireTableDataChanged();
-                                debugLog("QuestionGen", "Refreshed table model");
-                            } catch (Exception ex) {
-                                debugLog("QuestionGen", "Merkfähigkeiten generation failed: " + ex.getMessage());
-                            }
-                        }
-
-                        if (questionTable != null && tableModel != null) {
-                            questionTable.scrollRectToVisible(
-                                    questionTable.getCellRect(tableModel.getRowCount() - 1, 0, true));
-                        }
-                    } catch (SQLException ex) {
-                        debugLog("QuestionGen", currentSubcategory + " not generated SQLException: " + ex.getMessage());
-                        ex.printStackTrace();
-                    } catch (IOException e1) {
-                        debugLog("QuestionGen", currentSubcategory + " not generated IOException: " + e1.getMessage());
-                        e1.printStackTrace();
-                    }
-                });
-            }
-
-
-        } else {
+        if ("KFF".equals(currentCategory) || "Figuren".equals(currentSubcategory)) {
             // Add button to buttonPanel
             buttonPanel.add(addQuestionButton);
 
@@ -2182,6 +2018,82 @@ public class MedatoninDB extends JFrame {
                     questionTable.scrollRectToVisible(questionTable.getCellRect(tableModel.getRowCount() - 1, 0, true));
                 }
             });
+        }
+
+        // Add Generate button and number box for Merkfähigkeiten right after Add Question
+        if ("Merkfähigkeiten".equals(currentSubcategory)) {
+            try {
+                // Find the allergy card grid panel from the split pane
+                JSplitPane splitPane = (JSplitPane) subcategoryContentPanel.getComponent(0);
+                JScrollPane allergyScrollPane = (JScrollPane) splitPane.getRightComponent();
+                JPanel allergyCardGridPanel = (JPanel) allergyScrollPane.getViewport().getView();
+
+                // Create Generate button (green) with number box for Merkfähigkeiten
+                JButton generateButton = createModernButton("Generate");
+                generateButton.setBackground(new Color(127, 204, 165)); // Green background
+                generateButton.setForeground(Color.WHITE);
+                generateButton.setFont(new Font("SansSerif", Font.BOLD, 14));
+                generateButton.setFocusPainted(false);
+                generateButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+                generateButton.setPreferredSize(new Dimension(150, generateButton.getPreferredSize().height));
+
+                int buttonBorderRadius = 16;
+                int numberBoxHeight = generateButton.getPreferredSize().height;
+                JTextField questionCountField = new RoundedTextField("0", buttonBorderRadius, new Color(127,204,165), Color.WHITE, numberBoxHeight);
+                questionCountField.setPreferredSize(new Dimension(60, numberBoxHeight));
+
+                generateButton.addActionListener(e -> {
+                    try {
+                        String input = questionCountField.getText().trim();
+                        int questionCount;
+                        try {
+                            questionCount = Integer.parseInt(input);
+                        } catch (NumberFormatException ex) {
+                            JOptionPane.showMessageDialog(null, "Bitte eine gültige Zahl eingeben.", "Ungültige Eingabe",
+                                    JOptionPane.ERROR_MESSAGE);
+                            return;
+                        }
+                        debugLog("QuestionGen", "Starting Merkfähigkeiten generation for " + questionCount + " questions");
+                        JSplitPane sp = (JSplitPane) subcategoryContentPanel.getComponent(0);
+                        JScrollPane asp = (JScrollPane) sp.getRightComponent();
+                        ui.merkfaehigkeit.AllergyCardGridPanel grid = (ui.merkfaehigkeit.AllergyCardGridPanel) asp.getViewport().getView();
+                        java.util.List<model.AllergyCardData> cards = grid.getAllCards();
+                        debugLog("QuestionGen", "Retrieved " + cards.size() + " allergy cards");
+                        generator.MerkQuestionGenerator gen = new generator.MerkQuestionGenerator(
+                                conn, currentCategory, currentSubcategory, selectedSimulationId, cards);
+                        int beforeCount = tableModel.getRowCount();
+                        try {
+                            gen.execute(questionCount);
+                        } catch (Exception genEx) {
+                            JOptionPane.showMessageDialog(null, "Fehler bei der Generierung: " + genEx.getMessage(), "Fehler", JOptionPane.ERROR_MESSAGE);
+                            debugLog("QuestionGen", "Merkfähigkeiten generation failed: " + genEx.getMessage());
+                            return;
+                        }
+                        debugLog("QuestionGen", "Successfully executed MerkQuestionGenerator");
+                        loadQuestionsFromDatabase(currentCategory, categoryModels.get(currentCategory),
+                                selectedSimulationId);
+                        tableModel.fireTableDataChanged();
+                        debugLog("QuestionGen", "Refreshed table model");
+                        int afterCount = tableModel.getRowCount();
+                        if (questionTable != null && tableModel != null && afterCount > beforeCount) {
+                            questionTable.scrollRectToVisible(
+                                    questionTable.getCellRect(afterCount - 1, 0, true));
+                        }
+                        // Force UI update
+                        questionTable.revalidate();
+                        questionTable.repaint();
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(null, "Fehler: " + ex.getMessage(), "Fehler", JOptionPane.ERROR_MESSAGE);
+                        debugLog("QuestionGen", "Merkfähigkeiten generation failed: " + ex.getMessage());
+                    }
+                });
+
+                buttonPanel.add(generateButton);
+                buttonPanel.add(questionCountField);
+
+            } catch (Exception e) {
+                debugLog("UI", LogLevel.ERROR, "Failed to add Generate button: " + e.getMessage());
+            }
         }
 
         // Buttons for deleting questions
@@ -2212,7 +2124,7 @@ public class MedatoninDB extends JFrame {
                 JSplitPane splitPane = (JSplitPane) subcategoryContentPanel.getComponent(0);
                 JScrollPane allergyScrollPane = (JScrollPane) splitPane.getRightComponent();
                 JPanel allergyCardGridPanel = (JPanel) allergyScrollPane.getViewport().getView();
-                
+
                 JButton generateIdButton = createModernButton("Generate ID");
                 generateIdButton.setBackground(new Color(255, 165, 0)); // Orange background
                 generateIdButton.setForeground(Color.WHITE);
@@ -2220,20 +2132,48 @@ public class MedatoninDB extends JFrame {
                 generateIdButton.setFocusPainted(false);
                 generateIdButton.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
                 generateIdButton.setPreferredSize(new Dimension(150, generateIdButton.getPreferredSize().height));
-                
+
                 generateIdButton.addActionListener(e -> {
                     try {
-                        // Call generateRandomData method on the allergy card grid panel
+                        // Generate random data for allergy cards
                         allergyCardGridPanel.getClass().getMethod("generateRandomData").invoke(allergyCardGridPanel);
                         debugLog("UI", "Generated random data for all allergy cards");
+                        // Save allergy card data to database if we have a selected simulation
+                        if (selectedSimulationId != null) {
+                            @SuppressWarnings("unchecked")
+                            List<AllergyCardData> cardData = (List<AllergyCardData>) allergyCardGridPanel.getClass().getMethod("getAllCards").invoke(allergyCardGridPanel);
+                            AllergyCardDAO allergyDAO = new AllergyCardDAO(conn);
+                            allergyDAO.deleteBySessionId(selectedSimulationId); // Remove old cards for session
+                            allergyDAO.insertAll(cardData, selectedSimulationId);
+                            debugLog("UI", "Saved " + cardData.size() + " allergy cards to database for simulation " + selectedSimulationId);
+                        } else {
+                            debugLog("UI", LogLevel.WARN, "No simulation selected - allergy card data not saved to database");
+                        }
                     } catch (Exception ex) {
-                        debugLog("UI", LogLevel.ERROR, "Failed to generate random data: " + ex.getMessage());
+                        debugLog("UI", LogLevel.ERROR, "Failed to generate/save random data: " + ex.getMessage());
+                        ex.printStackTrace();
                     }
                 });
-                
+
                 buttonPanel.add(generateIdButton);
+
+                // Always reload allergy cards from DB when switching to Merkfähigkeiten
+                if (selectedSimulationId != null) {
+                    try {
+                        AllergyCardDAO allergyDAO = new AllergyCardDAO(conn);
+                        if (allergyDAO.hasDataForSession(selectedSimulationId)) {
+                            List<AllergyCardData> existingData = allergyDAO.getBySessionId(selectedSimulationId);
+                            if (!existingData.isEmpty()) {
+                                allergyCardGridPanel.getClass().getMethod("loadCards", List.class).invoke(allergyCardGridPanel, existingData);
+                                debugLog("UI", "Restored " + existingData.size() + " allergy cards from database for simulation " + selectedSimulationId);
+                            }
+                        }
+                    } catch (Exception ex) {
+                        debugLog("UI", LogLevel.WARN, "Could not restore allergy card data: " + ex.getMessage());
+                    }
+                }
             } catch (Exception e) {
-                debugLog("UI", LogLevel.ERROR, "Failed to add Generate ID button: " + e.getMessage());
+                debugLog("UI", LogLevel.ERROR, "Failed to add Generate ID/Generate button: " + e.getMessage());
             }
         }
 

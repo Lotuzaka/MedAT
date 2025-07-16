@@ -101,8 +101,21 @@ public class MerkQuestionEngine {
     private Question generateS8(TemplateData template) {
         AllergyCardData card = randomCard();
         String questionText = fill(template.randomVariant(rnd), Map.of("NAME", card.name()));
-        List<String> options = List.of("Ja", "Nein", "Keine der Antwortmöglichkeiten ist richtig.");
-        return new Question(questionText, options, "Ja".equals(card.medikamenteneinnahme()) ? "Ja" : "Nein");
+        
+        // Generate proper A-E options for medication question
+        String correctAnswer = "Ja".equals(card.medikamenteneinnahme()) ? "Ja" : "Nein";
+        List<String> options = new ArrayList<>();
+        options.add("Ja");
+        options.add("Nein");
+        // Add placeholder options to fill A-D
+        options.add("Unbekannt");
+        options.add("Keine Angabe");
+        // Shuffle the first 4 options (A-D)
+        Collections.shuffle(options, rnd);
+        // Add option E
+        options.add("Keine Antwort ist richtig.");
+        
+        return new Question(questionText, options, correctAnswer);
     }
 
     private Question generateS9(TemplateData template) {
@@ -117,23 +130,46 @@ public class MerkQuestionEngine {
     }
 
     private List<String> bloodOptions(String correct) {
+        // Always include all 4 blood groups A, B, AB, 0 in options A-D
         List<String> all = new ArrayList<>(List.of("A", "B", "AB", "0"));
-        all.remove(correct);
         Collections.shuffle(all, rnd);
-        List<String> opts = new ArrayList<>();
-        opts.add(correct);
-        opts.addAll(all.subList(0, Math.min(2, all.size())));
-        Collections.shuffle(opts, rnd);
-        opts.add("Keine der Antwortmöglichkeiten ist richtig.");
+        List<String> opts = new ArrayList<>(all);
+        // Add option E: "Keine Antwort ist richtig"
+        opts.add("Keine Antwort ist richtig.");
         return opts;
     }
 
     private List<String> otherValues(Function<AllergyCardData, String> fn, String exclude) {
-        return cards.stream()
+        List<String> allValues = cards.stream()
                 .map(fn)
                 .distinct()
                 .filter(s -> !s.equals(exclude))
                 .collect(Collectors.toCollection(ArrayList::new));
+        
+        // Ensure we have enough options for A-D (4 options) plus E
+        Collections.shuffle(allValues, rnd);
+        List<String> opts = new ArrayList<>();
+        
+        // Add the correct answer first
+        opts.add(exclude);
+        
+        // Add up to 3 other options to make 4 total (A-D)
+        for (int i = 0; i < Math.min(3, allValues.size()); i++) {
+            opts.add(allValues.get(i));
+        }
+        
+        // If we don't have enough unique values, add some placeholder options
+        while (opts.size() < 4) {
+            opts.add("Option " + (opts.size()));
+        }
+        
+        // Shuffle the first 4 options (A-D)
+        Collections.shuffle(opts, rnd);
+        
+        // Add option E: "Keine Antwort ist richtig"
+        opts.add("Keine Antwort ist richtig.");
+        
+        return opts;
     }
 
     private String fill(String template, Map<String,String> map) {
