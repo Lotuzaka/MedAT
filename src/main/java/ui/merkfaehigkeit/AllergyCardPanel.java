@@ -14,10 +14,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.text.ParseException;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 
 /** Panel representing a single allergy card. */
 public class AllergyCardPanel extends JPanel {
@@ -40,24 +37,18 @@ public class AllergyCardPanel extends JPanel {
 
     public AllergyCardPanel() {
         setLayout(new BorderLayout());
-        setPreferredSize(new Dimension(300,100)); // Reduced height due to much shorter image
+        setPreferredSize(new Dimension(300,85)); // Much more compact height
         
         // Add border to create ID card appearance
         setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(Color.GRAY, 2), // Outer border
-            BorderFactory.createEmptyBorder(5, 5, 5, 5)    // Inner padding
+            BorderFactory.createEmptyBorder(3, 3, 3, 3)    // Reduced inner padding
         ));
         
         buildImageArea();
-        MaskFormatter mf = null;
-        try {
-            mf = new MaskFormatter("##.##.####");
-            mf.setPlaceholderCharacter('_');
-        } catch (ParseException e) {
-            // should not happen
-        }
-        dobField = new JFormattedTextField(mf);
-        dobField.setColumns(8); // Set width for exactly "TT.MM.YYYY" format
+        // No formatter needed - we'll handle the TT.Monat format manually
+        dobField = new JFormattedTextField();
+        dobField.setColumns(10); // Set width for "TT.Monat" format (e.g., "15.Januar")
         
         // Set up medication radio buttons
         medicationGroup.add(medicationYes);
@@ -77,7 +68,7 @@ public class AllergyCardPanel extends JPanel {
     }
 
     private void buildImageArea() {
-        imageLabel.setPreferredSize(new Dimension(60,50)); // Reduced height by more than 1/3 (from 80 to 50)
+        imageLabel.setPreferredSize(new Dimension(50,40)); // Much smaller image area
         imageLabel.setBorder(new LineBorder(Color.DARK_GRAY));
         imageLabel.addMouseListener(new MouseAdapter(){
             @Override
@@ -96,8 +87,8 @@ public class AllergyCardPanel extends JPanel {
             try {
                 BufferedImage img = ImageIO.read(f);
                 if(img!=null) {
-                    Image scaled = img.getScaledInstance(60,50,Image.SCALE_SMOOTH); // Updated to new smaller dimensions
-                    BufferedImage bi = new BufferedImage(60,50,BufferedImage.TYPE_INT_ARGB);
+                    Image scaled = img.getScaledInstance(50,40,Image.SCALE_SMOOTH); // Updated to much smaller dimensions
+                    BufferedImage bi = new BufferedImage(50,40,BufferedImage.TYPE_INT_ARGB);
                     Graphics2D g2 = bi.createGraphics();
                     g2.drawImage(scaled,0,0,null);
                     g2.dispose();
@@ -116,7 +107,7 @@ public class AllergyCardPanel extends JPanel {
     private void initInfoPanel() {
         JPanel infoPanel = new JPanel(new GridBagLayout());
         GridBagConstraints c = new GridBagConstraints();
-        c.insets = new Insets(2,2,2,2);
+        c.insets = new Insets(1,1,1,1); // Minimal spacing
         c.anchor = GridBagConstraints.WEST;
         
         // Name
@@ -128,7 +119,7 @@ public class AllergyCardPanel extends JPanel {
         // Date of Birth
         c.gridx = 0; c.gridy++; c.fill = GridBagConstraints.NONE; c.weightx = 0;
         infoPanel.add(new JLabel("Geburtsdatum"), c);
-        c.gridx = 1; c.fill = GridBagConstraints.HORIZONTAL; c.weightx = 1.0;
+        c.gridx = 1; c.fill = GridBagConstraints.NONE; c.weightx = 0; // No horizontal fill for date field
         infoPanel.add(dobField, c);
         
         // Medication - Radio buttons
@@ -170,7 +161,7 @@ public class AllergyCardPanel extends JPanel {
         infoPanel.add(countryField, c);
 
         nameField.setToolTipText("Voller Name");
-        dobField.setToolTipText("TT.MM.JJJJ");
+        dobField.setToolTipText("TT.Monat (z.B. 15.Januar)");
         medicationYes.setToolTipText("Medikamenteneinnahme: Ja");
         medicationNo.setToolTipText("Medikamenteneinnahme: Nein");
         bloodA.setToolTipText("Blutgruppe A");
@@ -183,13 +174,79 @@ public class AllergyCardPanel extends JPanel {
 
         add(infoPanel, BorderLayout.CENTER);
     }
+    
+    /**
+     * Parse date in "TT.Monat" format (e.g., "15.Januar") to LocalDate.
+     * Uses current year as default.
+     */
+    private LocalDate parseDDMMMFormat(String dateText) {
+        if (dateText == null || dateText.trim().isEmpty()) {
+            return null;
+        }
+        
+        String[] parts = dateText.trim().split("\\.");
+        if (parts.length != 2) {
+            return null;
+        }
+        
+        try {
+            int day = Integer.parseInt(parts[0]);
+            String monthName = parts[1].toLowerCase();
+            
+            // Map German month names to month numbers
+            int month = switch (monthName) {
+                case "januar" -> 1;
+                case "februar" -> 2;
+                case "märz" -> 3;
+                case "april" -> 4;
+                case "mai" -> 5;
+                case "juni" -> 6;
+                case "juli" -> 7;
+                case "august" -> 8;
+                case "september" -> 9;
+                case "oktober" -> 10;
+                case "november" -> 11;
+                case "dezember" -> 12;
+                default -> throw new IllegalArgumentException("Invalid month: " + monthName);
+            };
+            
+            // Use current year as default
+            int year = LocalDate.now().getYear();
+            return LocalDate.of(year, month, day);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+    
+    /**
+     * Format LocalDate to "TT.Monat" format (e.g., "15.Januar").
+     */
+    private String formatToDDMMM(LocalDate date) {
+        if (date == null) {
+            return "";
+        }
+        
+        String[] monthNames = {
+            "Januar", "Februar", "März", "April", "Mai", "Juni",
+            "Juli", "August", "September", "Oktober", "November", "Dezember"
+        };
+        
+        int day = date.getDayOfMonth();
+        String monthName = monthNames[date.getMonthValue() - 1];
+        
+        return String.format("%02d.%s", day, monthName);
+    }
 
     public AllergyCardData toModel() {
         String name = nameField.getText().trim();
         LocalDate dob = null;
         try {
-            dob = LocalDate.parse(dobField.getText(), DateTimeFormatter.ofPattern("dd.MM.yyyy"));
-        } catch(DateTimeParseException ex) {
+            // Parse "TT.Monat" format (e.g., "15.Januar")
+            String dobText = dobField.getText().trim();
+            if (!dobText.isEmpty()) {
+                dob = parseDDMMMFormat(dobText);
+            }
+        } catch(Exception ex) {
             // leave null
         }
         String med = medicationYes.isSelected() ? "Ja" : "Nein";
@@ -208,7 +265,8 @@ public class AllergyCardPanel extends JPanel {
         if(d==null) return;
         nameField.setText(d.name());
         if(d.geburtsdatum()!=null) {
-            dobField.setText(d.geburtsdatum().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+            // Format as "TT.Monat" (e.g., "15.Januar")
+            dobField.setText(formatToDDMMM(d.geburtsdatum()));
         }
         // Set medication radio buttons
         if ("Ja".equals(d.medikamenteneinnahme())) {

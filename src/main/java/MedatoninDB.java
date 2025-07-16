@@ -1922,7 +1922,7 @@ public class MedatoninDB extends JFrame {
                 Class<?> allergyGridClass = Class.forName("ui.merkfaehigkeit.AllergyCardGridPanel");
                 JPanel allergyCardGridPanel = (JPanel) allergyGridClass.getDeclaredConstructor().newInstance();
                 JScrollPane allergyScrollPane = new JScrollPane(allergyCardGridPanel);
-                allergyScrollPane.setPreferredSize(new Dimension(630, 600)); // Slightly increased width for radio button visibility
+                allergyScrollPane.setPreferredSize(new Dimension(620, 380)); // Much smaller for compact cards
                 splitPane.setRightComponent(allergyScrollPane);
                 
                 // Set initial divider location and resize behavior for minimal right panel width
@@ -1931,6 +1931,17 @@ public class MedatoninDB extends JFrame {
                 splitPane.setOneTouchExpandable(true); // Allow quick expansion/collapse
                 
                 subcategoryContentPanel.add(splitPane, BorderLayout.CENTER);
+                
+                // Add "Generate ID" button specifically for Merkfähigkeiten
+                JButton generateIdButton = createModernButton("Generate ID");
+                generateIdButton.setBackground(new Color(255, 165, 0)); // Orange background
+                generateIdButton.setForeground(Color.WHITE);
+                generateIdButton.setFont(new Font("SansSerif", Font.BOLD, 14));
+                generateIdButton.setFocusPainted(false);
+                generateIdButton.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+                generateIdButton.setPreferredSize(new Dimension(150, generateIdButton.getPreferredSize().height));
+                
+                
                 debugLog("UI", "Added AllergyCardGridPanel for Merkfähigkeiten subcategory");
             } catch (Exception e) {
                 debugLog("UI", LogLevel.ERROR, "Failed to load AllergyCardGridPanel: " + e.getMessage());
@@ -2134,6 +2145,38 @@ public class MedatoninDB extends JFrame {
 
         buttonPanel.add(deleteMarkedButton);
         buttonPanel.add(deleteAllButton);
+        
+        // Add "Generate ID" button for Merkfähigkeiten at the far right
+        if ("Merkfähigkeiten".equals(currentSubcategory)) {
+            try {
+                // Find the allergy card grid panel from the split pane
+                JSplitPane splitPane = (JSplitPane) subcategoryContentPanel.getComponent(0);
+                JScrollPane allergyScrollPane = (JScrollPane) splitPane.getRightComponent();
+                JPanel allergyCardGridPanel = (JPanel) allergyScrollPane.getViewport().getView();
+                
+                JButton generateIdButton = createModernButton("Generate ID");
+                generateIdButton.setBackground(new Color(255, 165, 0)); // Orange background
+                generateIdButton.setForeground(Color.WHITE);
+                generateIdButton.setFont(new Font("SansSerif", Font.BOLD, 14));
+                generateIdButton.setFocusPainted(false);
+                generateIdButton.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+                generateIdButton.setPreferredSize(new Dimension(150, generateIdButton.getPreferredSize().height));
+                
+                generateIdButton.addActionListener(e -> {
+                    try {
+                        // Call generateRandomData method on the allergy card grid panel
+                        allergyCardGridPanel.getClass().getMethod("generateRandomData").invoke(allergyCardGridPanel);
+                        debugLog("UI", "Generated random data for all allergy cards");
+                    } catch (Exception ex) {
+                        debugLog("UI", LogLevel.ERROR, "Failed to generate random data: " + ex.getMessage());
+                    }
+                });
+                
+                buttonPanel.add(generateIdButton);
+            } catch (Exception e) {
+                debugLog("UI", LogLevel.ERROR, "Failed to add Generate ID button: " + e.getMessage());
+            }
+        }
 
         // Add buttonPanel to subcategoryContentPanel
         subcategoryContentPanel.add(buttonPanel, BorderLayout.SOUTH);
