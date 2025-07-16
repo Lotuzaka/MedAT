@@ -78,4 +78,62 @@ public class MerkQuestionGenerator {
             throw new SQLException("Failed to generate questions: " + e.getMessage(), e);
         }
     }
+    
+    /**
+     * Generate all available question types for testing - creates comprehensive test set
+     */
+    public void executeAllTypes() throws SQLException {
+        try {
+            // Note: Since QuestionDAO and OptionDAO are in the default package,
+            // we need to use reflection to access them
+            Class<?> questionDAOClass = Class.forName("QuestionDAO");
+            Class<?> optionDAOClass = Class.forName("OptionDAO");
+            
+            Object questionDAO = questionDAOClass.getDeclaredConstructor(java.sql.Connection.class).newInstance(conn);
+            Object optionDAO = optionDAOClass.getDeclaredConstructor(java.sql.Connection.class).newInstance(conn);
+            
+            // Get subcategory ID
+            var getSubcategoryIdMethod = questionDAOClass.getMethod("getSubcategoryId", String.class, String.class);
+            int subId = (Integer) getSubcategoryIdMethod.invoke(questionDAO, category, subcategory);
+            
+            // Get next question number  
+            var getNextQuestionNumberMethod = questionDAOClass.getMethod("getNextQuestionNumber", Integer.class, int.class);
+            int qNum = (Integer) getNextQuestionNumberMethod.invoke(questionDAO, simulationId, subId);
+            
+            // Generate comprehensive test set using the engine's generateAllTypes method
+            var insertQuestionMethod = questionDAOClass.getMethod("insertQuestion", String.class, String.class, String.class, int.class, Integer.class);
+            var insertOptionMethod = optionDAOClass.getMethod("insertOption", int.class, String.class, String.class, boolean.class);
+            
+            System.out.println("Generating comprehensive test set with all question variations...");
+            List<MerkQuestionEngine.Question> questions = engine.generateAllTypes();
+            
+            int totalGenerated = 0;
+            for (MerkQuestionEngine.Question q : questions) {
+                try {
+                    System.out.println("Generating question " + (totalGenerated + 1) + ": " + q.text());
+                    
+                    // Insert question
+                    int qId = (Integer) insertQuestionMethod.invoke(questionDAO, category, subcategory, q.text(), qNum, simulationId);
+                    System.out.println("Inserted question with ID: " + qId);
+                    
+                    // Insert options
+                    for (int j = 0; j < q.options().size(); j++) {
+                        String label = String.valueOf((char)('A' + j));
+                        boolean isCorrect = (j == q.correctIndex());
+                        insertOptionMethod.invoke(optionDAO, qId, label, q.options().get(j), isCorrect);
+                    }
+                    
+                    qNum++;
+                    totalGenerated++;
+                } catch (Exception e) {
+                    System.err.println("Failed to insert question: " + e.getMessage());
+                }
+            }
+            
+            System.out.println("Successfully generated " + totalGenerated + " comprehensive test questions covering all templates and variations");
+            
+        } catch (Exception e) {
+            throw new SQLException("Failed to generate test questions: " + e.getMessage(), e);
+        }
+    }
 }

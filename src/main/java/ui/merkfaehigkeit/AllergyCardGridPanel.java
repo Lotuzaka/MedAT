@@ -15,6 +15,7 @@ public class AllergyCardGridPanel extends JPanel {
 
     public AllergyCardGridPanel() {
         super(new GridLayout(4, 2, 5, 5)); // Minimal spacing for very compact cards
+        setBackground(Color.WHITE); // Set background to white
         for (int i = 0; i < 8; i++) {
             AllergyCardPanel p = new AllergyCardPanel();
             cards.add(p);

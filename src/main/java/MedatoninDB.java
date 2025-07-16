@@ -1,6 +1,3 @@
-import merk.MerkQuestionEngine;
-
-
 import dao.AllergyCardDAO;
 import model.AllergyCardData;
 import org.apache.poi.xwpf.usermodel.*;
@@ -1926,6 +1923,8 @@ public class MedatoninDB extends JFrame {
                 JPanel allergyCardGridPanel = (JPanel) allergyGridClass.getDeclaredConstructor().newInstance();
                 JScrollPane allergyScrollPane = new JScrollPane(allergyCardGridPanel);
                 allergyScrollPane.setPreferredSize(new Dimension(620, 380)); // Much smaller for compact cards
+                allergyScrollPane.getViewport().setBackground(Color.WHITE); // Set viewport background to white
+                allergyScrollPane.setBackground(Color.WHITE); // Set scroll pane background to white
                 splitPane.setRightComponent(allergyScrollPane);
                 
                 // Set initial divider location and resize behavior for minimal right panel width
@@ -2090,6 +2089,63 @@ public class MedatoninDB extends JFrame {
 
                 buttonPanel.add(generateButton);
                 buttonPanel.add(questionCountField);
+
+                // Add Test button for generating all question types and variations
+                JButton testButton = createModernButton("Test");
+                testButton.setBackground(new Color(255, 193, 7)); // Yellow background 
+                testButton.setForeground(Color.BLACK);
+                testButton.setFont(new Font("SansSerif", Font.BOLD, 14));
+                testButton.setFocusPainted(false);
+                testButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+                testButton.setPreferredSize(new Dimension(80, testButton.getPreferredSize().height));
+
+                testButton.addActionListener(e -> {
+                    try {
+                        debugLog("QuestionGen", "Starting comprehensive Merkfähigkeiten test generation");
+                        JSplitPane sp = (JSplitPane) subcategoryContentPanel.getComponent(0);
+                        JScrollPane asp = (JScrollPane) sp.getRightComponent();
+                        ui.merkfaehigkeit.AllergyCardGridPanel grid = (ui.merkfaehigkeit.AllergyCardGridPanel) asp.getViewport().getView();
+                        java.util.List<model.AllergyCardData> cards = grid.getAllCards();
+                        debugLog("QuestionGen", "Retrieved " + cards.size() + " allergy cards for test");
+                        
+                        if (cards.isEmpty() || cards.stream().anyMatch(card -> card.name() == null || card.name().trim().isEmpty())) {
+                            JOptionPane.showMessageDialog(null, "Bitte zuerst Allergiekarten generieren (Generate ID drücken).", "Keine Daten", JOptionPane.WARNING_MESSAGE);
+                            return;
+                        }
+                        
+                        generator.MerkQuestionGenerator gen = new generator.MerkQuestionGenerator(
+                                conn, currentCategory, currentSubcategory, selectedSimulationId, cards);
+                        int beforeCount = tableModel.getRowCount();
+                        try {
+                            gen.executeAllTypes(); // Generate comprehensive test set with all variations
+                        } catch (Exception genEx) {
+                            JOptionPane.showMessageDialog(null, "Fehler bei der Test-Generierung: " + genEx.getMessage(), "Fehler", JOptionPane.ERROR_MESSAGE);
+                            debugLog("QuestionGen", "Merkfähigkeiten test generation failed: " + genEx.getMessage());
+                            return;
+                        }
+                        debugLog("QuestionGen", "Successfully executed comprehensive MerkQuestionGenerator test");
+                        loadQuestionsFromDatabase(currentCategory, categoryModels.get(currentCategory),
+                                selectedSimulationId);
+                        tableModel.fireTableDataChanged();
+                        debugLog("QuestionGen", "Refreshed table model");
+                        int afterCount = tableModel.getRowCount();
+                        int actualGenerated = (afterCount - beforeCount) / 6; // Each question has 5 option rows + 1 question row = 6 rows total
+                        if (questionTable != null && tableModel != null && afterCount > beforeCount) {
+                            questionTable.scrollRectToVisible(
+                                    questionTable.getCellRect(afterCount - 1, 0, true));
+                        }
+                        // Force UI update
+                        questionTable.revalidate();
+                        questionTable.repaint();
+                        
+                        JOptionPane.showMessageDialog(null, "Test abgeschlossen! Alle Fragetypen und Varianten wurden generiert (" + actualGenerated + " Fragen total).", "Test erfolgreich", JOptionPane.INFORMATION_MESSAGE);
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(null, "Fehler: " + ex.getMessage(), "Fehler", JOptionPane.ERROR_MESSAGE);
+                        debugLog("QuestionGen", "Merkfähigkeiten test generation failed: " + ex.getMessage());
+                    }
+                });
+
+                buttonPanel.add(testButton);
 
             } catch (Exception e) {
                 debugLog("UI", LogLevel.ERROR, "Failed to add Generate button: " + e.getMessage());

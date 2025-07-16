@@ -197,4 +197,62 @@ public class MerkQuestionEngine {
             return options.indexOf(correctAnswer);
         }
     }
+
+    /**
+     * Generate a question for a specific template type
+     */
+    public Question generateSpecific(MerkTemplate templateType) {
+        if (cards.isEmpty()) {
+            throw new IllegalStateException("No allergy cards available");
+        }
+
+        TemplateData template = registry.get(templateType);
+        if (template == null) {
+            throw new IllegalStateException("Template not found: " + templateType);
+        }
+
+        return switch (templateType) {
+            case S1 -> generateS1(template);
+            case S2 -> generateS2(template);
+            case S3 -> generateS3(template);
+            case S4 -> generateS4(template);
+            case S6 -> generateS6(template);
+            case S7 -> generateS7(template);
+            case S8 -> generateS8(template);
+            case S9 -> generateS9(template);
+            default -> throw new IllegalStateException("Unsupported template: " + templateType);
+        };
+    }
+
+    /**
+     * Generate all available question types for testing (excluding S5 which is not implemented)
+     * Creates multiple questions for each template type to show all possible variations
+     */
+    public List<Question> generateAllTypes() {
+        MerkTemplate[] allTypes = {
+            MerkTemplate.S1, MerkTemplate.S2, MerkTemplate.S3, MerkTemplate.S4,
+            MerkTemplate.S6, MerkTemplate.S7, MerkTemplate.S8, MerkTemplate.S9
+        };
+        
+        List<Question> questions = new ArrayList<>();
+        for (MerkTemplate type : allTypes) {
+            try {
+                TemplateData template = registry.get(type);
+                if (template != null) {
+                    // Generate multiple questions to showcase different variations
+                    // Main question (using randomVariant which can pick any variant)
+                    questions.add(generateSpecific(type));
+                    
+                    // Generate additional questions to show variety (2-3 more per template)
+                    int additionalQuestions = Math.min(3, cards.size());
+                    for (int i = 0; i < additionalQuestions; i++) {
+                        questions.add(generateSpecific(type));
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("Failed to generate question for template " + type + ": " + e.getMessage());
+            }
+        }
+        return questions;
+    }
 }
