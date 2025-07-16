@@ -1941,6 +1941,15 @@ public class MedatoninDB extends JFrame {
                 generateIdButton.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
                 generateIdButton.setPreferredSize(new Dimension(150, generateIdButton.getPreferredSize().height));
                 
+                generateIdButton.addActionListener(e -> {
+                    try {
+                        // Call generateRandomData method on the allergy card grid panel
+                        allergyCardGridPanel.getClass().getMethod("generateRandomData").invoke(allergyCardGridPanel);
+                        debugLog("UI", "Generated random data for all allergy cards");
+                    } catch (Exception ex) {
+                        debugLog("UI", LogLevel.ERROR, "Failed to generate random data: " + ex.getMessage());
+                    }
+                });
                 
                 debugLog("UI", "Added AllergyCardGridPanel for Merkfähigkeiten subcategory");
             } catch (Exception e) {
@@ -1966,7 +1975,7 @@ public class MedatoninDB extends JFrame {
         addQuestionButton.setPreferredSize(new Dimension(150, addQuestionButton.getPreferredSize().height));
 
         // Create buttons according to category and subcategory
-        if ("KFF".equals(currentCategory) || "Figuren".equals(currentSubcategory)) {
+        if ("KFF".equals(currentCategory) || "Figuren".equals(currentSubcategory) || "Merkfähigkeiten".equals(currentSubcategory)) {
 
             // Create the button first to get its height and style
             JButton generateButton = createModernButton("Generate");
@@ -2097,16 +2106,20 @@ public class MedatoninDB extends JFrame {
                             tableModel.fireTableDataChanged();
                         } else if ("Merkfähigkeiten".equals(currentSubcategory)) {
                             try {
+                                debugLog("QuestionGen", "Starting Merkfähigkeiten generation for " + questionCount + " questions");
                                 JSplitPane sp = (JSplitPane) subcategoryContentPanel.getComponent(0);
                                 JScrollPane asp = (JScrollPane) sp.getRightComponent();
                                 ui.merkfaehigkeit.AllergyCardGridPanel grid = (ui.merkfaehigkeit.AllergyCardGridPanel) asp.getViewport().getView();
                                 java.util.List<model.AllergyCardData> cards = grid.getAllCards();
+                                debugLog("QuestionGen", "Retrieved " + cards.size() + " allergy cards");
                                 generator.MerkQuestionGenerator gen = new generator.MerkQuestionGenerator(
                                         conn, currentCategory, currentSubcategory, selectedSimulationId, cards);
                                 gen.execute(questionCount);
+                                debugLog("QuestionGen", "Successfully executed MerkQuestionGenerator");
                                 loadQuestionsFromDatabase(currentCategory, categoryModels.get(currentCategory),
                                         selectedSimulationId);
                                 tableModel.fireTableDataChanged();
+                                debugLog("QuestionGen", "Refreshed table model");
                             } catch (Exception ex) {
                                 debugLog("QuestionGen", "Merkfähigkeiten generation failed: " + ex.getMessage());
                             }

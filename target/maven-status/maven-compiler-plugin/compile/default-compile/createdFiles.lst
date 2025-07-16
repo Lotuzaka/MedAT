@@ -1,7 +1,9 @@
 MedatoninDB$6.class
+merk\MerkQuestionEngine$1.class
 FigurenGenerator$Difficulty.class
 FigurenGenerator$PolygonDissector.class
 MedatoninDB$12.class
+merk\TemplateRegistry.class
 util\Pair.class
 testSimulationDAO.class
 SyllogismGenerator$QuestionData.class
@@ -17,6 +19,7 @@ QuestionDAO.class
 MedatoninDB$5.class
 MedatoninDB$CustomEditor$2.class
 CustomRenderer$EulerPanel.class
+merk\TemplateRegistry$1.class
 MedatoninDB$ModernComboBox$ModernComboBoxUI$1.class
 model\AllergyCardData.class
 PolygonPanel.class
@@ -27,6 +30,7 @@ CustomRenderer.class
 RoundedTextField.class
 generator\MerkfaehigkeitGenerator.class
 MedatoninDB$1.class
+merk\MerkTemplate.class
 util\SyllogismUtils$1.class
 MedatoninDB$13.class
 QuestionIdentifier.class
@@ -34,6 +38,7 @@ MedatoninDB.class
 MedatoninDB$4.class
 MedatoninDB$ModernComboBox.class
 dao\AllergyCardDAO.class
+generator\MerkQuestionGenerator.class
 svg\SvgBuilder.class
 MedatoninDB$10.class
 SyllogismGenerator$SyllogismModel.class
@@ -47,6 +52,7 @@ MedatoninDB$9.class
 util\Type.class
 FigurenGenerator$GeometryUtils.class
 MedatoninDB$ModernComboBox$ModernComboBoxUI.class
+merk\TemplateRegistry$JsonTemplate.class
 MedatoninDB$CustomEditor.class
 SyllogismGenerator.class
 util\Sentence.class
@@ -57,6 +63,7 @@ ui\merkfaehigkeit\AllergyCardPanel$1.class
 FigurenGenerator.class
 MedatoninDB$14.class
 MedatoninDB$LogLevel.class
+merk\TemplateData.class
 util\SyllogismUtils.class
 MedatoninDB$3.class
 ZahlenfolgenGenerator.class

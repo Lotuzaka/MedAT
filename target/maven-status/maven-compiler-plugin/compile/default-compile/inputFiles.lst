@@ -4,7 +4,12 @@ C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\CustomRendere
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\dao\AllergyCardDAO.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\FigurenGenerator.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\generator\MerkfaehigkeitGenerator.java
+C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\generator\MerkQuestionGenerator.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\MedatoninDB.java
+C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\merk\MerkQuestionEngine.java
+C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\merk\MerkTemplate.java
+C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\merk\TemplateData.java
+C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\merk\TemplateRegistry.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\model\AllergyCardData.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\OptionDAO.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\PolygonPanel.java
