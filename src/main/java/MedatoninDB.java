@@ -2095,6 +2095,21 @@ public class MedatoninDB extends JFrame {
                             loadQuestionsFromDatabase(currentCategory, categoryModels.get(currentCategory),
                                     selectedSimulationId);
                             tableModel.fireTableDataChanged();
+                        } else if ("Merkfähigkeiten".equals(currentSubcategory)) {
+                            try {
+                                JSplitPane sp = (JSplitPane) subcategoryContentPanel.getComponent(0);
+                                JScrollPane asp = (JScrollPane) sp.getRightComponent();
+                                ui.merkfaehigkeit.AllergyCardGridPanel grid = (ui.merkfaehigkeit.AllergyCardGridPanel) asp.getViewport().getView();
+                                java.util.List<model.AllergyCardData> cards = grid.getAllCards();
+                                generator.MerkQuestionGenerator gen = new generator.MerkQuestionGenerator(
+                                        conn, currentCategory, currentSubcategory, selectedSimulationId, cards);
+                                gen.execute(questionCount);
+                                loadQuestionsFromDatabase(currentCategory, categoryModels.get(currentCategory),
+                                        selectedSimulationId);
+                                tableModel.fireTableDataChanged();
+                            } catch (Exception ex) {
+                                debugLog("QuestionGen", "Merkfähigkeiten generation failed: " + ex.getMessage());
+                            }
                         }
 
                         if (questionTable != null && tableModel != null) {
