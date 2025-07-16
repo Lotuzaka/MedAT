@@ -1,12 +1,13 @@
 package merk;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public final class TemplateRegistry {
     private final Map<MerkTemplate, TemplateData> templates;
@@ -22,18 +23,32 @@ public final class TemplateRegistry {
         }
         try (InputStream in = TemplateRegistry.class.getResourceAsStream("/merk/templates.json")) {
             if (in != null) {
-                ObjectMapper om = new ObjectMapper();
-                List<JsonTemplate> list = om.readValue(in, new TypeReference<>(){});
-                for (JsonTemplate jt : list) {
-                    MerkTemplate id = MerkTemplate.valueOf(jt.id);
-                    List<String> vars = jt.variants == null ? List.of() : List.copyOf(jt.variants);
-                    map.put(id, new TemplateData(id, jt.question, vars));
+                String json = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+                Pattern p = Pattern.compile("\\{\\s*\"id\"\\s*:\\s*\"(.*?)\"\\s*,\\s*\"question\"\\s*:\\s*\"(.*?)\"(\\s*,\\s*\"variants\"\\s*:\\s*\\[(.*?)\\])?\\s*\\}");
+                Matcher m = p.matcher(json);
+                while (m.find()) {
+                    String idStr = m.group(1);
+                    String q = unescape(m.group(2));
+                    String block = m.group(4);
+                    List<String> vars = new ArrayList<>();
+                    if (block != null) {
+                        Matcher vm = Pattern.compile("\"(.*?)\"").matcher(block);
+                        while (vm.find()) {
+                            vars.add(unescape(vm.group(1)));
+                        }
+                    }
+                    MerkTemplate id = MerkTemplate.valueOf(idStr);
+                    map.put(id, new TemplateData(id, q, vars));
                 }
             }
         } catch (IOException ex) {
             throw new UncheckedIOException(ex);
         }
         return new TemplateRegistry(map);
+    }
+
+    private static String unescape(String s) {
+        return s.replace("\\\"", "\"");
     }
 
     public TemplateData get(MerkTemplate id) {
@@ -44,9 +59,4 @@ public final class TemplateRegistry {
         return templates.values();
     }
 
-    private static class JsonTemplate {
-        public String id;
-        public String question;
-        public List<String> variants;
-    }
 }

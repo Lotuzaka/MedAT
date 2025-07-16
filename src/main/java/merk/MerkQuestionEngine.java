@@ -136,14 +136,6 @@ public class MerkQuestionEngine {
                 .collect(Collectors.toCollection(ArrayList::new));
     }
 
-    private List<String> pick(List<String> pool, int n) {
-        Collections.shuffle(pool, rnd);
-        if (pool.size() > n) {
-            pool = new ArrayList<>(pool.subList(0, n));
-        }
-        return new ArrayList<>(pool);
-    }
-
     private String fill(String template, Map<String,String> map) {
         String t = template;
         for (Map.Entry<String,String> e : map.entrySet()) {

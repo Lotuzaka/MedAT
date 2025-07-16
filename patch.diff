@@ -1,60 +1,84 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
-diff --git a/dev/null b/src/main/java/generator/MerkQuestionGenerator.java
-index 0000000000000000000000000000000000000000..d90a5a16449042f362b0bb8249fac9acbabc637e 100644
---- a/dev/null
-+++ b/src/main/java/generator/MerkQuestionGenerator.java
-@@ -0,0 +1,51 @@
-+package generator;
-+
-+import merk.MerkQuestionEngine;
-+import model.AllergyCardData;
-+import dao.QuestionDAO;
-+import dao.OptionDAO;
-+
-+import java.sql.Connection;
-+import java.sql.SQLException;
-+import java.util.List;
-+import java.util.Random;
-+
-+/**
-+ * Generates Merkfaehigkeit questions based on the current allergy cards
-+ * and inserts them into the database.
-+ */
-+public class MerkQuestionGenerator {
-+    private final Connection conn;
-+    private final String category;
-+    private final String subcategory;
-+    private final Integer simulationId;
-+    private final QuestionDAO questionDAO;
-+    private final OptionDAO optionDAO;
-+    private final MerkQuestionEngine engine;
-+
-+    public MerkQuestionGenerator(Connection conn, String category, String subcategory,
-+                                 Integer simulationId, List<AllergyCardData> cards) {
-+        this.conn = conn;
-+        this.category = category;
-+        this.subcategory = subcategory;
-+        this.simulationId = simulationId;
-+        this.questionDAO = new QuestionDAO(conn);
-+        this.optionDAO = new OptionDAO(conn);
-+        this.engine = new MerkQuestionEngine(cards, new Random());
+diff --git a/src/main/java/merk/TemplateRegistry.java b/src/main/java/merk/TemplateRegistry.java
+index 39e685d72b8430ce7542d206b7670937c75cbfb4..dcbf977147e7b35912b6f849f355057ac3c1cd33 100644
+--- a/src/main/java/merk/TemplateRegistry.java
++++ b/src/main/java/merk/TemplateRegistry.java
+@@ -1,52 +1,62 @@
+ package merk;
+ 
+-import com.fasterxml.jackson.core.type.TypeReference;
+-import com.fasterxml.jackson.databind.ObjectMapper;
+ 
+ import java.io.IOException;
+ import java.io.InputStream;
+ import java.io.UncheckedIOException;
++import java.nio.charset.StandardCharsets;
+ import java.util.*;
++import java.util.regex.Matcher;
++import java.util.regex.Pattern;
+ 
+ public final class TemplateRegistry {
+     private final Map<MerkTemplate, TemplateData> templates;
+ 
+     private TemplateRegistry(Map<MerkTemplate, TemplateData> templates) {
+         this.templates = templates;
+     }
+ 
+     public static TemplateRegistry load() {
+         Map<MerkTemplate, TemplateData> map = new EnumMap<>(MerkTemplate.class);
+         for (MerkTemplate t : MerkTemplate.values()) {
+             map.put(t, new TemplateData(t, null, List.of()));
+         }
+         try (InputStream in = TemplateRegistry.class.getResourceAsStream("/merk/templates.json")) {
+             if (in != null) {
+-                ObjectMapper om = new ObjectMapper();
+-                List<JsonTemplate> list = om.readValue(in, new TypeReference<>(){});
+-                for (JsonTemplate jt : list) {
+-                    MerkTemplate id = MerkTemplate.valueOf(jt.id);
+-                    List<String> vars = jt.variants == null ? List.of() : List.copyOf(jt.variants);
+-                    map.put(id, new TemplateData(id, jt.question, vars));
++                String json = new String(in.readAllBytes(), StandardCharsets.UTF_8);
++                Pattern p = Pattern.compile("\\{\\s*\"id\"\\s*:\\s*\"(.*?)\"\\s*,\\s*\"question\"\\s*:\\s*\"(.*?)\"(\\s*,\\s*\"variants\"\\s*:\\s*\\[(.*?)\\])?\\s*\\}");
++                Matcher m = p.matcher(json);
++                while (m.find()) {
++                    String idStr = m.group(1);
++                    String q = unescape(m.group(2));
++                    String block = m.group(4);
++                    List<String> vars = new ArrayList<>();
++                    if (block != null) {
++                        Matcher vm = Pattern.compile("\"(.*?)\"").matcher(block);
++                        while (vm.find()) {
++                            vars.add(unescape(vm.group(1)));
++                        }
++                    }
++                    MerkTemplate id = MerkTemplate.valueOf(idStr);
++                    map.put(id, new TemplateData(id, q, vars));
+                 }
+             }
+         } catch (IOException ex) {
+             throw new UncheckedIOException(ex);
+         }
+         return new TemplateRegistry(map);
+     }
+ 
++    private static String unescape(String s) {
++        return s.replace("\\\"", "\"");
 +    }
 +
-+    public void execute(int count) throws SQLException {
-+        int subId = questionDAO.getSubcategoryId(category, subcategory);
-+        int qNum = questionDAO.getNextQuestionNumber(simulationId, subId);
-+        for (int i = 0; i < count; i++) {
-+            MerkQuestionEngine.Question q = engine.generate();
-+            int qId = questionDAO.insertQuestion(category, subcategory, q.text(), qNum, simulationId);
-+            List<String> options = q.options();
-+            for (int j = 0; j < options.size(); j++) {
-+                String label = (j == 4) ? "E" : String.valueOf((char)('A' + j));
-+                optionDAO.insertOption(qId, label, options.get(j), j == q.correctIndex());
-+            }
-+            qNum++;
-+        }
-+    }
-+}
+     public TemplateData get(MerkTemplate id) {
+         return templates.get(id);
+     }
+ 
+     public Collection<TemplateData> all() {
+         return templates.values();
+     }
+ 
+-    private static class JsonTemplate {
+-        public String id;
+-        public String question;
+-        public List<String> variants;
+-    }
+ }
  
 EOF
 )
