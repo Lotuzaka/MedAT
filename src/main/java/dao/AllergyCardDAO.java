@@ -4,7 +4,9 @@ import model.AllergyCardData;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 /** DAO for persisting allergy cards. */
@@ -16,6 +18,9 @@ public class AllergyCardDAO {
     }
 
     public void insertAll(List<AllergyCardData> cards, int sessionId) throws SQLException {
+        // First delete existing cards for this session
+        deleteBySessionId(sessionId);
+        
         String sql = "INSERT INTO allergy_card(test_session_id,idx,name,dob,medication,blood_group,allergies,card_no,country,image_png) " +
                 "VALUES(?,?,?,?,?,?,?,?,?,?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -39,5 +44,51 @@ public class AllergyCardDAO {
             }
             ps.executeBatch();
         }
+    }
+
+    public List<AllergyCardData> getBySessionId(int sessionId) throws SQLException {
+        List<AllergyCardData> cards = new ArrayList<>();
+        String sql = "SELECT name,dob,medication,blood_group,allergies,card_no,country,image_png " +
+                "FROM allergy_card WHERE test_session_id = ? ORDER BY idx";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, sessionId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    AllergyCardData card = new AllergyCardData(
+                            rs.getString("name"),
+                            rs.getDate("dob") != null ? rs.getDate("dob").toLocalDate() : null,
+                            rs.getString("medication"),
+                            rs.getString("blood_group"),
+                            rs.getString("allergies"),
+                            rs.getString("card_no"),
+                            rs.getString("country"),
+                            rs.getBytes("image_png")
+                    );
+                    cards.add(card);
+                }
+            }
+        }
+        return cards;
+    }
+
+    public void deleteBySessionId(int sessionId) throws SQLException {
+        String sql = "DELETE FROM allergy_card WHERE test_session_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, sessionId);
+            ps.executeUpdate();
+        }
+    }
+
+    public boolean hasDataForSession(int sessionId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM allergy_card WHERE test_session_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, sessionId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        }
+        return false;
     }
 }

@@ -193,4 +193,19 @@ public class AllergyCardGridPanel extends JPanel {
             card.load(data);
         }
     }
+
+    /**
+     * Load allergy card data from a list (typically from database).
+     */
+    public void loadCards(List<AllergyCardData> cardDataList) {
+        // Clear existing data first
+        reset();
+
+        // Load the provided data into cards (up to 8 cards)
+        for (int i = 0; i < Math.min(cardDataList.size(), cards.size()); i++) {
+            AllergyCardData data = cardDataList.get(i);
+            AllergyCardPanel card = cards.get(i);
+            card.load(data);
+        }
+    }
 }

@@ -1,5 +1,7 @@
 
 
+import dao.AllergyCardDAO;
+import model.AllergyCardData;
 import org.apache.poi.xwpf.usermodel.*;
 import org.locationtech.jts.geom.Geometry;
 // import org.locationtech.jts.io.ParseException;
@@ -1932,6 +1934,23 @@ public class MedatoninDB extends JFrame {
                 
                 subcategoryContentPanel.add(splitPane, BorderLayout.CENTER);
                 
+                // Try to restore existing allergy card data from database
+                try {
+                    if (selectedSimulationId != null) {
+                        AllergyCardDAO allergyDAO = new AllergyCardDAO(conn);
+                        if (allergyDAO.hasDataForSession(selectedSimulationId)) {
+                            List<AllergyCardData> existingData = allergyDAO.getBySessionId(selectedSimulationId);
+                            if (!existingData.isEmpty()) {
+                                // Load existing data into the allergy card panel
+                                allergyCardGridPanel.getClass().getMethod("loadCards", List.class).invoke(allergyCardGridPanel, existingData);
+                                debugLog("UI", "Restored " + existingData.size() + " allergy cards from database for simulation " + selectedSimulationId);
+                            }
+                        }
+                    }
+                } catch (Exception ex) {
+                    debugLog("UI", LogLevel.WARN, "Could not restore allergy card data: " + ex.getMessage());
+                }
+                
                 // Add "Generate ID" button specifically for Merkfähigkeiten
                 JButton generateIdButton = createModernButton("Generate ID");
                 generateIdButton.setBackground(new Color(255, 165, 0)); // Orange background
@@ -1946,8 +1965,20 @@ public class MedatoninDB extends JFrame {
                         // Call generateRandomData method on the allergy card grid panel
                         allergyCardGridPanel.getClass().getMethod("generateRandomData").invoke(allergyCardGridPanel);
                         debugLog("UI", "Generated random data for all allergy cards");
+                        
+                        // Save allergy card data to database if we have a selected simulation
+                        if (selectedSimulationId != null) {
+                            @SuppressWarnings("unchecked")
+                            List<AllergyCardData> cardData = (List<AllergyCardData>) allergyCardGridPanel.getClass().getMethod("getAllCards").invoke(allergyCardGridPanel);
+                            AllergyCardDAO allergyDAO = new AllergyCardDAO(conn);
+                            allergyDAO.insertAll(cardData, selectedSimulationId);
+                            debugLog("UI", "Saved " + cardData.size() + " allergy cards to database for simulation " + selectedSimulationId);
+                        } else {
+                            debugLog("UI", LogLevel.WARN, "No simulation selected - allergy card data not saved to database");
+                        }
                     } catch (Exception ex) {
-                        debugLog("UI", LogLevel.ERROR, "Failed to generate random data: " + ex.getMessage());
+                        debugLog("UI", LogLevel.ERROR, "Failed to generate/save random data: " + ex.getMessage());
+                        ex.printStackTrace();
                     }
                 });
                 
