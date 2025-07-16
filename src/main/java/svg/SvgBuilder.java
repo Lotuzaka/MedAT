@@ -22,22 +22,46 @@ public class SvgBuilder {
     public void setupCircles(double ax, double ay, double ar,
                              double bx, double by, double br,
                              double cx, double cy, double cr) {
-        Geometry A = circle(ax, ay, ar);
-        Geometry B = circle(bx, by, br);
-        Geometry C = circle(cx, cy, cr);
-        regions.clear();
-        regions.add(A.difference(GeometryCombiner.combine(Arrays.asList(B, C)))); //0
-        regions.add(A.intersection(B).difference(C)); //1
-        regions.add(B.difference(GeometryCombiner.combine(Arrays.asList(A, C)))); //2
-        regions.add(A.intersection(B).intersection(C)); //3
-        regions.add(C.difference(GeometryCombiner.combine(Arrays.asList(A, B)))); //4
-        regions.add(A.intersection(C).difference(B)); //5
-        regions.add(B.intersection(C).difference(A)); //6
-        regions.add(gf.createPolygon()); //7 empty
+        try {
+            Geometry A = circle(ax, ay, ar);
+            Geometry B = circle(bx, by, br);
+            Geometry C = circle(cx, cy, cr);
+            regions.clear();
+            
+            // Use safer geometry operations with error handling
+            regions.add(safeGeometryOperation(() -> A.difference(GeometryCombiner.combine(Arrays.asList(B, C))))); //0
+            regions.add(safeGeometryOperation(() -> A.intersection(B).difference(C))); //1
+            regions.add(safeGeometryOperation(() -> B.difference(GeometryCombiner.combine(Arrays.asList(A, C))))); //2
+            regions.add(safeGeometryOperation(() -> A.intersection(B).intersection(C))); //3
+            regions.add(safeGeometryOperation(() -> C.difference(GeometryCombiner.combine(Arrays.asList(A, B))))); //4
+            regions.add(safeGeometryOperation(() -> A.intersection(C).difference(B))); //5
+            regions.add(safeGeometryOperation(() -> B.intersection(C).difference(A))); //6
+            regions.add(gf.createPolygon()); //7 empty
 
-        sb.append(String.format("<circle id='A' cx='%.1f' cy='%.1f' r='%.1f' fill='none' stroke='black'/>", ax, ay, ar));
-        sb.append(String.format("<circle id='B' cx='%.1f' cy='%.1f' r='%.1f' fill='none' stroke='black'/>", bx, by, br));
-        sb.append(String.format("<circle id='C' cx='%.1f' cy='%.1f' r='%.1f' fill='none' stroke='black'/>", cx, cy, cr));
+            sb.append(String.format("<circle id='A' cx='%.1f' cy='%.1f' r='%.1f' fill='none' stroke='black'/>", ax, ay, ar));
+            sb.append(String.format("<circle id='B' cx='%.1f' cy='%.1f' r='%.1f' fill='none' stroke='black'/>", bx, by, br));
+            sb.append(String.format("<circle id='C' cx='%.1f' cy='%.1f' r='%.1f' fill='none' stroke='black'/>", cx, cy, cr));
+        } catch (Exception e) {
+            // Fallback: create empty regions if geometry operations fail
+            regions.clear();
+            for (int i = 0; i < 8; i++) {
+                regions.add(gf.createPolygon());
+            }
+            // Still add circle definitions for visual consistency
+            sb.append(String.format("<circle id='A' cx='%.1f' cy='%.1f' r='%.1f' fill='none' stroke='black'/>", ax, ay, ar));
+            sb.append(String.format("<circle id='B' cx='%.1f' cy='%.1f' r='%.1f' fill='none' stroke='black'/>", bx, by, br));
+            sb.append(String.format("<circle id='C' cx='%.1f' cy='%.1f' r='%.1f' fill='none' stroke='black'/>", cx, cy, cr));
+        }
+    }
+
+    private Geometry safeGeometryOperation(java.util.function.Supplier<Geometry> operation) {
+        try {
+            Geometry result = operation.get();
+            return result != null ? result : gf.createPolygon();
+        } catch (Exception e) {
+            // Return empty geometry on any topology exception
+            return gf.createPolygon();
+        }
     }
 
     private Polygon circle(double x, double y, double r) {

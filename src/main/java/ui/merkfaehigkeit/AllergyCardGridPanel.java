@@ -12,7 +12,7 @@ public class AllergyCardGridPanel extends JPanel {
     private final List<AllergyCardPanel> cards = new ArrayList<>(8);
 
     public AllergyCardGridPanel() {
-        super(new GridLayout(2,4,12,12));
+        super(new GridLayout(4,2,8,8)); // Reduced spacing for smaller cards
         for(int i=0;i<8;i++) {
             AllergyCardPanel p = new AllergyCardPanel();
             cards.add(p);

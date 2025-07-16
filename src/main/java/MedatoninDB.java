@@ -1911,8 +1911,36 @@ public class MedatoninDB extends JFrame {
         // Add the table in a scroll pane to the content panel
         JScrollPane subScrollPane = new JScrollPane(questionTable);
 
-        // Add components to subcategoryContentPanel
-        subcategoryContentPanel.add(subScrollPane, BorderLayout.CENTER);
+        // Special handling for "Merkfähigkeiten" subcategory
+        if ("Merkfähigkeiten".equals(currentSubcategory)) {
+            // Create split pane with table on left and allergy cards on right
+            JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
+            splitPane.setLeftComponent(subScrollPane);
+            
+            // Create the allergy card grid panel on the right
+            try {
+                Class<?> allergyGridClass = Class.forName("ui.merkfaehigkeit.AllergyCardGridPanel");
+                JPanel allergyCardGridPanel = (JPanel) allergyGridClass.getDeclaredConstructor().newInstance();
+                JScrollPane allergyScrollPane = new JScrollPane(allergyCardGridPanel);
+                allergyScrollPane.setPreferredSize(new Dimension(630, 600)); // Slightly increased width for radio button visibility
+                splitPane.setRightComponent(allergyScrollPane);
+                
+                // Set initial divider location and resize behavior for minimal right panel width
+                splitPane.setResizeWeight(1.0); // Give maximum space to left panel initially
+                splitPane.setDividerLocation(0.6); // Start with 60% for left, 40% for right
+                splitPane.setOneTouchExpandable(true); // Allow quick expansion/collapse
+                
+                subcategoryContentPanel.add(splitPane, BorderLayout.CENTER);
+                debugLog("UI", "Added AllergyCardGridPanel for Merkfähigkeiten subcategory");
+            } catch (Exception e) {
+                debugLog("UI", LogLevel.ERROR, "Failed to load AllergyCardGridPanel: " + e.getMessage());
+                // Fallback to normal table view
+                subcategoryContentPanel.add(subScrollPane, BorderLayout.CENTER);
+            }
+        } else {
+            // Add components to subcategoryContentPanel for normal subcategories
+            subcategoryContentPanel.add(subScrollPane, BorderLayout.CENTER);
+        }
 
         // For other categories and subcategories, only add "Add Question" button
         JButton addQuestionButton = createModernButton("Add Question");

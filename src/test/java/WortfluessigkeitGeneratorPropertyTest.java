@@ -15,8 +15,9 @@ import net.jqwik.api.Arbitrary;
 public class WortfluessigkeitGeneratorPropertyTest {
 
     private Connection createDb() throws SQLException {
-        Connection c = DriverManager.getConnection("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1");
+        Connection c = DriverManager.getConnection("jdbc:h2:mem:test_wf_property;DB_CLOSE_DELAY=-1");
         try (Statement st = c.createStatement()) {
+            st.execute("DROP ALL OBJECTS");
             st.execute("CREATE TABLE categories(id INT PRIMARY KEY AUTO_INCREMENT, name VARCHAR(255))");
             st.execute(
                     "CREATE TABLE subcategories(id INT PRIMARY KEY AUTO_INCREMENT, category_id INT, name VARCHAR(255), order_index INT)");

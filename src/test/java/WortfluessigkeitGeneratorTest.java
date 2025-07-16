@@ -16,8 +16,9 @@ public class WortfluessigkeitGeneratorTest {
 
     @BeforeEach
     void setUp() throws SQLException {
-        conn = DriverManager.getConnection("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1");
+        conn = DriverManager.getConnection("jdbc:h2:mem:test_wf_unit;DB_CLOSE_DELAY=-1");
         try (Statement st = conn.createStatement()) {
+            st.execute("DROP ALL OBJECTS");
             st.execute("CREATE TABLE categories(id INT PRIMARY KEY AUTO_INCREMENT, name VARCHAR(255))");
             st.execute("CREATE TABLE subcategories(id INT PRIMARY KEY AUTO_INCREMENT, category_id INT, name VARCHAR(255), order_index INT)");
             st.execute("CREATE TABLE questions(id INT PRIMARY KEY AUTO_INCREMENT, subcategory_id INT, question_number INT, text VARCHAR(255), format VARCHAR(10), test_simulation_id INT, difficulty VARCHAR(10), shape_data VARCHAR(255), shape_type VARCHAR(255), dissected_pieces_data VARCHAR(255), assembled_pieces_data VARCHAR(255))");

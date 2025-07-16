@@ -24,17 +24,30 @@ public class AllergyCardPanel extends JPanel {
     private final JLabel imageLabel = new JLabel("Klicke zum Auswählen", SwingConstants.CENTER);
     private byte[] imageBytes;
 
-    private final JTextField nameField = new JTextField(15);
+    private final JTextField nameField = new JTextField();
     private final JFormattedTextField dobField;
-    private final JTextField medicationField = new JTextField(15);
-    private final JComboBox<String> bloodBox = new JComboBox<>(new String[]{"0+","0-","A+","A-","B+","B-","AB+","AB-"});
-    private final JTextArea allergiesArea = new JTextArea(2,15);
-    private final JTextField numberField = new JTextField(5);
-    private final JTextField countryField = new JTextField(12);
+    private final JRadioButton medicationYes = new JRadioButton("Ja");
+    private final JRadioButton medicationNo = new JRadioButton("Nein");
+    private final ButtonGroup medicationGroup = new ButtonGroup();
+    private final JRadioButton bloodA = new JRadioButton("A");
+    private final JRadioButton bloodB = new JRadioButton("B");
+    private final JRadioButton bloodAB = new JRadioButton("AB");
+    private final JRadioButton blood0 = new JRadioButton("0");
+    private final ButtonGroup bloodGroup = new ButtonGroup();
+    private final JTextField allergiesField = new JTextField();
+    private final JTextField numberField = new JTextField();
+    private final JTextField countryField = new JTextField();
 
     public AllergyCardPanel() {
         setLayout(new BorderLayout());
-        setPreferredSize(new Dimension(260,160));
+        setPreferredSize(new Dimension(300,100)); // Reduced height due to much shorter image
+        
+        // Add border to create ID card appearance
+        setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(Color.GRAY, 2), // Outer border
+            BorderFactory.createEmptyBorder(5, 5, 5, 5)    // Inner padding
+        ));
+        
         buildImageArea();
         MaskFormatter mf = null;
         try {
@@ -44,15 +57,27 @@ public class AllergyCardPanel extends JPanel {
             // should not happen
         }
         dobField = new JFormattedTextField(mf);
-        allergiesArea.setLineWrap(true);
-        allergiesArea.setWrapStyleWord(true);
+        dobField.setColumns(8); // Set width for exactly "TT.MM.YYYY" format
+        
+        // Set up medication radio buttons
+        medicationGroup.add(medicationYes);
+        medicationGroup.add(medicationNo);
+        medicationNo.setSelected(true); // Default to "Nein"
+        
+        // Set up blood group radio buttons
+        bloodGroup.add(bloodA);
+        bloodGroup.add(bloodB);
+        bloodGroup.add(bloodAB);
+        bloodGroup.add(blood0);
+        blood0.setSelected(true); // Default to "0"
+        
         ((AbstractDocument) numberField.getDocument()).setDocumentFilter(new DigitFilter());
 
         initInfoPanel();
     }
 
     private void buildImageArea() {
-        imageLabel.setPreferredSize(new Dimension(120,150));
+        imageLabel.setPreferredSize(new Dimension(60,50)); // Reduced height by more than 1/3 (from 80 to 50)
         imageLabel.setBorder(new LineBorder(Color.DARK_GRAY));
         imageLabel.addMouseListener(new MouseAdapter(){
             @Override
@@ -71,8 +96,8 @@ public class AllergyCardPanel extends JPanel {
             try {
                 BufferedImage img = ImageIO.read(f);
                 if(img!=null) {
-                    Image scaled = img.getScaledInstance(120,150,Image.SCALE_SMOOTH);
-                    BufferedImage bi = new BufferedImage(120,150,BufferedImage.TYPE_INT_ARGB);
+                    Image scaled = img.getScaledInstance(60,50,Image.SCALE_SMOOTH); // Updated to new smaller dimensions
+                    BufferedImage bi = new BufferedImage(60,50,BufferedImage.TYPE_INT_ARGB);
                     Graphics2D g2 = bi.createGraphics();
                     g2.drawImage(scaled,0,0,null);
                     g2.dispose();
@@ -93,26 +118,66 @@ public class AllergyCardPanel extends JPanel {
         GridBagConstraints c = new GridBagConstraints();
         c.insets = new Insets(2,2,2,2);
         c.anchor = GridBagConstraints.WEST;
-        c.gridx = 0; c.gridy = 0; infoPanel.add(new JLabel("Name"), c);
-        c.gridx = 1; infoPanel.add(nameField, c);
-        c.gridx = 0; c.gridy++; infoPanel.add(new JLabel("Geburtsdatum"), c);
-        c.gridx = 1; infoPanel.add(dobField, c);
-        c.gridx = 0; c.gridy++; infoPanel.add(new JLabel("Medikamente"), c);
-        c.gridx = 1; infoPanel.add(medicationField, c);
-        c.gridx = 0; c.gridy++; infoPanel.add(new JLabel("Blutgruppe"), c);
-        c.gridx = 1; infoPanel.add(bloodBox, c);
-        c.gridx = 0; c.gridy++; infoPanel.add(new JLabel("Allergien"), c);
-        c.gridx = 1; infoPanel.add(new JScrollPane(allergiesArea), c);
-        c.gridx = 0; c.gridy++; infoPanel.add(new JLabel("Ausweisnr."), c);
-        c.gridx = 1; infoPanel.add(numberField, c);
-        c.gridx = 0; c.gridy++; infoPanel.add(new JLabel("Land"), c);
-        c.gridx = 1; infoPanel.add(countryField, c);
+        
+        // Name
+        c.gridx = 0; c.gridy = 0; c.fill = GridBagConstraints.NONE; c.weightx = 0;
+        infoPanel.add(new JLabel("Name"), c);
+        c.gridx = 1; c.fill = GridBagConstraints.HORIZONTAL; c.weightx = 1.0;
+        infoPanel.add(nameField, c);
+        
+        // Date of Birth
+        c.gridx = 0; c.gridy++; c.fill = GridBagConstraints.NONE; c.weightx = 0;
+        infoPanel.add(new JLabel("Geburtsdatum"), c);
+        c.gridx = 1; c.fill = GridBagConstraints.HORIZONTAL; c.weightx = 1.0;
+        infoPanel.add(dobField, c);
+        
+        // Medication - Radio buttons
+        c.gridx = 0; c.gridy++; c.fill = GridBagConstraints.NONE; c.weightx = 0;
+        infoPanel.add(new JLabel("Medikamente"), c);
+        c.gridx = 1; c.fill = GridBagConstraints.HORIZONTAL; c.weightx = 1.0;
+        JPanel medicationPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        medicationPanel.add(medicationYes);
+        medicationPanel.add(medicationNo);
+        infoPanel.add(medicationPanel, c);
+        
+        // Blood group - Radio buttons
+        c.gridx = 0; c.gridy++; c.fill = GridBagConstraints.NONE; c.weightx = 0;
+        infoPanel.add(new JLabel("Blutgruppe"), c);
+        c.gridx = 1; c.fill = GridBagConstraints.HORIZONTAL; c.weightx = 1.0;
+        JPanel bloodPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        bloodPanel.add(bloodA);
+        bloodPanel.add(bloodB);
+        bloodPanel.add(bloodAB);
+        bloodPanel.add(blood0);
+        infoPanel.add(bloodPanel, c);
+        
+        // Allergies - Single line text field
+        c.gridx = 0; c.gridy++; c.fill = GridBagConstraints.NONE; c.weightx = 0;
+        infoPanel.add(new JLabel("Allergien"), c);
+        c.gridx = 1; c.fill = GridBagConstraints.HORIZONTAL; c.weightx = 1.0;
+        infoPanel.add(allergiesField, c);
+        
+        // ID Number
+        c.gridx = 0; c.gridy++; c.fill = GridBagConstraints.NONE; c.weightx = 0;
+        infoPanel.add(new JLabel("Ausweisnr."), c);
+        c.gridx = 1; c.fill = GridBagConstraints.HORIZONTAL; c.weightx = 1.0;
+        infoPanel.add(numberField, c);
+        
+        // Country
+        c.gridx = 0; c.gridy++; c.fill = GridBagConstraints.NONE; c.weightx = 0;
+        infoPanel.add(new JLabel("Land"), c);
+        c.gridx = 1; c.fill = GridBagConstraints.HORIZONTAL; c.weightx = 1.0;
+        infoPanel.add(countryField, c);
 
         nameField.setToolTipText("Voller Name");
         dobField.setToolTipText("TT.MM.JJJJ");
-        medicationField.setToolTipText("Medikamenteneinnahme");
-        bloodBox.setToolTipText("Blutgruppe z.B. A+");
-        allergiesArea.setToolTipText("Bekannte Allergien");
+        medicationYes.setToolTipText("Medikamenteneinnahme: Ja");
+        medicationNo.setToolTipText("Medikamenteneinnahme: Nein");
+        bloodA.setToolTipText("Blutgruppe A");
+        bloodB.setToolTipText("Blutgruppe B");
+        bloodAB.setToolTipText("Blutgruppe AB");
+        blood0.setToolTipText("Blutgruppe 0");
+        allergiesField.setToolTipText("Bekannte Allergien");
         numberField.setToolTipText("Genau 5 Ziffern, z. B. 04127");
         countryField.setToolTipText("Ausstellungsland");
 
@@ -127,9 +192,13 @@ public class AllergyCardPanel extends JPanel {
         } catch(DateTimeParseException ex) {
             // leave null
         }
-        String med = medicationField.getText().trim();
-        String blood = (String) bloodBox.getSelectedItem();
-        String allergies = allergiesArea.getText().trim();
+        String med = medicationYes.isSelected() ? "Ja" : "Nein";
+        String blood = "";
+        if (bloodA.isSelected()) blood = "A";
+        else if (bloodB.isSelected()) blood = "B";
+        else if (bloodAB.isSelected()) blood = "AB";
+        else if (blood0.isSelected()) blood = "0";
+        String allergies = allergiesField.getText().trim();
         String num = numberField.getText().trim();
         String country = countryField.getText().trim();
         return new AllergyCardData(name,dob,med,blood,allergies,num,country,imageBytes);
@@ -141,9 +210,21 @@ public class AllergyCardPanel extends JPanel {
         if(d.geburtsdatum()!=null) {
             dobField.setText(d.geburtsdatum().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
         }
-        medicationField.setText(d.medikamenteneinnahme());
-        bloodBox.setSelectedItem(d.blutgruppe());
-        allergiesArea.setText(d.bekannteAllergien());
+        // Set medication radio buttons
+        if ("Ja".equals(d.medikamenteneinnahme())) {
+            medicationYes.setSelected(true);
+        } else {
+            medicationNo.setSelected(true);
+        }
+        // Set blood group radio buttons
+        switch(d.blutgruppe()) {
+            case "A": bloodA.setSelected(true); break;
+            case "B": bloodB.setSelected(true); break;
+            case "AB": bloodAB.setSelected(true); break;
+            case "0": blood0.setSelected(true); break;
+            default: blood0.setSelected(true); break; // Default to 0
+        }
+        allergiesField.setText(d.bekannteAllergien());
         numberField.setText(d.ausweisnummer());
         countryField.setText(d.ausstellungsland());
         if(d.bildPng()!=null) {
@@ -161,9 +242,9 @@ public class AllergyCardPanel extends JPanel {
     public void reset() {
         nameField.setText("");
         dobField.setValue(null);
-        medicationField.setText("");
-        bloodBox.setSelectedIndex(0);
-        allergiesArea.setText("");
+        medicationNo.setSelected(true); // Default to "Nein"
+        blood0.setSelected(true); // Default to "0"
+        allergiesField.setText("");
         numberField.setText("");
         countryField.setText("");
         imageLabel.setIcon(null);
