@@ -11,6 +11,7 @@ SyllogismGenerator$QuestionData.class
 ui\merkfaehigkeit\AllergyCardPanel$DigitFilter.class
 MedatoninDB$CustomEditor$1.class
 ZahlenfolgenGenerator$Zahlenfolge.class
+TestAllergyCardUI.class
 MedatoninDB$2.class
 ui\merkfaehigkeit\AllergyCardPanel.class
 categorySubcategoryOrder.class
@@ -18,6 +19,7 @@ Difficulty.class
 MedatoninDB$2$1.class
 QuestionDAO.class
 MedatoninDB$5.class
+ui\merkfaehigkeit\AllergyCardPanel$2.class
 MedatoninDB$CustomEditor$2.class
 CustomRenderer$EulerPanel.class
 MedatoninDB$ModernComboBox$ModernComboBoxUI$1.class
@@ -46,6 +48,7 @@ MedatoninDB$10.class
 SyllogismGenerator$SyllogismModel.class
 CategoryDAO.class
 MedatoninDB$7.class
+TestAllQuestionTypes.class
 WortfluessigkeitGenerator.class
 MedatoninDB$ArrowIcon.class
 MedatoninDB$FigurenOptionsData.class
@@ -57,6 +60,7 @@ MedatoninDB$ModernComboBox$ModernComboBoxUI.class
 MedatoninDB$CustomEditor.class
 SyllogismGenerator.class
 util\Sentence.class
+TestMerkQuestions.class
 MedatoninDB$11.class
 FigurenGenerator$DissectedPieces.class
 SubcategoryDAO.class

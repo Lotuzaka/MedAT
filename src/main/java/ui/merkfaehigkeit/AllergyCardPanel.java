@@ -115,27 +115,77 @@ public class AllergyCardPanel extends JPanel {
     }
 
     private void chooseImage() {
-        JFileChooser fc = new JFileChooser();
-        fc.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Bilder", "png","jpg","jpeg"));
-        if(fc.showOpenDialog(this)==JFileChooser.APPROVE_OPTION) {
-            File f = fc.getSelectedFile();
-            try {
-                BufferedImage img = ImageIO.read(f);
-                if(img!=null) {
-                    Image scaled = img.getScaledInstance(80, 75, Image.SCALE_SMOOTH); // Updated to larger dimensions
-                    BufferedImage bi = new BufferedImage(80, 75, BufferedImage.TYPE_INT_ARGB);
-                    Graphics2D g2 = bi.createGraphics();
-                    g2.drawImage(scaled,0,0,null);
-                    g2.dispose();
-                    ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                    ImageIO.write(bi, "png", bos);
-                    imageBytes = bos.toByteArray();
-                    imageLabel.setIcon(new ImageIcon(bi));
-                    imageLabel.setText("");
-                }
-            } catch(IOException ex) {
-                // ignore
+        // Use native file dialog for better user experience
+        try {
+            // Try to use the native file dialog through AWT FileDialog
+            Frame parentFrame = (Frame) SwingUtilities.getWindowAncestor(this);
+            if (parentFrame == null) {
+                parentFrame = new Frame();
             }
+            
+            FileDialog fd = new FileDialog(parentFrame, "Bild auswählen", FileDialog.LOAD);
+            fd.setFile("*.jpg;*.jpeg;*.png;*.gif;*.bmp"); // Set file filter hint
+            fd.setMultipleMode(false);
+            fd.setVisible(true);
+            
+            String filename = fd.getFile();
+            String directory = fd.getDirectory();
+            
+            if (filename != null && directory != null) {
+                File f = new File(directory, filename);
+                loadImageFile(f);
+            }
+        } catch (Exception e) {
+            // Fallback to Swing FileChooser if native dialog fails
+            useSwingFileChooser();
+        }
+    }
+    
+    private void useSwingFileChooser() {
+        JFileChooser fc = new JFileChooser();
+        fc.setDialogTitle("Bild auswählen");
+        fc.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter(
+            "Bilddateien (*.jpg, *.jpeg, *.png, *.gif, *.bmp)", 
+            "jpg", "jpeg", "png", "gif", "bmp"));
+        fc.setAcceptAllFileFilterUsed(false);
+        fc.setMultiSelectionEnabled(false);
+        
+        // Set to pictures directory if available
+        String userHome = System.getProperty("user.home");
+        File picturesDir = new File(userHome, "Pictures");
+        if (picturesDir.exists()) {
+            fc.setCurrentDirectory(picturesDir);
+        }
+        
+        if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+            File f = fc.getSelectedFile();
+            loadImageFile(f);
+        }
+    }
+    
+    private void loadImageFile(File f) {
+        try {
+            BufferedImage img = ImageIO.read(f);
+            if (img != null) {
+                Image scaled = img.getScaledInstance(80, 75, Image.SCALE_SMOOTH);
+                BufferedImage bi = new BufferedImage(80, 75, BufferedImage.TYPE_INT_ARGB);
+                Graphics2D g2 = bi.createGraphics();
+                g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.drawImage(scaled, 0, 0, null);
+                g2.dispose();
+                
+                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                ImageIO.write(bi, "png", bos);
+                imageBytes = bos.toByteArray();
+                imageLabel.setIcon(new ImageIcon(bi));
+                imageLabel.setText("");
+            }
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this, 
+                "Fehler beim Laden des Bildes: " + ex.getMessage(), 
+                "Bildfehler", 
+                JOptionPane.ERROR_MESSAGE);
         }
     }
 

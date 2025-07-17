@@ -1,10 +1,17 @@
 import dao.AllergyCardDAO;
 import model.AllergyCardData;
 import org.apache.poi.xwpf.usermodel.*;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTSectPr;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPageMar;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPPr;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTSpacing;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.STLineSpacingRule;
 import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.Envelope;
 // import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
 import org.locationtech.jts.io.WKTWriter;
+import org.locationtech.jts.awt.ShapeWriter;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import javax.swing.*;
@@ -13,16 +20,24 @@ import javax.swing.plaf.basic.*;
 import javax.swing.table.*;
 import java.awt.*;
 import java.awt.event.*;
-// import java.io.FileOutputStream; // Removed unused import
+import java.awt.geom.AffineTransform;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.sql.*;
 import java.util.*;
 import java.util.List;
+import java.math.BigInteger;
 
 // import java.io.BufferedWriter; // No longer needed
 // import java.io.OutputStreamWriter; // No longer needed
-import java.io.FileOutputStream;
 
 public class MedatoninDB extends JFrame {
 
@@ -41,26 +56,19 @@ public class MedatoninDB extends JFrame {
     // [REMOVED] Old debugWriter and static block. Logging now handled by debugLog methods.
 
     // [REMOVED] Old debugLog(String, String) method. Use new debugLog with log levels and context.
-    // Utility to create a styled button panel for add/generate buttons
-    private JPanel createButtonPanel(JButton... buttons) {
-        JPanel panel = new JPanel();
-        panel.setLayout(new GridLayout(1, buttons.length, 10, 0));
-        panel.setBackground(backgroundColor);
-        for (JButton btn : buttons) {
-            panel.add(btn);
-        }
-        panel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        return panel;
-    }
+    // [REMOVED] Unused createButtonPanel method
 
     // Utility to create a styled text field (e.g., for question count)
     private JTextField createStyledTextField(String text, int width, Color bgColor, Color fgColor) {
         JTextField field = new JTextField(text);
-        field.setPreferredSize(new Dimension(width, 30));
+        field.setPreferredSize(new Dimension(width, 32)); // Slightly reduced height
         field.setForeground(fgColor);
-        field.setFont(new Font("SansSerif", Font.BOLD, 14));
+        field.setFont(FONT_BASE);
         field.setBackground(bgColor);
-        field.setBorder(BorderFactory.createEmptyBorder());
+        field.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(CLR_BORDER, 1),
+            BorderFactory.createEmptyBorder(6, 10, 6, 10)
+        ));
         field.setHorizontalAlignment(JTextField.CENTER);
         return field;
     }
@@ -70,13 +78,42 @@ public class MedatoninDB extends JFrame {
 
     /* ------------------------------------------------------------- CONSTANTS */
 
-    private static final Color CLR_BTN_DEFAULT = new Color(221, 221, 221);
-    private static final Color CLR_BLUE_MED = new Color(128, 146, 160);
+    // Modern flat design color palette
+    private static final Color CLR_PRIMARY = new Color(64, 64, 64);        // Dark gray for primary text
+    private static final Color CLR_ACCENT = new Color(0, 122, 255);        // Modern blue accent
+    private static final Color CLR_SURFACE = new Color(248, 249, 250);     // Light surface background
+    private static final Color CLR_CARD = Color.WHITE;                     // Pure white for cards
+    private static final Color CLR_BORDER = new Color(229, 231, 235);      // Subtle border color
+    private static final Color CLR_HOVER = new Color(240, 242, 245);       // Hover state background
+    
+    // Legacy colors for compatibility
+    private static final Color CLR_BLUE_MED = new Color(108, 117, 125);
 
-    // Default vertical spacing between buttons (categories and subcategories)
-    private static final int BUTTON_SPACING = 5;
-    private static final Font FONT_BASE = new Font("SansSerif", Font.PLAIN, 14);
-    private static final Font FONT_BOLD = FONT_BASE.deriveFont(Font.BOLD);
+    // Reduced spacing for slim design
+    private static final int BUTTON_SPACING = 2;
+    private static final int PANEL_PADDING = 8;
+    
+    // Modern font family with fallbacks
+    private static final String FONT_FAMILY = getModernFontFamily();
+    private static final Font FONT_BASE = new Font(FONT_FAMILY, Font.PLAIN, 13);
+    private static final Font FONT_BOLD = new Font(FONT_FAMILY, Font.BOLD, 13);
+    private static final Font FONT_LARGE = new Font(FONT_FAMILY, Font.BOLD, 15);
+    
+    // Helper method to determine the best available font
+    private static String getModernFontFamily() {
+        String[] preferredFonts = {"Inter", "SF Pro Display", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "SansSerif"};
+        GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+        String[] availableFonts = ge.getAvailableFontFamilyNames();
+        
+        for (String preferred : preferredFonts) {
+            for (String available : availableFonts) {
+                if (available.equals(preferred)) {
+                    return preferred;
+                }
+            }
+        }
+        return "SansSerif"; // Fallback
+    }
 
     /* ------------------------------------------------------------- FIELDS */
 
@@ -123,8 +160,8 @@ public class MedatoninDB extends JFrame {
     private JPanel mainContentPanel;
     JButton editToggleButton;
     private JButton addSubcategoryButton; // Declare this as a class member
-    private Color backgroundColor = Color.WHITE;
-    private int buttonBorderRadius = 15; // Border radius for buttons
+    private Color backgroundColor = CLR_SURFACE;
+    private int buttonBorderRadius = 6; // Smaller radius for flatter look
 
 
     // Dropdown to select test simulations
@@ -148,6 +185,8 @@ public class MedatoninDB extends JFrame {
         buttonContainer.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JButton subButton = createModernButton(subcategory);
+        // Mark subcategory buttons as navigation buttons for proper hover effects
+        subButton.putClientProperty("isNavigationButton", true);
         buttonContainer.setMaximumSize(new Dimension(Integer.MAX_VALUE, subButton.getPreferredSize().height));
 
         if (isEditMode) {
@@ -345,33 +384,41 @@ public class MedatoninDB extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        // Apply a modern font and padding to all components
-        Font modernFont = new Font("SansSerif", Font.PLAIN, 14);
-        UIManager.put("Button.font", modernFont);
-        UIManager.put("Table.font", modernFont);
-        UIManager.put("Label.font", modernFont);
-        UIManager.put("TableHeader.font", new Font("SansSerif", Font.BOLD, 14));
-        UIManager.put("Button.background", new Color(221, 221, 221));
-        UIManager.put("Button.foreground", Color.WHITE);
+        // Apply modern flat design styling to all components
+        UIManager.put("Button.font", FONT_BASE);
+        UIManager.put("Table.font", FONT_BASE);
+        UIManager.put("Label.font", FONT_BASE);
+        UIManager.put("TableHeader.font", FONT_BOLD);
+        UIManager.put("Panel.background", CLR_SURFACE);
+        UIManager.put("ScrollPane.background", CLR_SURFACE);
 
         // Custom button UI to make buttons look flat
         printCategoryButton = createModernButton(currentCategory + " Print");
-        printCategoryButton.setBackground(new Color(128, 146, 160));
+        printCategoryButton.setBackground(CLR_ACCENT);
         printCategoryButton.setForeground(Color.WHITE);
         JButton printAllButton = createModernButton("All Print");
+        printAllButton.setBackground(new Color(175, 82, 222)); // Modern purple
+        printAllButton.setForeground(Color.WHITE);
+        // Mark print buttons as navigation buttons for proper hover effects
+        printCategoryButton.putClientProperty("isNavigationButton", true);
+        printAllButton.putClientProperty("isNavigationButton", true);
 
         // Set up modern color theme for the frame
         getContentPane().setBackground(backgroundColor);
 
-        // Create the Haupt-Textfeld at the top
+        // Create the user info label at the top
         userTextField = new JLabel();
-        userTextField.setPreferredSize(new Dimension(800, 50));
-        userTextField.setFont(new Font("SansSerif", Font.BOLD, 16));
+        userTextField.setPreferredSize(new Dimension(800, 40)); // Reduced height
+        userTextField.setFont(FONT_LARGE);
+        userTextField.setForeground(CLR_PRIMARY);
         userTextField.setText("User: " + currentUsername);
 
         JButton logoutButton = createModernButton("Logout");
-        logoutButton.setBackground(new Color(210, 141, 157));
+        logoutButton.setBackground(new Color(255, 59, 48)); // Modern red
+        logoutButton.setForeground(Color.WHITE);
         logoutButton.addActionListener(e -> logout());
+        // Mark as navigation button for proper hover effects
+        logoutButton.putClientProperty("isNavigationButton", true);
 
         // In the constructor or initialization method
         simulationComboBox = new ModernComboBox();
@@ -434,25 +481,30 @@ public class MedatoninDB extends JFrame {
         // Create the top panel with a horizontal BoxLayout for consistent header layout
         JPanel topPanel = new JPanel();
         topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.X_AXIS));
-        topPanel.setBackground(backgroundColor);
-        topPanel.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+        topPanel.setBackground(CLR_CARD);
+        topPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 0, 1, 0, CLR_BORDER),
+            BorderFactory.createEmptyBorder(PANEL_PADDING, PANEL_PADDING * 2, PANEL_PADDING, PANEL_PADDING * 2)
+        ));
 
-        userTextField.setMinimumSize(new Dimension(80, 30));
-        userTextField.setPreferredSize(new Dimension(120, 30));
-        simulationComboBox.setMinimumSize(new Dimension(120, 30));
-        simulationComboBox.setPreferredSize(new Dimension(160, 30));
-        logoutButton.setMinimumSize(new Dimension(80, 30));
-        logoutButton.setPreferredSize(new Dimension(120, 30));
+        userTextField.setMinimumSize(new Dimension(80, 32));
+        userTextField.setPreferredSize(new Dimension(120, 32));
+        simulationComboBox.setMinimumSize(new Dimension(120, 32));
+        simulationComboBox.setPreferredSize(new Dimension(160, 32));
+        logoutButton.setMinimumSize(new Dimension(80, 32));
+        logoutButton.setPreferredSize(new Dimension(120, 32));
 
         // Solution toggle button setup (created below)
         JButton solutionToggleButton = createModernButton("Solution");
-        solutionToggleButton.setBackground(new Color(127, 204, 165));
+        solutionToggleButton.setBackground(new Color(52, 199, 89)); // Modern green
         solutionToggleButton.setForeground(Color.WHITE);
-        solutionToggleButton.setFont(new Font("SansSerif", Font.BOLD, 14));
+        solutionToggleButton.setFont(FONT_BASE);
         solutionToggleButton.setFocusPainted(false);
-        solutionToggleButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
-        solutionToggleButton.setMinimumSize(new Dimension(120, 30));
+        solutionToggleButton.setBorder(BorderFactory.createEmptyBorder(6, 12, 6, 12));
+        solutionToggleButton.setMinimumSize(new Dimension(120, 32));
         solutionToggleButton.setPreferredSize(new Dimension(140, 30));
+        // Mark as navigation button for proper hover effects
+        solutionToggleButton.putClientProperty("isNavigationButton", true);
         solutionToggleButton.addActionListener(e -> {
             showSolutionColumn = !showSolutionColumn;
             updateSolutionColumnVisibility();
@@ -482,9 +534,13 @@ public class MedatoninDB extends JFrame {
 
         // Create the navigation panel on the left
         JPanel mainCategoryPanel = new JPanel();
-        mainCategoryPanel.setLayout(new BoxLayout(mainCategoryPanel, BoxLayout.Y_AXIS)); // 4 categories
-        mainCategoryPanel.setBackground(backgroundColor); // Set the background color
-        mainCategoryPanel.setAlignmentY(Component.TOP_ALIGNMENT); // Align to top
+        mainCategoryPanel.setLayout(new BoxLayout(mainCategoryPanel, BoxLayout.Y_AXIS));
+        mainCategoryPanel.setBackground(CLR_CARD);
+        mainCategoryPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 0, 0, 1, CLR_BORDER),
+            BorderFactory.createEmptyBorder(PANEL_PADDING, PANEL_PADDING, PANEL_PADDING, PANEL_PADDING)
+        ));
+        mainCategoryPanel.setAlignmentY(Component.TOP_ALIGNMENT);
 
         // Category buttons
         bioButton = createModernButton("Biologie");
@@ -500,8 +556,16 @@ public class MedatoninDB extends JFrame {
         mathButton.setAlignmentX(Component.LEFT_ALIGNMENT);
         kffButton.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        // Set "Biologie" button to orange by default
-        bioButton.setBackground(new Color(243, 211, 135));
+        // Set "Biologie" button to modern green by default
+        bioButton.setBackground(new Color(52, 199, 89));
+        bioButton.setForeground(Color.WHITE);
+
+        // Mark all category buttons as navigation buttons
+        ((JButton) bioButton).putClientProperty("isNavigationButton", true);
+        ((JButton) chemButton).putClientProperty("isNavigationButton", true);
+        ((JButton) physButton).putClientProperty("isNavigationButton", true);
+        ((JButton) mathButton).putClientProperty("isNavigationButton", true);
+        ((JButton) kffButton).putClientProperty("isNavigationButton", true);
 
         // Add action listeners to switch categories
         bioButton.addActionListener(e -> switchCategory("Biologie"));
@@ -520,6 +584,8 @@ public class MedatoninDB extends JFrame {
         // Create the toggle button with the pen icon
         editToggleButton = createModernButton("Arbeitsmodus");
         editToggleButton.setIcon(penIcon);
+        // Mark as navigation button for proper hover effects
+        editToggleButton.putClientProperty("isNavigationButton", true);
 
         // Create a panel for the toggle buttons
         JPanel toggleButtonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
@@ -537,7 +603,7 @@ public class MedatoninDB extends JFrame {
                 if (!isEditMode) {
                     editToggleButton.setIcon(penEditIcon); // Change to the edit icon
                     editToggleButton.setText("Bearbeitungsmodus"); // Display the text next to the icon
-                    editToggleButton.setBackground(Color.red);
+                    editToggleButton.setBackground(new Color(255, 59, 48)); // Modern red
                     editToggleButton.setForeground(Color.WHITE);
                     setEditMode(true);
                     // Add any specific actions when edit mode is enabled
@@ -545,8 +611,8 @@ public class MedatoninDB extends JFrame {
                     editToggleButton.setIcon(penIcon); // Change to the pen icon
                     editToggleButton.setText("Arbeitsmodus"); // Remove text
                     setEditMode(false);
-                    editToggleButton.setBackground(new Color(221, 221, 221));
-                    editToggleButton.setForeground(Color.BLACK);
+                    editToggleButton.setBackground(CLR_CARD);
+                    editToggleButton.setForeground(CLR_PRIMARY);
                     loadSubcategories(currentCategory);
                     // Add any specific actions when edit mode is disabled
                 }
@@ -555,24 +621,24 @@ public class MedatoninDB extends JFrame {
 
         // Create the main panel to hold the category buttons and the toggle button
         JPanel westPanel = new JPanel(new BorderLayout());
-        westPanel.setBackground(backgroundColor); // Match to your existing layout
+        westPanel.setBackground(CLR_CARD);
 
-        // Add some vertical spacing between the toggle button and the navigation
-        // buttons
+        // Add some vertical spacing between the toggle button and the navigation buttons
         Box box = Box.createVerticalBox();
         box.add(toggleButtonPanel);
-        box.add(Box.createVerticalStrut(10)); // Adds vertical spacing
+        box.add(Box.createVerticalStrut(PANEL_PADDING)); // Modern spacing
 
         // Create the subcategory panel on the right of the main categories
         subcategoryPanel = new JPanel();
-        subcategoryPanel.setLayout(new BoxLayout(subcategoryPanel, BoxLayout.Y_AXIS)); // Use BoxLayout with Y_AXIS
-        subcategoryPanel.setBackground(backgroundColor);
-        subcategoryPanel.setAlignmentY(Component.TOP_ALIGNMENT); // Align to top
+        subcategoryPanel.setLayout(new BoxLayout(subcategoryPanel, BoxLayout.Y_AXIS));
+        subcategoryPanel.setBackground(CLR_CARD);
+        subcategoryPanel.setBorder(BorderFactory.createEmptyBorder(0, PANEL_PADDING, 0, 0));
+        subcategoryPanel.setAlignmentY(Component.TOP_ALIGNMENT);
 
         // Add both panels to a single container
         JPanel navigationContainer = new JPanel();
         navigationContainer.setLayout(new BoxLayout(navigationContainer, BoxLayout.X_AXIS));
-        navigationContainer.setBackground(backgroundColor);
+        navigationContainer.setBackground(CLR_CARD);
 
         navigationContainer.add(mainCategoryPanel);
         navigationContainer.add(Box.createHorizontalStrut(15)); // Optional: Add space between main and subcategory
@@ -589,8 +655,14 @@ public class MedatoninDB extends JFrame {
         // Create the main content panel to display the subcategories with separators
         mainContentPanel = new JPanel();
         mainContentPanel.setLayout(new BoxLayout(mainContentPanel, BoxLayout.Y_AXIS));
-        mainContentPanel.setBackground(Color.WHITE);
+        mainContentPanel.setBackground(CLR_SURFACE);
+        mainContentPanel.setBorder(BorderFactory.createEmptyBorder(PANEL_PADDING, PANEL_PADDING, PANEL_PADDING, PANEL_PADDING));
+        
         JScrollPane scrollPane = new JScrollPane(mainContentPanel);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        scrollPane.setBackground(CLR_SURFACE);
+        scrollPane.getViewport().setBackground(CLR_SURFACE);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
         add(scrollPane, BorderLayout.CENTER);
 
         // Load the initial category and its subcategories
@@ -599,7 +671,12 @@ public class MedatoninDB extends JFrame {
 
         // Create buttons for adding and deleting questions
         JPanel buttonPanel = new JPanel();
-        buttonPanel.setBackground(backgroundColor); // Match background color
+        buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER, PANEL_PADDING, PANEL_PADDING));
+        buttonPanel.setBackground(CLR_CARD);
+        buttonPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(1, 0, 0, 0, CLR_BORDER),
+            BorderFactory.createEmptyBorder(PANEL_PADDING, 0, PANEL_PADDING, 0)
+        ));
 
         // Add ActionListener for printing the current category
         printCategoryButton.addActionListener(e -> {
@@ -851,6 +928,8 @@ public class MedatoninDB extends JFrame {
         if (isEditMode) {
             addSubcategoryButton = createModernButton("+");
             addSubcategoryButton.setBackground(new Color(127, 204, 165));
+            // Mark as navigation button for proper hover effects
+            addSubcategoryButton.putClientProperty("isNavigationButton", true);
             addSubcategoryButton.addActionListener(e -> addNewSubcategory(currentCategory));
             subcategoryPanel.add(addSubcategoryButton);
         }
@@ -973,8 +1052,11 @@ public class MedatoninDB extends JFrame {
     private void resetButtonAppearance(JButton button) {
         button.setPreferredSize(null);
         button.setAlignmentX(Component.LEFT_ALIGNMENT);
-        // Reset the border to maintain spacing
-        button.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10)); // top, left, bottom, right
+        // Reset the border to modern styling
+        button.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(CLR_BORDER, 1),
+            BorderFactory.createEmptyBorder(7, 15, 7, 15)
+        ));
         button.setOpaque(true);
     }
 
@@ -1074,10 +1156,10 @@ public class MedatoninDB extends JFrame {
         }
     }
 
-    // Method to add a button to the panel with spacing automatically
+    // Method to add a button to the panel with modern spacing
     private void addButtonWithSpacing(JPanel panel, JButton button) {
         panel.add(button);
-        panel.add(Box.createVerticalStrut(BUTTON_SPACING)); // Automatically add spacing after each button
+        panel.add(Box.createVerticalStrut(BUTTON_SPACING)); // Modern minimal spacing
     }
 
     // Helper method to create a category with subcategories
@@ -1201,6 +1283,8 @@ public class MedatoninDB extends JFrame {
         if (isEditMode) {
             addSubcategoryButton = createModernButton("+");
             addSubcategoryButton.setBackground(new Color(127, 204, 165));
+            // Mark as navigation button for proper hover effects
+            addSubcategoryButton.putClientProperty("isNavigationButton", true);
             addSubcategoryButton.addActionListener(e -> addNewSubcategory(category));
             subcategoryPanel.add(addSubcategoryButton);
         }
@@ -1215,21 +1299,21 @@ public class MedatoninDB extends JFrame {
     // Method to get the corresponding background color of the category buttons
     private Color getCategoryButtonColor(String category) {
         if (category == null) {
-            return new Color(221, 221, 221); // Default color when category is null
+            return CLR_CARD; // Default color when category is null
         }
         switch (category) {
             case "Biologie":
-                return new Color(243, 211, 135); // Orange background for Biologie
+                return new Color(52, 199, 89); // Modern green
             case "Chemie":
-                return new Color(210, 141, 157); // Burgundi background for Chemie
+                return new Color(255, 45, 85); // Modern red
             case "Physik":
-                return new Color(189, 226, 236); // Light Blue background for Physik
+                return new Color(0, 122, 255); // Modern blue
             case "Mathematik":
-                return new Color(128, 146, 160); // Blue background for Mathematik
+                return new Color(175, 82, 222); // Modern purple
             case "KFF":
-                return Color.CYAN;
+                return new Color(255, 149, 0); // Modern orange
             default:
-                return new Color(221, 221, 221); // Default dark grey background
+                return CLR_CARD; // Default white background
         }
     }
 
@@ -1387,68 +1471,9 @@ public class MedatoninDB extends JFrame {
 
             combinedPanel.add(tableScrollPane, BorderLayout.CENTER);
 
-            // Only show Add Question, Generate, and number box in subcategory panels
-            if (currentSubcategory != null && currentSubcategory.equals(subcategoryName)) {
-                JButton addQuestionButton = createModernButton("Add Question");
-                addQuestionButton.setBackground(new Color(127, 204, 165));
-                addQuestionButton.setForeground(Color.WHITE);
-                addQuestionButton.setFont(new Font("SansSerif", Font.BOLD, 14));
-                addQuestionButton.setFocusPainted(false);
-                addQuestionButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
-                addQuestionButton.addActionListener(e -> addNewQuestionToSubcategory());
-
-                JPanel buttonPanel;
-
-                if ("KFF".equals(category)) {
-                    JButton generateButton = createModernButton("Generate");
-                    generateButton.setBackground(new Color(127, 204, 165));
-                    generateButton.setForeground(Color.WHITE);
-                    generateButton.setFont(new Font("SansSerif", Font.BOLD, 14));
-                    generateButton.setFocusPainted(false);
-                    generateButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
-
-                    JTextField questionCountField = createStyledTextField("0", 40, new Color(127, 204, 165), Color.WHITE);
-
-                    JPanel generatePanel = new JPanel(new BorderLayout());
-                    generatePanel.setBackground(new Color(127, 204, 165));
-                    generatePanel.add(questionCountField, BorderLayout.EAST);
-                    generatePanel.add(generateButton, BorderLayout.CENTER);
-
-                    generateButton.addActionListener(e -> {
-                        try {
-                            String input = questionCountField.getText().trim();
-                            int questionCount;
-                            try {
-                                questionCount = Integer.parseInt(input);
-                            } catch (NumberFormatException ex) {
-                                JOptionPane.showMessageDialog(null, "Please enter a valid number.", "Invalid Input", JOptionPane.ERROR_MESSAGE);
-                                return;
-                            }
-                            if ("Implikationen".equals(currentSubcategory)) {
-                                SyllogismGenerator generator = new SyllogismGenerator(conn, currentCategory, currentSubcategory, selectedSimulationId);
-                                generator.execute(questionCount);
-                                loadQuestionsFromDatabase(currentCategory, categoryModels.get(currentCategory), selectedSimulationId);
-                                switchSubcategory(currentCategory, currentSubcategory);
-                            }
-                            if ("Zahlenfolgen".equals(currentSubcategory)) {
-                                ZahlenfolgenGenerator generator = new ZahlenfolgenGenerator(conn, currentCategory, currentSubcategory, selectedSimulationId);
-                                generator.execute(questionCount);
-                                loadQuestionsFromDatabase(currentCategory, categoryModels.get(currentCategory), selectedSimulationId);
-                                switchSubcategory(currentCategory, currentSubcategory);
-                            }
-                        } catch (SQLException ex) {
-                            ex.printStackTrace();
-                        } catch (IOException e1) {
-                            e1.printStackTrace();
-                        }
-                    });
-                    buttonPanel = createButtonPanel(addQuestionButton);
-                    buttonPanel.add(generatePanel);
-                } else {
-                    buttonPanel = createButtonPanel(addQuestionButton);
-                }
-                combinedPanel.add(buttonPanel, BorderLayout.SOUTH);
-            }
+            // Do NOT add buttons in the overview - only show tables
+            // Buttons should only appear when viewing individual subcategories
+            
             mainContentPanel.add(combinedPanel);
             mainContentPanel.add(Box.createVerticalStrut(10));
         }
@@ -1621,21 +1646,39 @@ public class MedatoninDB extends JFrame {
         }
     }
 
-    // Method to create modern-looking buttons with adjusted height
+    // Method to create modern-looking buttons with flat design
     private JButton createModernButton(String text) {
         JButton button = new JButton(text) {
+            private Color originalBackground = null;
+            
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2d = (Graphics2D) g.create();
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                
+                Color bgColor = getBackground();
+                
+                // Smart hover effects for navigation buttons
                 if (getModel().isPressed()) {
-                    g2d.setColor(getBackground().darker());
+                    g2d.setColor(adjustBrightness(bgColor, 0.9f));
                 } else if (getModel().isRollover()) {
-                    g2d.setColor(adjustBrightness(getBackground(), 1.1f));
+                    Boolean isNavButton = (Boolean) getClientProperty("isNavigationButton");
+                    if (isNavButton != null && isNavButton && !bgColor.equals(CLR_CARD)) {
+                        // For colored category/subcategory buttons, make them lighter/pastel on hover
+                        g2d.setColor(createPastelVersion(bgColor));
+                    } else {
+                        // For uncolored buttons, use standard hover
+                        g2d.setColor(CLR_HOVER);
+                    }
                 } else {
-                    g2d.setColor(getBackground());
+                    g2d.setColor(bgColor);
                 }
-                g2d.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, buttonBorderRadius, buttonBorderRadius);
+                
+                // Very subtle rounded corners for modern flat look
+                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), buttonBorderRadius, buttonBorderRadius);
+                
+                // Clean text rendering
                 g2d.setColor(getForeground());
                 g2d.setFont(getFont());
                 FontMetrics metrics = g2d.getFontMetrics(getFont());
@@ -1644,30 +1687,52 @@ public class MedatoninDB extends JFrame {
                 g2d.drawString(getText(), x, y);
                 g2d.dispose();
             }
+            
             @Override
-            protected void paintBorder(Graphics g) {}
+            protected void paintBorder(Graphics g) {
+                // No border for flat design
+            }
+            
             @Override
             public boolean isFocusPainted() { return false; }
+            
             @Override
             public boolean isContentAreaFilled() { return false; }
+            
+            // Override setBackground to track original color
+            @Override
+            public void setBackground(Color bg) {
+                super.setBackground(bg);
+                if (originalBackground == null || !bg.equals(CLR_CARD)) {
+                    originalBackground = bg;
+                }
+            }
         };
         styleModernButton(button);
         return button;
     }
 
-    // Centralized styling for modern buttons
+    // Centralized styling for modern flat buttons
     private void styleModernButton(JButton button) {
         button.setFocusPainted(false);
-        button.setBackground(CLR_BTN_DEFAULT);
-        button.setForeground(Color.BLACK);
-        button.setFont(FONT_BOLD);
-        button.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
-        button.setMargin(new Insets(5, 10, 5, 10));
+        button.setBackground(CLR_CARD);
+        button.setForeground(CLR_PRIMARY);
+        button.setFont(FONT_BASE);
+        button.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16)); // Reduced padding
+        button.setMargin(new Insets(8, 16, 8, 16));
         button.setAlignmentX(Component.LEFT_ALIGNMENT);
-        Dimension buttonSize = new Dimension(180, button.getPreferredSize().height);
+        
+        // Slimmer button dimensions
+        Dimension buttonSize = new Dimension(160, 36); // Reduced height and width
         button.setPreferredSize(buttonSize);
         button.setMaximumSize(buttonSize);
         button.setMinimumSize(buttonSize);
+        
+        // Add subtle shadow effect through border
+        button.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(CLR_BORDER, 1),
+            BorderFactory.createEmptyBorder(7, 15, 7, 15)
+        ));
     }
 
     private Color adjustBrightness(Color color, float factor) {
@@ -1681,6 +1746,18 @@ public class MedatoninDB extends JFrame {
 
         // Return the new color with adjusted brightness
         return new Color(r, g, b);
+    }
+
+    // Helper method to create pastel/lighter versions of colors for hover effects
+    private Color createPastelVersion(Color color) {
+        // Convert to HSB to adjust saturation and brightness
+        float[] hsb = Color.RGBtoHSB(color.getRed(), color.getGreen(), color.getBlue(), null);
+        
+        // Reduce saturation by 30% and increase brightness by 20% for pastel effect
+        float newSaturation = hsb[1] * 0.7f;
+        float newBrightness = Math.min(1.0f, hsb[2] * 1.2f);
+        
+        return Color.getHSBColor(hsb[0], newSaturation, newBrightness);
     }
 
     // Enhanced method to add listeners to cancel pending deletion when clicking
@@ -1763,15 +1840,20 @@ public class MedatoninDB extends JFrame {
     private void updateCategoryButtonColors(String category) {
         resetCategoryButtons();
         if (category.equals("Biologie")) {
-            bioButton.setBackground(new Color(243, 211, 135)); // Orange background for selected category
+            bioButton.setBackground(new Color(52, 199, 89)); // Modern green
+            bioButton.setForeground(Color.WHITE);
         } else if (category.equals("Chemie")) {
-            chemButton.setBackground(new Color(210, 141, 157)); // Burgundi background
+            chemButton.setBackground(new Color(255, 45, 85)); // Modern red
+            chemButton.setForeground(Color.WHITE);
         } else if (category.equals("Physik")) {
-            physButton.setBackground(new Color(189, 226, 236)); // Light Blue background
+            physButton.setBackground(new Color(0, 122, 255)); // Modern blue
+            physButton.setForeground(Color.WHITE);
         } else if (category.equals("Mathematik")) {
-            mathButton.setBackground(new Color(128, 146, 160)); // Blue background
+            mathButton.setBackground(new Color(175, 82, 222)); // Modern purple
+            mathButton.setForeground(Color.WHITE);
         } else if (category.equals("KFF")) {
-            kffButton.setBackground(Color.CYAN); // Blue background
+            kffButton.setBackground(new Color(255, 149, 0)); // Modern orange
+            kffButton.setForeground(Color.WHITE);
         }
     }
 
@@ -1995,41 +2077,86 @@ public class MedatoninDB extends JFrame {
 
         // For other categories and subcategories, only add "Add Question" button
         JButton addQuestionButton = createModernButton("Add Question");
-        addQuestionButton.setBackground(new Color(127, 204, 165)); // Green background
+        addQuestionButton.setBackground(new Color(52, 199, 89)); // Modern green background
         addQuestionButton.setForeground(Color.WHITE);
         addQuestionButton.setFont(new Font("SansSerif", Font.BOLD, 14));
         addQuestionButton.setFocusPainted(false);
         addQuestionButton.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // Button padding
         addQuestionButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+        // Mark as navigation button for proper hover effects
+        addQuestionButton.putClientProperty("isNavigationButton", true);
 
         // Adjust button width
         addQuestionButton.setPreferredSize(new Dimension(150, addQuestionButton.getPreferredSize().height));
 
         // Create buttons according to category and subcategory
-        if ("KFF".equals(currentCategory) || "Figuren".equals(currentSubcategory)) {
-            // Add button to buttonPanel
-            buttonPanel.add(addQuestionButton);
+        // Add "Add Question" button for ALL categories and subcategories
+        buttonPanel.add(addQuestionButton);
 
-            // Set up action listener for "Add Question" button
-            addQuestionButton.addActionListener(e -> {
-                addNewQuestionToSubcategory();
-                if (questionTable != null && tableModel != null) {
-                    questionTable.scrollRectToVisible(questionTable.getCellRect(tableModel.getRowCount() - 1, 0, true));
+        // Set up action listener for "Add Question" button
+        addQuestionButton.addActionListener(e -> {
+            addNewQuestionToSubcategory();
+            if (questionTable != null && tableModel != null) {
+                questionTable.scrollRectToVisible(questionTable.getCellRect(tableModel.getRowCount() - 1, 0, true));
+            }
+        });
+
+        // Add Generate button for specific KFF subcategories  
+        if ("KFF".equals(currentCategory) && ("Implikationen".equals(currentSubcategory) || "Zahlenfolgen".equals(currentSubcategory))) {
+            JButton generateButton = createModernButton("Generate");
+            generateButton.setBackground(new Color(127, 204, 165));
+            generateButton.setForeground(Color.WHITE);
+            generateButton.setFont(new Font("SansSerif", Font.BOLD, 14));
+            generateButton.setFocusPainted(false);
+            generateButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+            generateButton.putClientProperty("isNavigationButton", true);
+
+            JTextField questionCountField = createStyledTextField("0", 40, new Color(127, 204, 165), Color.WHITE);
+
+            generateButton.addActionListener(e -> {
+                try {
+                    String input = questionCountField.getText().trim();
+                    int questionCount;
+                    try {
+                        questionCount = Integer.parseInt(input);
+                    } catch (NumberFormatException ex) {
+                        JOptionPane.showMessageDialog(null, "Please enter a valid number.", "Invalid Input", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                    if ("Implikationen".equals(currentSubcategory)) {
+                        SyllogismGenerator generator = new SyllogismGenerator(conn, currentCategory, currentSubcategory, selectedSimulationId);
+                        generator.execute(questionCount);
+                        loadQuestionsFromDatabase(currentCategory, categoryModels.get(currentCategory), selectedSimulationId);
+                        switchSubcategory(currentCategory, currentSubcategory);
+                    }
+                    if ("Zahlenfolgen".equals(currentSubcategory)) {
+                        ZahlenfolgenGenerator generator = new ZahlenfolgenGenerator(conn, currentCategory, currentSubcategory, selectedSimulationId);
+                        generator.execute(questionCount);
+                        loadQuestionsFromDatabase(currentCategory, categoryModels.get(currentCategory), selectedSimulationId);
+                        switchSubcategory(currentCategory, currentSubcategory);
+                    }
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                } catch (IOException e1) {
+                    e1.printStackTrace();
                 }
             });
+
+            buttonPanel.add(generateButton);
+            buttonPanel.add(questionCountField);
         }
 
         // Add Generate button and number box for Merkfähigkeiten right after Add Question
         if ("Merkfähigkeiten".equals(currentSubcategory)) {
             try {
                 // Find the allergy card grid panel from the split pane
-                JSplitPane splitPane = (JSplitPane) subcategoryContentPanel.getComponent(0);
-                JScrollPane allergyScrollPane = (JScrollPane) splitPane.getRightComponent();
-                JPanel allergyCardGridPanel = (JPanel) allergyScrollPane.getViewport().getView();
+                // JSplitPane splitPane = (JSplitPane) subcategoryContentPanel.getComponent(0); // Unused variable removed
+                // JScrollPane allergyScrollPane = (JScrollPane) splitPane.getRightComponent(); // Unused variable removed
+                // JPanel allergyCardGridPanel = (JPanel) allergyScrollPane.getViewport().getView(); // Unused variable removed
 
                 // Create Generate button (green) with number box for Merkfähigkeiten
                 JButton generateButton = createModernButton("Generate");
-                generateButton.setBackground(new Color(127, 204, 165)); // Green background
+                generateButton.setBackground(new Color(52, 199, 89)); // Modern green background
                 generateButton.setForeground(Color.WHITE);
                 generateButton.setFont(new Font("SansSerif", Font.BOLD, 14));
                 generateButton.setFocusPainted(false);
@@ -2152,14 +2279,85 @@ public class MedatoninDB extends JFrame {
             }
         }
 
+        // Add Generate button and number box for Figuren subcategory
+        if ("Figuren".equals(currentSubcategory)) {
+            JButton generateButton = createModernButton("Generate");
+            generateButton.setBackground(new Color(52, 199, 89));
+            generateButton.setForeground(Color.WHITE);
+            generateButton.setFont(new Font("SansSerif", Font.BOLD, 14));
+            generateButton.setFocusPainted(false);
+            generateButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+            generateButton.putClientProperty("isNavigationButton", true);
+
+            JTextField questionCountField = createStyledTextField("0", 40, new Color(52, 199, 89), Color.WHITE);
+
+            generateButton.addActionListener(e -> {
+                try {
+                    String input = questionCountField.getText().trim();
+                    int questionCount;
+                    try {
+                        questionCount = Integer.parseInt(input);
+                    } catch (NumberFormatException ex) {
+                        JOptionPane.showMessageDialog(null, "Please enter a valid number.", "Invalid Input", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                    for (int i = 0; i < questionCount; i++) {
+                        addNewFigurenQuestion();
+                    }
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(null, "Fehler bei der Generierung: " + ex.getMessage(), "Fehler", JOptionPane.ERROR_MESSAGE);
+                }
+            });
+
+            buttonPanel.add(generateButton);
+            buttonPanel.add(questionCountField);
+        }
+
+        // Add Generate button and number box for Wortflüssigkeit subcategory
+        if ("Wortflüssigkeit".equals(currentSubcategory)) {
+            JButton generateButton = createModernButton("Generate");
+            generateButton.setBackground(new Color(52, 199, 89));
+            generateButton.setForeground(Color.WHITE);
+            generateButton.setFont(new Font("SansSerif", Font.BOLD, 14));
+            generateButton.setFocusPainted(false);
+            generateButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+            generateButton.putClientProperty("isNavigationButton", true);
+
+            JTextField questionCountField = createStyledTextField("0", 40, new Color(52, 199, 89), Color.WHITE);
+
+            generateButton.addActionListener(e -> {
+                try {
+                    String input = questionCountField.getText().trim();
+                    int questionCount;
+                    try {
+                        questionCount = Integer.parseInt(input);
+                    } catch (NumberFormatException ex) {
+                        JOptionPane.showMessageDialog(null, "Please enter a valid number.", "Invalid Input", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                    WortfluessigkeitGenerator generator = new WortfluessigkeitGenerator(conn, currentCategory, currentSubcategory, selectedSimulationId);
+                    generator.execute(questionCount);
+                    loadQuestionsFromDatabase(currentCategory, categoryModels.get(currentCategory), selectedSimulationId);
+                    switchSubcategory(currentCategory, currentSubcategory);
+                } catch (SQLException | IOException ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(null, "Fehler bei der Generierung: " + ex.getMessage(), "Fehler", JOptionPane.ERROR_MESSAGE);
+                }
+            });
+
+            buttonPanel.add(generateButton);
+            buttonPanel.add(questionCountField);
+        }
+
         // Buttons for deleting questions
         JButton deleteMarkedButton = createModernButton("Delete Marked");
-        deleteMarkedButton.setBackground(new Color(233, 151, 151));
+        deleteMarkedButton.setBackground(new Color(255, 59, 48)); // Modern red
         deleteMarkedButton.setForeground(Color.WHITE);
         deleteMarkedButton.addActionListener(e -> deleteSelectedQuestions());
 
         JButton deleteAllButton = createModernButton("Delete All");
-        deleteAllButton.setBackground(new Color(233, 151, 151));
+        deleteAllButton.setBackground(new Color(255, 59, 48)); // Modern red
         deleteAllButton.setForeground(Color.WHITE);
         deleteAllButton.addActionListener(e -> {
             int res = JOptionPane.showConfirmDialog(this,
@@ -2632,7 +2830,7 @@ public class MedatoninDB extends JFrame {
     private void resetSubcategoryButtons() {
         // Check if there is a currently selected button before resetting
         if (selectedSubcategoryButton != null) {
-            selectedSubcategoryButton.setBackground(new Color(221, 221, 221)); // Reset to default color
+            selectedSubcategoryButton.setBackground(CLR_CARD); // Reset to white instead of gray
             selectedSubcategoryButton = null; // Clear the reference to ensure no stale selection remains
         }
     }
@@ -2741,9 +2939,9 @@ public class MedatoninDB extends JFrame {
      * Resets all category buttons to the default background color.
      */
     private void resetCategoryButtons() {
-        Color defaultColor = new Color(221, 221, 221);
         for (JButton btn : Arrays.asList(bioButton, chemButton, physButton, mathButton, kffButton)) {
-            btn.setBackground(defaultColor);
+            btn.setBackground(CLR_CARD);
+            btn.setForeground(CLR_PRIMARY);
         }
     }
 
@@ -2800,6 +2998,41 @@ public class MedatoninDB extends JFrame {
         };
     }
 
+    // Helper method to configure page margins for Word documents
+    private void setupPageMargins(XWPFDocument document) {
+        try {
+            // Get or create the section properties
+            CTSectPr sectPr;
+            if (document.getDocument().getBody().getSectPr() != null) {
+                sectPr = document.getDocument().getBody().getSectPr();
+            } else {
+                sectPr = document.getDocument().getBody().addNewSectPr();
+            }
+            
+            // Set page margins
+            CTPageMar pageMar;
+            if (sectPr.getPgMar() != null) {
+                pageMar = sectPr.getPgMar();
+            } else {
+                pageMar = sectPr.addNewPgMar();
+            }
+            
+            // Set margins in TWIPs (1 inch = 1440 TWIPs, 1 cm ≈ 567 TWIPs)
+            // Top: 1.5cm = 1.5 * 567 = 850 TWIPs
+            // Bottom: 1.5cm = 1.5 * 567 = 850 TWIPs  
+            // Left: 2cm = 2 * 567 = 1134 TWIPs
+            // Right: 2cm = 2 * 567 = 1134 TWIPs
+            pageMar.setTop(java.math.BigInteger.valueOf(850));
+            pageMar.setBottom(java.math.BigInteger.valueOf(850));
+            pageMar.setLeft(java.math.BigInteger.valueOf(1134));
+            pageMar.setRight(java.math.BigInteger.valueOf(1134));
+            
+            debugLog("Print", LogLevel.INFO, "Set page margins: Top/Bottom=1.5cm, Left/Right=2cm");
+        } catch (Exception e) {
+            debugLog("Print", LogLevel.ERROR, "Error setting page margins: " + e.getMessage());
+        }
+    }
+
     // Method to print the current category to a Word document
     private void printCategory(String category) {
         Map<String, DefaultTableModel> subcategories = categoryModels.get(category);
@@ -2810,34 +3043,32 @@ public class MedatoninDB extends JFrame {
         }
 
         XWPFDocument document = new XWPFDocument();
+        
+        // Set up page margins
+        setupPageMargins(document);
 
-        // Create a heading for the category
-        XWPFParagraph categoryHeading = document.createParagraph();
-        categoryHeading.setAlignment(ParagraphAlignment.CENTER);
-        XWPFRun categoryRun = categoryHeading.createRun();
-        categoryRun.setBold(true);
-        categoryRun.setFontSize(16);
-        categoryRun.setText("Category: " + category);
-        categoryRun.addBreak();
+        // Use a global question counter for page breaks
+        int globalQuestionCount = 0;
 
-        // Iterate over subcategories
+        // Iterate over subcategories without category/subcategory headings
         for (String subcategory : subcategoryOrder.get(category)) {
             DefaultTableModel model = subcategories.get(subcategory);
             if (model == null || model.getRowCount() == 0) {
                 continue; // Skip empty subcategories
             }
 
-            // Create a heading for the subcategory
-            XWPFParagraph subcategoryHeading = document.createParagraph();
-            subcategoryHeading.setAlignment(ParagraphAlignment.LEFT);
-            XWPFRun subcategoryRun = subcategoryHeading.createRun();
-            subcategoryRun.setBold(true);
-            subcategoryRun.setFontSize(14);
-            subcategoryRun.setText("Subcategory: " + subcategory);
-            subcategoryRun.addBreak();
+            // Add page break before each subcategory (except the first one)
+            if (globalQuestionCount > 0) {
+                XWPFParagraph pageBreakParagraph = document.createParagraph();
+                XWPFRun pageBreakRun = pageBreakParagraph.createRun();
+                pageBreakRun.addBreak(BreakType.PAGE);
+            }
 
-            // Add questions
-            addQuestionsToDocument(document, model, false);
+            // Add questions directly without headings
+            globalQuestionCount = addQuestionsToDocument(document, model, false, globalQuestionCount, subcategory);
+            
+            // Add stop sign page after each subcategory
+            addStopSignPage(document);
         }
 
         // Save the document
@@ -2861,34 +3092,32 @@ public class MedatoninDB extends JFrame {
         }
 
         XWPFDocument document = new XWPFDocument();
+        
+        // Set up page margins
+        setupPageMargins(document);
 
-        // Create a heading for the category
-        XWPFParagraph categoryHeading = document.createParagraph();
-        categoryHeading.setAlignment(ParagraphAlignment.CENTER);
-        XWPFRun categoryRun = categoryHeading.createRun();
-        categoryRun.setBold(true);
-        categoryRun.setFontSize(16);
-        categoryRun.setText("Solutions for Category: " + category);
-        categoryRun.addBreak();
+        // Use a global question counter for page breaks
+        int globalQuestionCount = 0;
 
-        // Iterate over subcategories
+        // Iterate over subcategories without category/subcategory headings
         for (String subcategory : subcategoryOrder.get(category)) {
             DefaultTableModel model = subcategories.get(subcategory);
             if (model == null || model.getRowCount() == 0) {
                 continue; // Skip empty subcategories
             }
 
-            // Create a heading for the subcategory
-            XWPFParagraph subcategoryHeading = document.createParagraph();
-            subcategoryHeading.setAlignment(ParagraphAlignment.LEFT);
-            XWPFRun subcategoryRun = subcategoryHeading.createRun();
-            subcategoryRun.setBold(true);
-            subcategoryRun.setFontSize(14);
-            subcategoryRun.setText("Subcategory: " + subcategory);
-            subcategoryRun.addBreak();
+            // Add page break before each subcategory (except the first one)
+            if (globalQuestionCount > 0) {
+                XWPFParagraph pageBreakParagraph = document.createParagraph();
+                XWPFRun pageBreakRun = pageBreakParagraph.createRun();
+                pageBreakRun.addBreak(BreakType.PAGE);
+            }
 
-            // Add solutions
-            addQuestionsToDocument(document, model, true);
+            // Add solutions directly without headings
+            globalQuestionCount = addQuestionsToDocument(document, model, true, globalQuestionCount, subcategory);
+            
+            // Add stop sign page after each subcategory
+            addStopSignPage(document);
         }
 
         // Save the document
@@ -2906,38 +3135,36 @@ public class MedatoninDB extends JFrame {
     // document
     private void printAllCategories() {
         XWPFDocument document = new XWPFDocument();
+        
+        // Set up page margins
+        setupPageMargins(document);
+
+        // Use a global question counter for page breaks
+        int globalQuestionCount = 0;
 
         // Iterate over all categories
         for (String category : categoryModels.keySet()) {
             Map<String, DefaultTableModel> subcategories = categoryModels.get(category);
 
-            // Create a heading for the category
-            XWPFParagraph categoryHeading = document.createParagraph();
-            categoryHeading.setAlignment(ParagraphAlignment.CENTER);
-            XWPFRun categoryRun = categoryHeading.createRun();
-            categoryRun.setBold(true);
-            categoryRun.setFontSize(16);
-            categoryRun.setText("Category: " + category);
-            categoryRun.addBreak();
-
-            // Iterate over subcategories
+            // Iterate over subcategories without category/subcategory headings
             for (String subcategory : subcategoryOrder.get(category)) {
                 DefaultTableModel model = subcategories.get(subcategory);
                 if (model == null || model.getRowCount() == 0) {
                     continue; // Skip empty subcategories
                 }
 
-                // Create a heading for the subcategory
-                XWPFParagraph subcategoryHeading = document.createParagraph();
-                subcategoryHeading.setAlignment(ParagraphAlignment.LEFT);
-                XWPFRun subcategoryRun = subcategoryHeading.createRun();
-                subcategoryRun.setBold(true);
-                subcategoryRun.setFontSize(14);
-                subcategoryRun.setText("Subcategory: " + subcategory);
-                subcategoryRun.addBreak();
+                // Add page break before each subcategory (except the first one)
+                if (globalQuestionCount > 0) {
+                    XWPFParagraph pageBreakParagraph = document.createParagraph();
+                    XWPFRun pageBreakRun = pageBreakParagraph.createRun();
+                    pageBreakRun.addBreak(BreakType.PAGE);
+                }
 
-                // Add questions
-                addQuestionsToDocument(document, model, false);
+                // Add questions directly without headings
+                globalQuestionCount = addQuestionsToDocument(document, model, false, globalQuestionCount, subcategory);
+                
+                // Add stop sign page after each subcategory
+                addStopSignPage(document);
             }
         }
 
@@ -2956,38 +3183,36 @@ public class MedatoninDB extends JFrame {
     // Word document
     private void printAllCategoriesSolution() {
         XWPFDocument document = new XWPFDocument();
+        
+        // Set up page margins
+        setupPageMargins(document);
+
+        // Use a global question counter for page breaks
+        int globalQuestionCount = 0;
 
         // Iterate over all categories
         for (String category : categoryModels.keySet()) {
             Map<String, DefaultTableModel> subcategories = categoryModels.get(category);
 
-            // Create a heading for the category
-            XWPFParagraph categoryHeading = document.createParagraph();
-            categoryHeading.setAlignment(ParagraphAlignment.CENTER);
-            XWPFRun categoryRun = categoryHeading.createRun();
-            categoryRun.setBold(true);
-            categoryRun.setFontSize(16);
-            categoryRun.setText("Solutions for Category: " + category);
-            categoryRun.addBreak();
-
-            // Iterate over subcategories
+            // Iterate over subcategories without category/subcategory headings
             for (String subcategory : subcategoryOrder.get(category)) {
                 DefaultTableModel model = subcategories.get(subcategory);
                 if (model == null || model.getRowCount() == 0) {
                     continue; // Skip empty subcategories
                 }
 
-                // Create a heading for the subcategory
-                XWPFParagraph subcategoryHeading = document.createParagraph();
-                subcategoryHeading.setAlignment(ParagraphAlignment.LEFT);
-                XWPFRun subcategoryRun = subcategoryHeading.createRun();
-                subcategoryRun.setBold(true);
-                subcategoryRun.setFontSize(14);
-                subcategoryRun.setText("Subcategory: " + subcategory);
-                subcategoryRun.addBreak();
+                // Add page break before each subcategory (except the first one)
+                if (globalQuestionCount > 0) {
+                    XWPFParagraph pageBreakParagraph = document.createParagraph();
+                    XWPFRun pageBreakRun = pageBreakParagraph.createRun();
+                    pageBreakRun.addBreak(BreakType.PAGE);
+                }
 
-                // Add solutions
-                addQuestionsToDocument(document, model, true);
+                // Add solutions directly without headings
+                globalQuestionCount = addQuestionsToDocument(document, model, true, globalQuestionCount, subcategory);
+                
+                // Add stop sign page after each subcategory
+                addStopSignPage(document);
             }
         }
 
@@ -3003,23 +3228,66 @@ public class MedatoninDB extends JFrame {
     }
 
     // Helper method to add questions and answers to the document
-    private void addQuestionsToDocument(XWPFDocument document, DefaultTableModel model, boolean isSolution) {
+    private int addQuestionsToDocument(XWPFDocument document, DefaultTableModel model, boolean isSolution, int globalQuestionCount, String subcategory) {
         int rowCount = model.getRowCount();
+        int questionCount = 0; // Track number of questions for page breaks
+        
+        // Determine questions per page based on subcategory
+        int questionsPerPage = "Zahlenfolgen".equals(subcategory) ? 5 : 3;
 
         for (int row = 0; row < rowCount; row++) {
             if (isFrageRow(row, model)) {
+                questionCount++;
+                
                 // Get question text
                 String questionNumber = model.getValueAt(row, 0).toString();
-                String questionText = model.getValueAt(row, 1).toString();
+                Object questionObj = model.getValueAt(row, 1);
+                String questionText;
+                
+                // Handle Figuren questions (DissectedPieces objects)
+                boolean isFigurenQuestionTitle = false;
+                if (questionObj instanceof FigurenGenerator.DissectedPieces) {
+                    questionText = "Welche Figur lässt sich aus den folgenden Bausteinen zusammensetzen?";
+                    isFigurenQuestionTitle = true;
+                } else {
+                    questionText = questionObj.toString();
+                }
 
-                // Add question to document
+                // Add question to document with appropriate spacing
                 XWPFParagraph questionParagraph = document.createParagraph();
                 questionParagraph.setAlignment(ParagraphAlignment.LEFT);
+                
+                // Set paragraph spacing based on question type and subcategory
+                CTPPr pPr = questionParagraph.getCTP().isSetPPr() ? questionParagraph.getCTP().getPPr() : questionParagraph.getCTP().addNewPPr();
+                CTSpacing spacing = pPr.isSetSpacing() ? pPr.getSpacing() : pPr.addNewSpacing();
+                
+                if (isFigurenQuestionTitle) {
+                    // Special spacing for Figuren question title: Vor 10pt, Nach 10pt, Zeilenabstand Einfach
+                    spacing.setBefore(BigInteger.valueOf(200));  // 10pt = 200 twentieths of a point
+                    spacing.setAfter(BigInteger.valueOf(200));   // 10pt = 200 twentieths of a point
+                } else if ("Zahlenfolgen".equals(subcategory)) {
+                    // Special spacing for Zahlenfolgen questions: Vor 24pt, Nach 18pt, Einfach
+                    spacing.setBefore(BigInteger.valueOf(480));  // 24pt = 480 twentieths of a point
+                    spacing.setAfter(BigInteger.valueOf(360));   // 18pt = 360 twentieths of a point
+                } else {
+                    // Minimal spacing for all other questions
+                    spacing.setBefore(BigInteger.valueOf(0));    // 0pt before
+                    spacing.setAfter(BigInteger.valueOf(0));     // 0pt after
+                }
+                spacing.setLine(BigInteger.valueOf(240));    // Single line spacing
+                spacing.setLineRule(STLineSpacingRule.AUTO);
+                
                 XWPFRun questionRun = questionParagraph.createRun();
-                questionRun.setBold(true);
-                questionRun.setFontSize(12);
+                questionRun.setBold(false); // No bold formatting
+                questionRun.setFontFamily("Calibri"); // Set font to Calibri
+                questionRun.setFontSize(11); // Set font size to 11pt
                 questionRun.setText(questionNumber + ". " + questionText);
-                questionRun.addBreak();
+
+                // For Figuren questions, add the dissected pieces image
+                if (questionObj instanceof FigurenGenerator.DissectedPieces) {
+                    FigurenGenerator.DissectedPieces dissectedPieces = (FigurenGenerator.DissectedPieces) questionObj;
+                    addShapeImageToDocument(document, dissectedPieces.rotatedPieces, false);
+                }
 
                 String format = (String) model.getValueAt(row, 4);
 
@@ -3027,51 +3295,699 @@ public class MedatoninDB extends JFrame {
                 row++;
                 List<String> options = new ArrayList<>();
                 List<String> answers = new ArrayList<>();
+                boolean isFigurenQuestion = false;
+                
                 while (row < rowCount && !isFrageRow(row, model)) {
                     String label = model.getValueAt(row, 0).toString();
-                    String text = model.getValueAt(row, 1).toString();
+                    Object textObj = model.getValueAt(row, 1);
                     Object korrektObj = model.getValueAt(row, 3);
-
-                    if ("Lang".equals(format) && label.matches("\\d\\.")) {
-                        // It's an option row
-                        options.add(label + " " + text);
-                    } else if (label.matches("[A-E]\\)")) {
-                        // It's an answer row
-                        String answerText = label + " " + text;
-                        if (isSolution) {
-                            // Append the correct options to the answer
-                            if (korrektObj instanceof Boolean && (Boolean) korrektObj) {
-                                answerText += " (Correct)";
+                    
+                    String text;
+                    // Handle FigurenOptionsData objects
+                    if (textObj instanceof FigurenOptionsData) {
+                        isFigurenQuestion = true;
+                        FigurenOptionsData figurenData = (FigurenOptionsData) textObj;
+                        
+                        // Add the option shapes as images
+                        addFigurenOptionsToDocument(document, figurenData, isSolution);
+                        
+                        break; // Skip further processing for this options row
+                    } else {
+                        text = textObj.toString();
+                    }
+                    
+                    if (!isFigurenQuestion) {
+                        if ("Lang".equals(format) && label.matches("\\d\\.")) {
+                            // It's an option row
+                            options.add(label + " " + text);
+                        } else if (label.matches("[A-E]\\)")) {
+                            // It's an answer row
+                            String answerText = label + " " + text;
+                            if (isSolution) {
+                                // Append the correct options to the answer
+                                if (korrektObj instanceof Boolean && (Boolean) korrektObj) {
+                                    answerText += " (Correct)";
+                                }
                             }
+                            answers.add(answerText);
                         }
-                        answers.add(answerText);
                     }
                     row++;
                 }
                 row--; // Adjust row index after the loop
 
-                // Add options if any
+                // Add options with minimal spacing if any
                 if (!options.isEmpty()) {
                     XWPFParagraph optionsParagraph = document.createParagraph();
                     optionsParagraph.setAlignment(ParagraphAlignment.LEFT);
+                    
+                    // Set minimal spacing for options
+                    CTPPr optPPr = optionsParagraph.getCTP().isSetPPr() ? optionsParagraph.getCTP().getPPr() : optionsParagraph.getCTP().addNewPPr();
+                    CTSpacing optSpacing = optPPr.isSetSpacing() ? optPPr.getSpacing() : optPPr.addNewSpacing();
+                    optSpacing.setBefore(BigInteger.valueOf(0));    // 0pt before
+                    optSpacing.setAfter(BigInteger.valueOf(0));     // 0pt after
+                    optSpacing.setLine(BigInteger.valueOf(240));    // Single line spacing
+                    optSpacing.setLineRule(STLineSpacingRule.AUTO);
+                    
                     for (String option : options) {
                         XWPFRun optionRun = optionsParagraph.createRun();
-                        optionRun.setFontSize(12);
+                        optionRun.setFontFamily("Calibri"); // Set font to Calibri
+                        optionRun.setFontSize(11); // Set font size to 11pt
                         optionRun.setText(option);
                         optionRun.addBreak();
                     }
                 }
 
-                // Add answers
-                XWPFParagraph answersParagraph = document.createParagraph();
-                answersParagraph.setAlignment(ParagraphAlignment.LEFT);
-                for (String answer : answers) {
-                    XWPFRun answerRun = answersParagraph.createRun();
-                    answerRun.setFontSize(12);
-                    answerRun.setText(answer);
-                    answerRun.addBreak();
+                // Add answers with specific spacing based on subcategory - only for non-Figuren questions
+                if (!answers.isEmpty() && !isFigurenQuestion) {
+                    for (String answer : answers) {
+                        XWPFParagraph answerParagraph = document.createParagraph();
+                        answerParagraph.setAlignment(ParagraphAlignment.LEFT);
+                        
+                        // Set spacing for answers based on subcategory
+                        CTPPr ansPPr = answerParagraph.getCTP().isSetPPr() ? answerParagraph.getCTP().getPPr() : answerParagraph.getCTP().addNewPPr();
+                        CTSpacing ansSpacing = ansPPr.isSetSpacing() ? ansPPr.getSpacing() : ansPPr.addNewSpacing();
+                        
+                        if ("Zahlenfolgen".equals(subcategory)) {
+                            // Special spacing for Zahlenfolgen options A-E: Vor 0pt, Nach 3pt, Einfach
+                            ansSpacing.setBefore(BigInteger.valueOf(0));    // 0pt before
+                            ansSpacing.setAfter(BigInteger.valueOf(60));    // 3pt = 60 twentieths of a point
+                        } else {
+                            // Minimal spacing for other questions
+                            ansSpacing.setBefore(BigInteger.valueOf(0));    // 0pt before
+                            ansSpacing.setAfter(BigInteger.valueOf(0));     // 0pt after
+                        }
+                        ansSpacing.setLine(BigInteger.valueOf(240));    // Single line spacing
+                        ansSpacing.setLineRule(STLineSpacingRule.AUTO);
+                        
+                        XWPFRun answerRun = answerParagraph.createRun();
+                        answerRun.setFontFamily("Calibri"); // Set font to Calibri
+                        answerRun.setFontSize(11); // Set font size to 11pt
+                        answerRun.setText(answer);
+                    }
+                }
+                
+                // Add page break after specified number of questions (using global counter)
+                if ((questionCount + globalQuestionCount) % questionsPerPage == 0) {
+                    // Count remaining questions in the document
+                    int remainingQuestions = 0;
+                    for (int checkRow = row + 1; checkRow < rowCount; checkRow++) {
+                        if (isFrageRow(checkRow, model)) {
+                            remainingQuestions++;
+                        }
+                    }
+                    
+                    debugLog("Print", LogLevel.INFO, "After question " + (questionCount + globalQuestionCount) + ", found " + remainingQuestions + " remaining questions");
+                    
+                    // Only add page break if there are actually more questions
+                    if (remainingQuestions > 0) {
+                        // Create page break directly without any paragraph
+                        XWPFParagraph pageBreakParagraph = document.createParagraph();
+                        XWPFRun pageBreakRun = pageBreakParagraph.createRun();
+                        pageBreakRun.addBreak(BreakType.PAGE);
+                        debugLog("Print", LogLevel.INFO, "Added page break after question " + (questionCount + globalQuestionCount));
+                    }
+                    // Note: Stop sign will be added at the very end, not here
+                }
+                // No spacing between question blocks to avoid layout issues
+            }
+        }
+        
+        return globalQuestionCount + questionCount;
+    }
+
+    // Helper method to add Figuren option shapes to the document
+    private void addFigurenOptionsToDocument(XWPFDocument document, FigurenOptionsData figurenData, boolean isSolution) {
+        try {
+            // Create a table for horizontal layout of options
+            XWPFTable optionsTable = document.createTable(2, figurenData.options.size()); // 2 rows: images and labels
+            optionsTable.setWidth("100%");
+            
+            // Set equal column distribution - "Spaltenbreite gleichmäßig verteilen"
+            int totalColumns = figurenData.options.size();
+            int columnWidth = 100 / totalColumns; // Equal percentage distribution
+            
+            // First row: shape images
+            XWPFTableRow imageRow = optionsTable.getRow(0);
+            // Second row: option labels
+            XWPFTableRow labelRow = optionsTable.getRow(1);
+            
+            for (int i = 0; i < figurenData.options.size(); i++) {
+                OptionDAO option = figurenData.options.get(i);
+                
+                // Configure image cell with equal width and proper spacing
+                XWPFTableCell imageCell = imageRow.getCell(i);
+                imageCell.setWidth(columnWidth + "%");
+                imageCell.removeParagraph(0); // Remove default paragraph
+                XWPFParagraph imageParagraph = imageCell.addParagraph();
+                imageParagraph.setAlignment(ParagraphAlignment.CENTER);
+                // Set cell vertical alignment to center
+                imageCell.setVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+                
+                // Set minimal spacing for image cell: Vor 0pt, Nach 0pt, Zeilenabstand Einfach
+                CTPPr imgCellPPr = imageParagraph.getCTP().isSetPPr() ? imageParagraph.getCTP().getPPr() : imageParagraph.getCTP().addNewPPr();
+                CTSpacing imgCellSpacing = imgCellPPr.isSetSpacing() ? imgCellPPr.getSpacing() : imgCellPPr.addNewSpacing();
+                imgCellSpacing.setBefore(BigInteger.valueOf(0));    // 0pt
+                imgCellSpacing.setAfter(BigInteger.valueOf(0));     // 0pt
+                imgCellSpacing.setLine(BigInteger.valueOf(240));    // Single line spacing = 240
+                imgCellSpacing.setLineRule(STLineSpacingRule.AUTO);
+                
+                // Configure label cell with equal width and proper spacing
+                XWPFTableCell labelCell = labelRow.getCell(i);
+                labelCell.setWidth(columnWidth + "%");
+                labelCell.removeParagraph(0); // Remove default paragraph
+                XWPFParagraph labelParagraph = labelCell.addParagraph();
+                labelParagraph.setAlignment(ParagraphAlignment.CENTER);
+                // Set cell vertical alignment to center
+                labelCell.setVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+                
+                // Set minimal spacing for label cell: Vor 0pt, Nach 0pt, Zeilenabstand Einfach
+                CTPPr labelCellPPr = labelParagraph.getCTP().isSetPPr() ? labelParagraph.getCTP().getPPr() : labelParagraph.getCTP().addNewPPr();
+                CTSpacing labelCellSpacing = labelCellPPr.isSetSpacing() ? labelCellPPr.getSpacing() : labelCellPPr.addNewSpacing();
+                labelCellSpacing.setBefore(BigInteger.valueOf(0));    // 0pt
+                labelCellSpacing.setAfter(BigInteger.valueOf(0));     // 0pt
+                labelCellSpacing.setLine(BigInteger.valueOf(240));    // Single line spacing = 240
+                labelCellSpacing.setLineRule(STLineSpacingRule.AUTO);
+                
+                XWPFRun labelRun = labelParagraph.createRun();
+                labelRun.setFontFamily("Calibri"); // Set font to Calibri
+                labelRun.setFontSize(11); // Set font size to 11pt
+                labelRun.setBold(false); // No bold formatting
+                
+                // For option E (X), just add text in both cells
+                if ("X".equals(option.getText())) {
+                    XWPFRun textRun = imageParagraph.createRun();
+                    textRun.setFontFamily("Calibri"); // Set font to Calibri
+                    textRun.setFontSize(20);
+                    textRun.setBold(true);
+                    textRun.setText("X");
+                    
+                    String labelText = option.getLabel() + ")";
+                    if (isSolution && option.isCorrect()) {
+                        labelText += " (Correct)";
+                    }
+                    labelRun.setText(labelText);
+                } else {
+                    // For shape options, add the shape image (with grey color)
+                    String shapeData = option.getShapeData();
+                    if (shapeData != null && !shapeData.trim().isEmpty()) {
+                        addSingleShapeImageToDocument(document, shapeData, imageParagraph, true); // true for grey color
+                    }
+                    
+                    String labelText = option.getLabel() + ")";
+                    if (isSolution && option.isCorrect()) {
+                        labelText += " (Correct)";
+                    }
+                    labelRun.setText(labelText);
                 }
             }
+            
+            // Remove table borders for cleaner look
+            optionsTable.getCTTbl().getTblPr().unsetTblBorders();
+            
+            // REMOVED: No spacing after tables as per requirement #2
+            // XWPFParagraph spaceParagraph = document.createParagraph();
+            // XWPFRun spaceRun = spaceParagraph.createRun();
+            // spaceRun.addBreak();
+            
+        } catch (Exception e) {
+            debugLog("Print", LogLevel.ERROR, "Error adding Figuren options to document: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    // Helper method to add a shape image to the document
+    private void addShapeImageToDocument(XWPFDocument document, List<? extends Geometry> shapes, boolean assembled) {
+        try {
+            // Calculate the bounding box of all shapes to determine optimal cropping
+            Envelope totalBounds = new Envelope();
+            for (Geometry shape : shapes) {
+                totalBounds.expandToInclude(shape.getEnvelopeInternal());
+            }
+            
+            // No padding - we want absolute minimal space
+            // totalBounds.expandBy(padding); // REMOVED padding
+            
+            // Create a PolygonPanel to render the shapes with better horizontal spacing
+            PolygonPanel panel = new PolygonPanel(shapes);
+            panel.setAssembled(assembled);
+            panel.setBackground(Color.WHITE); // Ensure white background, not light grey
+            
+            // Calculate optimal image dimensions with better horizontal distribution
+            double contentAspectRatio = totalBounds.getWidth() / totalBounds.getHeight();
+            
+            // Start with larger width to better distribute pieces horizontally
+            int imageWidth = 1400;   // Increased for better horizontal spacing
+            int imageHeight = (int) (imageWidth / contentAspectRatio);
+            
+            // Ensure reasonable height constraints
+            imageHeight = Math.min(imageHeight, 400);  // Allow more height for better distribution
+            imageHeight = Math.max(imageHeight, 150);
+            
+            panel.setSize(imageWidth, imageHeight);
+            
+            // Create a high-quality BufferedImage with white background
+            BufferedImage fullImage = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_RGB);
+            Graphics2D g2d = fullImage.createGraphics();
+            
+            // Enhanced anti-aliasing settings for crisp output
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+            g2d.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+            g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            
+            // Set pure white background (not light grey)
+            g2d.setColor(Color.WHITE);
+            g2d.fillRect(0, 0, imageWidth, imageHeight);
+            panel.paint(g2d);
+            g2d.dispose();
+            
+            // Aggressive cropping to remove ALL unnecessary white space
+            BufferedImage croppedImage = cropImageToContentOptimized(fullImage);
+            
+            // Convert cropped image to byte array
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(croppedImage, "PNG", baos);
+            byte[] imageBytes = baos.toByteArray();
+            baos.close();
+            
+            // Add image to document with minimal spacing
+            XWPFParagraph imageParagraph = document.createParagraph();
+            imageParagraph.setAlignment(ParagraphAlignment.CENTER);
+            
+            // Set minimal paragraph spacing: Vor 0pt, Nach 0pt, Zeilenabstand Einfach
+            CTPPr imgPPr = imageParagraph.getCTP().isSetPPr() ? imageParagraph.getCTP().getPPr() : imageParagraph.getCTP().addNewPPr();
+            CTSpacing imgSpacing = imgPPr.isSetSpacing() ? imgPPr.getSpacing() : imgPPr.addNewSpacing();
+            imgSpacing.setBefore(BigInteger.valueOf(0));    // 0pt
+            imgSpacing.setAfter(BigInteger.valueOf(0));     // 0pt
+            imgSpacing.setLine(BigInteger.valueOf(240));    // Single line spacing = 240
+            imgSpacing.setLineRule(STLineSpacingRule.AUTO);
+            
+            XWPFRun imageRun = imageParagraph.createRun();
+            
+            try (ByteArrayInputStream bis = new ByteArrayInputStream(imageBytes)) {
+                // Calculate optimal dimensions with max height constraint of 3.8cm
+                double maxHeightCm = 3.8;
+                double maxWidthCm = 17.5;
+                
+                double croppedAspectRatio = (double) croppedImage.getWidth() / croppedImage.getHeight();
+                
+                // Calculate width based on max height constraint
+                double heightCm = maxHeightCm;
+                double widthCm = heightCm * croppedAspectRatio;
+                
+                // If width exceeds max, scale down proportionally
+                if (widthCm > maxWidthCm) {
+                    widthCm = maxWidthCm;
+                    heightCm = widthCm / croppedAspectRatio;
+                }
+                
+                // Convert to EMU (1 cm = 360,000 EMU)
+                int widthEMU = (int) (widthCm * 360000);
+                int heightEMU = (int) (heightCm * 360000);
+                
+                imageRun.addPicture(bis, XWPFDocument.PICTURE_TYPE_PNG, "shapes.png", widthEMU, heightEMU);
+                
+                debugLog("Print", LogLevel.INFO, "Image dimensions: " + widthCm + "cm x " + heightCm + "cm");
+            }
+            
+        } catch (Exception e) {
+            debugLog("Print", LogLevel.ERROR, "Error adding shape image to document: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    // Optimized helper method to crop image to content by removing white space
+    private BufferedImage cropImageToContentOptimized(BufferedImage image) {
+        int width = image.getWidth();
+        int height = image.getHeight();
+        
+        // Find the bounds of non-white content using optimized scanning
+        int minX = width, minY = height, maxX = 0, maxY = 0;
+        boolean hasContent = false;
+        
+        // Very aggressive white threshold - only pure white is considered background
+        int whiteThreshold = 248;
+        
+        // Optimized scanning: scan by rows and columns for faster detection
+        // First, scan rows from top and bottom to find vertical bounds
+        for (int y = 0; y < height && minY == height; y++) {
+            for (int x = 0; x < width; x++) {
+                if (isContentPixel(image.getRGB(x, y), whiteThreshold)) {
+                    minY = y;
+                    hasContent = true;
+                    break;
+                }
+            }
+        }
+        
+        // Scan from bottom up
+        for (int y = height - 1; y >= 0 && maxY == 0; y--) {
+            for (int x = 0; x < width; x++) {
+                if (isContentPixel(image.getRGB(x, y), whiteThreshold)) {
+                    maxY = y;
+                    break;
+                }
+            }
+        }
+        
+        // If no content found, return original image
+        if (!hasContent) {
+            return image;
+        }
+        
+        // Now scan columns for horizontal bounds within the vertical bounds
+        for (int x = 0; x < width && minX == width; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                if (isContentPixel(image.getRGB(x, y), whiteThreshold)) {
+                    minX = x;
+                    break;
+                }
+            }
+        }
+        
+        // Scan from right to left
+        for (int x = width - 1; x >= 0 && maxX == 0; x--) {
+            for (int y = minY; y <= maxY; y++) {
+                if (isContentPixel(image.getRGB(x, y), whiteThreshold)) {
+                    maxX = x;
+                    break;
+                }
+            }
+        }
+        
+        // Add absolutely minimal padding (only 2 pixels on each side)
+        int paddingX = 2;
+        int paddingY = 2;
+        
+        minX = Math.max(0, minX - paddingX);
+        minY = Math.max(0, minY - paddingY);
+        maxX = Math.min(width - 1, maxX + paddingX);
+        maxY = Math.min(height - 1, maxY + paddingY);
+        
+        // Calculate cropped dimensions
+        int croppedWidth = maxX - minX + 1;
+        int croppedHeight = maxY - minY + 1;
+        
+        // Create cropped image
+        BufferedImage croppedImage = new BufferedImage(croppedWidth, croppedHeight, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2d = croppedImage.createGraphics();
+        g2d.drawImage(image, 0, 0, croppedWidth, croppedHeight, minX, minY, maxX + 1, maxY + 1, null);
+        g2d.dispose();
+        
+        debugLog("Print", LogLevel.INFO, "Optimized crop: " + width + "x" + height + 
+                " → " + croppedWidth + "x" + croppedHeight + " (removed " + 
+                ((height - croppedHeight) * 100 / height) + "% height)");
+        
+        return croppedImage;
+    }
+    
+    // Helper method to check if a pixel contains content (not white)
+    private boolean isContentPixel(int rgb, int whiteThreshold) {
+        int red = (rgb >> 16) & 0xFF;
+        int green = (rgb >> 8) & 0xFF;
+        int blue = rgb & 0xFF;
+        return red < whiteThreshold || green < whiteThreshold || blue < whiteThreshold;
+    }
+
+    // Helper method to add a single shape image to the document with color option
+    private void addSingleShapeImageToDocument(XWPFDocument document, String shapeWKT, XWPFParagraph paragraph, boolean useGreyColor) {
+        try {
+            // Parse WKT to Geometry
+            WKTReader reader = new WKTReader();
+            Geometry geometry = reader.read(shapeWKT);
+            
+            // Larger size for option figures (increased from 200x160)
+            int shapeWidth = 300;  // Bigger for better visibility
+            int shapeHeight = 240; // Bigger for better visibility
+            
+            // Create a high-quality BufferedImage
+            BufferedImage image = new BufferedImage(shapeWidth, shapeHeight, BufferedImage.TYPE_INT_RGB);
+            Graphics2D g2d = image.createGraphics();
+            
+            // Enhanced anti-aliasing settings for crisp output
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+            g2d.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+            g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            
+            // White background
+            g2d.setColor(Color.WHITE);
+            g2d.fillRect(0, 0, shapeWidth, shapeHeight);
+            
+            // Manual rendering with direct color control
+            if (useGreyColor) {
+                // Manually render the shape with grey colors instead of using PolygonPanel
+                // Calculate bounds and scale
+                ShapeWriter shapeWriter = new ShapeWriter();
+                
+                Envelope envelope = geometry.getEnvelopeInternal();
+                if (envelope.getWidth() == 0 || envelope.getHeight() == 0) {
+                    debugLog("Print", LogLevel.WARN, "Shape has zero width/height");
+                    return;
+                }
+                
+                double scaleX = shapeWidth / envelope.getWidth();
+                double scaleY = shapeHeight / envelope.getHeight();
+                double scale = Math.min(scaleX, scaleY) * 0.9; // Scale down slightly to fit
+                
+                AffineTransform at = new AffineTransform();
+                at.translate(shapeWidth / 2, shapeHeight / 2);
+                at.scale(scale, -scale); // Negative scale on y-axis to flip vertically
+                at.translate(-envelope.centre().x, -envelope.centre().y);
+                
+                Shape shape = shapeWriter.toShape(geometry);
+                Shape transformedShape = at.createTransformedShape(shape);
+                
+                // Force grey colors
+                g2d.setColor(new Color(160, 160, 160)); // Medium grey for fill
+                g2d.fill(transformedShape);
+                g2d.setColor(new Color(80, 80, 80));  // Dark grey for outline
+                g2d.setStroke(new BasicStroke(2.0f));
+                g2d.draw(transformedShape);
+                
+                debugLog("Print", LogLevel.INFO, "Applied grey colors directly to shape");
+            } else {
+                // Use PolygonPanel for normal (non-grey) rendering
+                List<Geometry> singleShape = Arrays.asList(geometry);
+                PolygonPanel panel = new PolygonPanel(singleShape);
+                panel.setAssembled(true);
+                panel.setSize(shapeWidth, shapeHeight);
+                panel.paint(g2d);
+            }
+            
+            g2d.dispose();
+            
+            // Convert image to byte array
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(image, "PNG", baos);
+            byte[] imageBytes = baos.toByteArray();
+            baos.close();
+            
+            // Add image to the paragraph - option figures exactly 2.5cm height
+            XWPFRun imageRun = paragraph.createRun();
+            try (ByteArrayInputStream bis = new ByteArrayInputStream(imageBytes)) {
+                // Option figures: maintain aspect ratio with exactly 2.5cm height
+                // 2.5cm = 2.5 * 360,000 = 900,000 EMU height
+                // Width proportional: if source is 300x240, then width = (300/240) * 2.5cm = 3.125cm
+                // 3.125cm = 3.125 * 360,000 = 1,125,000 EMU
+                imageRun.addPicture(bis, XWPFDocument.PICTURE_TYPE_PNG, "shape.png", 
+                                  1125000, 900000); // 3.125cm x 2.5cm in EMU
+            }
+            
+        } catch (Exception e) {
+            debugLog("Print", LogLevel.ERROR, "Error adding single shape image: " + e.getMessage());
+            e.printStackTrace();
+            
+            // Fallback: add text description
+            XWPFRun textRun = paragraph.createRun();
+            textRun.setText("Figur");
+        }
+    }
+
+    // Helper method to add a stop sign page at the end of the document
+    private void addStopSignPage(XWPFDocument document) {
+        try {
+            // Create a new page with page break
+            XWPFParagraph pageBreakParagraph = document.createParagraph();
+            XWPFRun pageBreakRun = pageBreakParagraph.createRun();
+            pageBreakRun.addBreak(BreakType.PAGE);
+
+            // Create a table for perfect vertical and horizontal centering
+            XWPFTable table = document.createTable(1, 1);
+            table.setWidth("100%");
+            
+            // Remove table borders for invisible table
+            try {
+                if (table.getCTTbl().getTblPr() != null) {
+                    table.getCTTbl().getTblPr().unsetTblBorders();
+                }
+            } catch (Exception e) {
+                debugLog("Print", LogLevel.WARN, "Could not remove table borders: " + e.getMessage());
+            }
+            
+            // Set table height to fill page (approximately A4 height minus margins)
+            table.getRow(0).setHeight(15000); // Large height for vertical centering
+            XWPFTableCell cell = table.getRow(0).getCell(0);
+            cell.setVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+            cell.setWidth("100%");
+            
+            // Remove cell borders with proper null checks
+            try {
+                if (cell.getCTTc() != null && cell.getCTTc().getTcPr() != null) {
+                    cell.getCTTc().getTcPr().unsetTcBorders();
+                } else if (cell.getCTTc() != null) {
+                    // Initialize TcPr if it doesn't exist
+                    cell.getCTTc().addNewTcPr();
+                }
+            } catch (Exception e) {
+                debugLog("Print", LogLevel.WARN, "Could not remove cell borders: " + e.getMessage());
+            }
+            
+            cell.removeParagraph(0);
+            XWPFParagraph stopSignParagraph = cell.addParagraph();
+            stopSignParagraph.setAlignment(ParagraphAlignment.CENTER);
+
+            // Try to use the provided stop sign image with detailed debugging
+            String[] possiblePaths = {
+                "stopp_sign.png",
+                "src/main/resources/images/stopp_sign.png", 
+                "resources/images/stopp_sign.png",
+                "images/stopp_sign.png"
+            };
+
+            byte[] stopSignBytes = null;
+            String imagePath = null;
+            
+            debugLog("Print", LogLevel.INFO, "Searching for stop sign image in paths:");
+            for (String path : possiblePaths) {
+                debugLog("Print", LogLevel.INFO, "  Checking: " + path);
+                try {
+                    File imageFile = new File(path);
+                    debugLog("Print", LogLevel.INFO, "    File exists: " + imageFile.exists());
+                    debugLog("Print", LogLevel.INFO, "    Absolute path: " + imageFile.getAbsolutePath());
+                    if (imageFile.exists()) {
+                        imagePath = path;
+                        FileInputStream fis = new FileInputStream(imageFile);
+                        stopSignBytes = fis.readAllBytes();
+                        fis.close();
+                        debugLog("Print", LogLevel.INFO, "    SUCCESS: Loaded " + stopSignBytes.length + " bytes from " + path);
+                        break;
+                    }
+                } catch (Exception e) {
+                    debugLog("Print", LogLevel.WARN, "    Error loading " + path + ": " + e.getMessage());
+                }
+            }
+
+            if (stopSignBytes == null) {
+                debugLog("Print", LogLevel.INFO, "Trying classpath resource: /images/stopp_sign.png");
+                try {
+                    InputStream resourceStream = getClass().getResourceAsStream("/images/stopp_sign.png");
+                    if (resourceStream != null) {
+                        stopSignBytes = resourceStream.readAllBytes();
+                        resourceStream.close();
+                        imagePath = "classpath:/images/stopp_sign.png";
+                        debugLog("Print", LogLevel.INFO, "SUCCESS: Loaded " + stopSignBytes.length + " bytes from classpath");
+                    } else {
+                        debugLog("Print", LogLevel.WARN, "Classpath resource not found");
+                    }
+                } catch (Exception e) {
+                    debugLog("Print", LogLevel.WARN, "Error loading from classpath: " + e.getMessage());
+                }
+            }
+
+            XWPFRun stopSignRun = stopSignParagraph.createRun();
+            
+            // If no image found, create a simple stop sign programmatically
+            if (stopSignBytes == null) {
+                debugLog("Print", LogLevel.INFO, "Creating programmatic stop sign image");
+                stopSignBytes = createStopSignImage();
+                imagePath = "programmatic";
+            }
+            
+            if (stopSignBytes != null) {
+                try (ByteArrayInputStream bis = new ByteArrayInputStream(stopSignBytes)) {
+                    // Stop sign size: 8cm x 8cm (2,880,000 EMU)
+                    stopSignRun.addPicture(bis, XWPFDocument.PICTURE_TYPE_PNG, "stop_sign.png", 2880000, 2880000);
+                    debugLog("Print", LogLevel.INFO, "Added stop sign image from: " + imagePath);
+                }
+            } else {
+                // Final fallback to text
+                stopSignRun.setFontFamily("Arial");
+                stopSignRun.setFontSize(72);
+                stopSignRun.setBold(true);
+                stopSignRun.setColor("FF0000"); // Red color
+                stopSignRun.setText("STOP");
+                debugLog("Print", LogLevel.WARN, "Using text fallback for stop sign");
+            }
+            
+            debugLog("Print", LogLevel.INFO, "Added stop sign page after subcategory");
+        } catch (Exception e) {
+            debugLog("Print", LogLevel.ERROR, "Error adding stop sign page: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    // Helper method to create a programmatic stop sign image
+    private byte[] createStopSignImage() {
+        try {
+            int size = 400;
+            BufferedImage image = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
+            Graphics2D g2d = image.createGraphics();
+            
+            // Enable anti-aliasing
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            
+            // White background
+            g2d.setColor(Color.WHITE);
+            g2d.fillRect(0, 0, size, size);
+            
+            // Create octagonal stop sign
+            int centerX = size / 2;
+            int centerY = size / 2;
+            int radius = size / 2 - 20;
+            
+            // Calculate octagon points
+            int[] xPoints = new int[8];
+            int[] yPoints = new int[8];
+            for (int i = 0; i < 8; i++) {
+                double angle = i * Math.PI / 4.0;
+                xPoints[i] = centerX + (int)(radius * Math.cos(angle));
+                yPoints[i] = centerY + (int)(radius * Math.sin(angle));
+            }
+            
+            // Draw red octagon
+            g2d.setColor(Color.RED);
+            g2d.fillPolygon(xPoints, yPoints, 8);
+            
+            // Draw black border
+            g2d.setColor(Color.BLACK);
+            g2d.setStroke(new BasicStroke(8));
+            g2d.drawPolygon(xPoints, yPoints, 8);
+            
+            // Draw "STOP" text
+            g2d.setColor(Color.WHITE);
+            g2d.setFont(new Font("Arial", Font.BOLD, 60));
+            FontMetrics fm = g2d.getFontMetrics();
+            String text = "STOP";
+            int textWidth = fm.stringWidth(text);
+            int textHeight = fm.getHeight();
+            g2d.drawString(text, centerX - textWidth/2, centerY + textHeight/4);
+            
+            g2d.dispose();
+            
+            // Convert to byte array
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(image, "PNG", baos);
+            byte[] imageBytes = baos.toByteArray();
+            baos.close();
+            
+            debugLog("Print", LogLevel.INFO, "Created programmatic stop sign image: " + imageBytes.length + " bytes");
+            return imageBytes;
+            
+        } catch (Exception e) {
+            debugLog("Print", LogLevel.ERROR, "Error creating programmatic stop sign: " + e.getMessage());
+            return null;
         }
     }
 
