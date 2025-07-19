@@ -3103,14 +3103,14 @@ public class MedatoninDB extends JFrame {
                         // Clone current element to the temp document while source is still open
                         if (currentSubtest != null) {
                             XWPFParagraph clonedPara = introductionTempDoc.createParagraph();
-                            copyParagraph(para, clonedPara, introductionTempDoc);
+                            copyParagraphWithImages(para, clonedPara, introDoc, introductionTempDoc);
                             currentElements.add(clonedPara);
                         }
                     } else if (element instanceof XWPFTable) {
                         // Clone tables to current subtest while source is still open
                         if (currentSubtest != null) {
                             XWPFTable clonedTable = introductionTempDoc.createTable();
-                            copyTable((XWPFTable) element, clonedTable, introductionTempDoc);
+                            copyTableWithImages((XWPFTable) element, clonedTable, introDoc, introductionTempDoc);
                             currentElements.add(clonedTable);
                         }
                     }
@@ -3159,6 +3159,176 @@ public class MedatoninDB extends JFrame {
         }
         
         return null;
+    }
+    
+    // Enhanced method to copy paragraph with images while source document is still open
+    private void copyParagraphWithImages(XWPFParagraph source, XWPFParagraph dest, XWPFDocument sourceDoc, XWPFDocument destDoc) {
+        try {
+            // Copy alignment
+            dest.setAlignment(source.getAlignment());
+            
+            // Copy spacing
+            if (source.getCTP().getPPr() != null && source.getCTP().getPPr().getSpacing() != null) {
+                CTPPr destPPr = dest.getCTP().isSetPPr() ? dest.getCTP().getPPr() : dest.getCTP().addNewPPr();
+                CTSpacing destSpacing = destPPr.isSetSpacing() ? destPPr.getSpacing() : destPPr.addNewSpacing();
+                CTSpacing sourceSpacing = source.getCTP().getPPr().getSpacing();
+                
+                if (sourceSpacing.isSetBefore()) destSpacing.setBefore(sourceSpacing.getBefore());
+                if (sourceSpacing.isSetAfter()) destSpacing.setAfter(sourceSpacing.getAfter());
+                if (sourceSpacing.isSetLine()) destSpacing.setLine(sourceSpacing.getLine());
+                if (sourceSpacing.isSetLineRule()) destSpacing.setLineRule(sourceSpacing.getLineRule());
+            }
+            
+            // Copy runs with immediate image processing
+            for (XWPFRun sourceRun : source.getRuns()) {
+                XWPFRun destRun = dest.createRun();
+                copyRunWithImages(sourceRun, destRun, sourceDoc, destDoc);
+            }
+            
+        } catch (Exception e) {
+            debugLog("Print", LogLevel.ERROR, "Error copying paragraph with images: " + e.getMessage());
+        }
+    }
+    
+    // Enhanced method to copy table with images while source document is still open
+    private void copyTableWithImages(XWPFTable source, XWPFTable dest, XWPFDocument sourceDoc, XWPFDocument destDoc) {
+        try {
+            // Remove default row
+            if (dest.getRows().size() > 0) {
+                dest.removeRow(0);
+            }
+            
+            // Copy table properties
+            if (source.getWidth() > 0) {
+                dest.setWidth(source.getWidth());
+            }
+            
+            // Copy rows with immediate image processing
+            for (XWPFTableRow sourceRow : source.getRows()) {
+                XWPFTableRow destRow = dest.createRow();
+                copyTableRowWithImages(sourceRow, destRow, sourceDoc, destDoc);
+            }
+            
+        } catch (Exception e) {
+            debugLog("Print", LogLevel.ERROR, "Error copying table with images: " + e.getMessage());
+        }
+    }
+    
+    // Enhanced method to copy table row with images while source document is still open
+    private void copyTableRowWithImages(XWPFTableRow source, XWPFTableRow dest, XWPFDocument sourceDoc, XWPFDocument destDoc) {
+        try {
+            // Ensure we have the right number of cells
+            while (dest.getTableCells().size() < source.getTableCells().size()) {
+                dest.createCell();
+            }
+            
+            // Copy cells with immediate image processing
+            for (int i = 0; i < source.getTableCells().size() && i < dest.getTableCells().size(); i++) {
+                XWPFTableCell sourceCell = source.getCell(i);
+                XWPFTableCell destCell = dest.getCell(i);
+                copyTableCellWithImages(sourceCell, destCell, sourceDoc, destDoc);
+            }
+            
+        } catch (Exception e) {
+            debugLog("Print", LogLevel.ERROR, "Error copying table row with images: " + e.getMessage());
+        }
+    }
+    
+    // Enhanced method to copy table cell with images while source document is still open
+    private void copyTableCellWithImages(XWPFTableCell source, XWPFTableCell dest, XWPFDocument sourceDoc, XWPFDocument destDoc) {
+        try {
+            // Copy cell width if available
+            try {
+                String widthStr = source.getWidthType() + "";
+                if (widthStr != null && !widthStr.equals("null")) {
+                    dest.setWidth(widthStr);
+                }
+            } catch (Exception e) {
+                // Ignore width copying if there's an issue
+            }
+            
+            // Copy vertical alignment
+            dest.setVerticalAlignment(source.getVerticalAlignment());
+            
+            // Remove default paragraph
+            if (dest.getParagraphs().size() > 0) {
+                dest.removeParagraph(0);
+            }
+            
+            // Copy paragraphs with immediate image processing
+            for (XWPFParagraph sourcePara : source.getParagraphs()) {
+                XWPFParagraph destPara = dest.addParagraph();
+                copyParagraphWithImages(sourcePara, destPara, sourceDoc, destDoc);
+            }
+            
+        } catch (Exception e) {
+            debugLog("Print", LogLevel.ERROR, "Error copying table cell with images: " + e.getMessage());
+        }
+    }
+    
+    // Enhanced method to copy run with immediate image processing while source document is still open
+    private void copyRunWithImages(XWPFRun source, XWPFRun dest, XWPFDocument sourceDoc, XWPFDocument destDoc) {
+        try {
+            // Copy text
+            dest.setText(source.getText(0));
+            
+            // Copy formatting
+            if (source.getFontFamily() != null) dest.setFontFamily(source.getFontFamily());
+            // Note: getFontSize() is deprecated, using alternative approach
+            try {
+                int fontSize = source.getFontSizeAsDouble() != null ? source.getFontSizeAsDouble().intValue() : -1;
+                if (fontSize != -1) dest.setFontSize(fontSize);
+            } catch (Exception e) {
+                // Fallback to default size if there's an issue
+                dest.setFontSize(11);
+            }
+            dest.setBold(source.isBold());
+            dest.setItalic(source.isItalic());
+            dest.setUnderline(source.getUnderline());
+            
+            // Copy color if available
+            if (source.getColor() != null) dest.setColor(source.getColor());
+            
+            // Copy pictures IMMEDIATELY while source document is still open
+            for (XWPFPicture pic : source.getEmbeddedPictures()) {
+                try {
+                    XWPFPictureData picData = pic.getPictureData();
+                    byte[] pictureBytes = picData.getData(); // Get data while source is open
+                    int pictureType = picData.getPictureType();
+                    String fileName = picData.getFileName();
+                    
+                    // Add picture data to destination document
+                    destDoc.addPictureData(pictureBytes, pictureType);
+                    
+                    // Create new picture in destination run
+                    // Use default dimensions in EMU (about 5cm x 5cm)
+                    int width = Units.toEMU(100); // 100 pixels ~ 5cm
+                    int height = Units.toEMU(100); // 100 pixels ~ 5cm
+                    
+                    // Try to get actual dimensions if available
+                    try {
+                        double widthDouble = pic.getWidth();
+                        if (widthDouble > 0) {
+                            width = (int) widthDouble;
+                            height = width; // Maintain square aspect ratio as fallback
+                        }
+                    } catch (Exception e) {
+                        // Use defaults if dimension retrieval fails
+                    }
+                    
+                    dest.addPicture(new ByteArrayInputStream(pictureBytes), pictureType, fileName, width, height);
+                    
+                    debugLog("Print", LogLevel.INFO, "Successfully copied picture: " + fileName + " (" + pictureBytes.length + " bytes)");
+                    
+                } catch (Exception picEx) {
+                    debugLog("Print", LogLevel.WARN, "Could not copy picture: " + picEx.getMessage());
+                    picEx.printStackTrace();
+                }
+            }
+            
+        } catch (Exception e) {
+            debugLog("Print", LogLevel.ERROR, "Error copying run with images: " + e.getMessage());
+        }
     }
     
     // Method to copy introduction elements to the target document
