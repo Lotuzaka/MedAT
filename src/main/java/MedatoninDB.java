@@ -1,6 +1,7 @@
 import dao.AllergyCardDAO;
 import model.AllergyCardData;
 import org.apache.poi.xwpf.usermodel.*;
+import org.apache.poi.util.Units;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTSectPr;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPageMar;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPPr;
@@ -128,6 +129,9 @@ public class MedatoninDB extends JFrame {
     // Store sub-databases for each category
     private Map<String, Map<String, DefaultTableModel>> categoryModels = new HashMap<>();;
     private Map<String, List<String>> subcategoryOrder = new HashMap<>();
+    
+    // Store introduction pages for each subtest
+    private Map<String, List<IBodyElement>> introductionPages = new HashMap<>();
 
     private JTable questionTable; // Table to hold questions and checkboxes
     private DefaultTableModel tableModel; // Table model for adding rows
@@ -246,6 +250,10 @@ public class MedatoninDB extends JFrame {
         questionDAO = new QuestionDAO(conn);
         optionDAO = new OptionDAO(conn);
         simulationDAO = new testSimulationDAO(conn);
+        
+        // Load introduction pages from the DOCX file
+        loadIntroductionPages();
+        
         // SwingUtilities.invokeLater(() -> createLoginWindow());
         createMainWindow();
     }
@@ -3032,6 +3040,269 @@ public class MedatoninDB extends JFrame {
             debugLog("Print", LogLevel.ERROR, "Error setting page margins: " + e.getMessage());
         }
     }
+    
+    // Method to load introduction pages from untertest_introductionPage.docx
+    private void loadIntroductionPages() {
+        try {
+            File introFile = new File("untertest_introductionPage.docx");
+            if (!introFile.exists()) {
+                debugLog("Print", LogLevel.WARN, "Introduction file not found: untertest_introductionPage.docx");
+                return;
+            }
+            
+            try (FileInputStream fis = new FileInputStream(introFile)) {
+                XWPFDocument introDoc = new XWPFDocument(fis);
+                
+                List<IBodyElement> currentElements = new ArrayList<>();
+                String currentSubtest = null;
+                
+                debugLog("Print", LogLevel.INFO, "Loading introduction pages from untertest_introductionPage.docx");
+                
+                for (IBodyElement element : introDoc.getBodyElements()) {
+                    if (element instanceof XWPFParagraph) {
+                        XWPFParagraph para = (XWPFParagraph) element;
+                        String text = para.getText().trim();
+                        
+                        // Check if this paragraph contains a subtest heading
+                        // Look for patterns like "Untertest [Name]" or just the subtest name
+                        String detectedSubtest = detectSubtestName(text);
+                        
+                        if (detectedSubtest != null) {
+                            // Save previous subtest if exists
+                            if (currentSubtest != null && !currentElements.isEmpty()) {
+                                introductionPages.put(currentSubtest, new ArrayList<>(currentElements));
+                                debugLog("Print", LogLevel.INFO, "Loaded " + currentElements.size() + " elements for subtest: " + currentSubtest);
+                            }
+                            // Start new subtest
+                            currentSubtest = detectedSubtest;
+                            currentElements.clear();
+                        }
+                        
+                        // Add current element to the collection
+                        if (currentSubtest != null) {
+                            currentElements.add(element);
+                        }
+                    } else if (element instanceof XWPFTable) {
+                        // Add tables to current subtest
+                        if (currentSubtest != null) {
+                            currentElements.add(element);
+                        }
+                    }
+                }
+                
+                // Save the last subtest
+                if (currentSubtest != null && !currentElements.isEmpty()) {
+                    introductionPages.put(currentSubtest, new ArrayList<>(currentElements));
+                    debugLog("Print", LogLevel.INFO, "Loaded " + currentElements.size() + " elements for subtest: " + currentSubtest);
+                }
+                
+                introDoc.close();
+                debugLog("Print", LogLevel.INFO, "Successfully loaded introduction pages for " + introductionPages.size() + " subtests");
+                
+            }
+        } catch (Exception e) {
+            debugLog("Print", LogLevel.ERROR, "Error loading introduction pages: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    // Helper method to detect subtest names in paragraph text
+    private String detectSubtestName(String text) {
+        if (text == null || text.trim().isEmpty()) {
+            return null;
+        }
+        
+        text = text.trim();
+        
+        // Map of common subtest patterns to standard names
+        String[] subtestNames = {
+            "Figuren", "Zahlenfolgen", "Implikationen", "Wortflüssigkeit", "Merkfähigkeiten",
+            "Biologie", "Chemie", "Physik", "Mathematik"
+        };
+        
+        for (String subtestName : subtestNames) {
+            if (text.toLowerCase().contains(subtestName.toLowerCase()) || 
+                text.toLowerCase().contains("untertest " + subtestName.toLowerCase())) {
+                return subtestName;
+            }
+        }
+        
+        return null;
+    }
+    
+    // Method to copy introduction elements to the target document
+    private void copyIntroductionElements(XWPFDocument destDoc, List<IBodyElement> elements) {
+        try {
+            for (IBodyElement element : elements) {
+                if (element instanceof XWPFParagraph) {
+                    XWPFParagraph sourcePara = (XWPFParagraph) element;
+                    XWPFParagraph destPara = destDoc.createParagraph();
+                    
+                    // Copy paragraph properties and content
+                    copyParagraph(sourcePara, destPara, destDoc);
+                    
+                } else if (element instanceof XWPFTable) {
+                    XWPFTable sourceTable = (XWPFTable) element;
+                    XWPFTable destTable = destDoc.createTable();
+                    
+                    // Copy table structure and content
+                    copyTable(sourceTable, destTable, destDoc);
+                }
+            }
+        } catch (Exception e) {
+            debugLog("Print", LogLevel.ERROR, "Error copying introduction elements: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    // Helper method to copy paragraph content and formatting
+    private void copyParagraph(XWPFParagraph source, XWPFParagraph dest, XWPFDocument destDoc) {
+        try {
+            // Copy alignment
+            dest.setAlignment(source.getAlignment());
+            
+            // Copy spacing
+            if (source.getCTP().getPPr() != null && source.getCTP().getPPr().getSpacing() != null) {
+                CTPPr destPPr = dest.getCTP().isSetPPr() ? dest.getCTP().getPPr() : dest.getCTP().addNewPPr();
+                CTSpacing destSpacing = destPPr.isSetSpacing() ? destPPr.getSpacing() : destPPr.addNewSpacing();
+                CTSpacing sourceSpacing = source.getCTP().getPPr().getSpacing();
+                
+                if (sourceSpacing.isSetBefore()) destSpacing.setBefore(sourceSpacing.getBefore());
+                if (sourceSpacing.isSetAfter()) destSpacing.setAfter(sourceSpacing.getAfter());
+                if (sourceSpacing.isSetLine()) destSpacing.setLine(sourceSpacing.getLine());
+                if (sourceSpacing.isSetLineRule()) destSpacing.setLineRule(sourceSpacing.getLineRule());
+            }
+            
+            // Copy runs
+            for (XWPFRun sourceRun : source.getRuns()) {
+                XWPFRun destRun = dest.createRun();
+                copyRun(sourceRun, destRun, destDoc);
+            }
+            
+        } catch (Exception e) {
+            debugLog("Print", LogLevel.ERROR, "Error copying paragraph: " + e.getMessage());
+        }
+    }
+    
+    // Helper method to copy run content and formatting
+    private void copyRun(XWPFRun source, XWPFRun dest, XWPFDocument destDoc) {
+        try {
+            // Copy text
+            dest.setText(source.getText(0));
+            
+            // Copy formatting
+            if (source.getFontFamily() != null) dest.setFontFamily(source.getFontFamily());
+            // Note: getFontSize() is deprecated, using alternative approach
+            try {
+                int fontSize = source.getFontSizeAsDouble() != null ? source.getFontSizeAsDouble().intValue() : -1;
+                if (fontSize != -1) dest.setFontSize(fontSize);
+            } catch (Exception e) {
+                // Fallback to default size if there's an issue
+                dest.setFontSize(11);
+            }
+            dest.setBold(source.isBold());
+            dest.setItalic(source.isItalic());
+            dest.setUnderline(source.getUnderline());
+            
+            // Copy color if available
+            if (source.getColor() != null) dest.setColor(source.getColor());
+            
+            // Copy pictures
+            for (XWPFPicture pic : source.getEmbeddedPictures()) {
+                try {
+                    XWPFPictureData picData = pic.getPictureData();
+                    destDoc.addPictureData(picData.getData(), picData.getPictureType());
+                    // Use default dimensions since getWidth/getHeight may not be available
+                    dest.addPicture(new ByteArrayInputStream(picData.getData()), 
+                                   picData.getPictureType(), 
+                                   picData.getFileName(), 
+                                   Units.toEMU(200), // Default width in EMUs
+                                   Units.toEMU(150)); // Default height in EMUs
+                } catch (Exception picEx) {
+                    debugLog("Print", LogLevel.WARN, "Could not copy picture: " + picEx.getMessage());
+                }
+            }
+            
+        } catch (Exception e) {
+            debugLog("Print", LogLevel.ERROR, "Error copying run: " + e.getMessage());
+        }
+    }
+    
+    // Helper method to copy table structure and content
+    private void copyTable(XWPFTable source, XWPFTable dest, XWPFDocument destDoc) {
+        try {
+            // Remove default row
+            if (dest.getRows().size() > 0) {
+                dest.removeRow(0);
+            }
+            
+            // Copy table properties
+            if (source.getWidth() > 0) {
+                dest.setWidth(source.getWidth());
+            }
+            
+            // Copy rows
+            for (XWPFTableRow sourceRow : source.getRows()) {
+                XWPFTableRow destRow = dest.createRow();
+                copyTableRow(sourceRow, destRow, destDoc);
+            }
+            
+        } catch (Exception e) {
+            debugLog("Print", LogLevel.ERROR, "Error copying table: " + e.getMessage());
+        }
+    }
+    
+    // Helper method to copy table row
+    private void copyTableRow(XWPFTableRow source, XWPFTableRow dest, XWPFDocument destDoc) {
+        try {
+            // Ensure we have the right number of cells
+            while (dest.getTableCells().size() < source.getTableCells().size()) {
+                dest.createCell();
+            }
+            
+            // Copy cells
+            for (int i = 0; i < source.getTableCells().size() && i < dest.getTableCells().size(); i++) {
+                XWPFTableCell sourceCell = source.getCell(i);
+                XWPFTableCell destCell = dest.getCell(i);
+                copyTableCell(sourceCell, destCell, destDoc);
+            }
+            
+        } catch (Exception e) {
+            debugLog("Print", LogLevel.ERROR, "Error copying table row: " + e.getMessage());
+        }
+    }
+    
+    // Helper method to copy table cell
+    private void copyTableCell(XWPFTableCell source, XWPFTableCell dest, XWPFDocument destDoc) {
+        try {
+            // Copy cell width if available
+            try {
+                String widthStr = source.getWidthType() + "";
+                if (widthStr != null && !widthStr.equals("null")) {
+                    dest.setWidth(widthStr);
+                }
+            } catch (Exception e) {
+                // Ignore width copying if there's an issue
+            }
+            
+            // Copy vertical alignment
+            dest.setVerticalAlignment(source.getVerticalAlignment());
+            
+            // Remove default paragraph
+            if (dest.getParagraphs().size() > 0) {
+                dest.removeParagraph(0);
+            }
+            
+            // Copy paragraphs
+            for (XWPFParagraph sourcePara : source.getParagraphs()) {
+                XWPFParagraph destPara = dest.addParagraph();
+                copyParagraph(sourcePara, destPara, destDoc);
+            }
+            
+        } catch (Exception e) {
+            debugLog("Print", LogLevel.ERROR, "Error copying table cell: " + e.getMessage());
+        }
+    }
 
     // Method to print the current category to a Word document
     private void printCategory(String category) {
@@ -3064,6 +3335,20 @@ public class MedatoninDB extends JFrame {
                 pageBreakRun.addBreak(BreakType.PAGE);
             }
 
+            // Insert introduction page for this subtest
+            List<IBodyElement> introElements = introductionPages.get(subcategory);
+            if (introElements != null) {
+                debugLog("Print", LogLevel.INFO, "Adding introduction page for subcategory: " + subcategory);
+                copyIntroductionElements(document, introElements);
+                
+                // Add page break after introduction page
+                XWPFParagraph introPageBreak = document.createParagraph();
+                XWPFRun introPageBreakRun = introPageBreak.createRun();
+                introPageBreakRun.addBreak(BreakType.PAGE);
+            } else {
+                debugLog("Print", LogLevel.WARN, "No introduction page found for subcategory: " + subcategory);
+            }
+
             // Add questions directly without headings
             globalQuestionCount = addQuestionsToDocument(document, model, false, globalQuestionCount, subcategory);
             
@@ -3079,6 +3364,12 @@ public class MedatoninDB extends JFrame {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Error saving document: " + e.getMessage(), "Error",
                     JOptionPane.ERROR_MESSAGE);
+        } finally {
+            try {
+                document.close();
+            } catch (IOException e) {
+                debugLog("Print", LogLevel.ERROR, "Error closing document: " + e.getMessage());
+            }
         }
     }
 
@@ -3113,6 +3404,20 @@ public class MedatoninDB extends JFrame {
                 pageBreakRun.addBreak(BreakType.PAGE);
             }
 
+            // Insert introduction page for this subtest
+            List<IBodyElement> introElements = introductionPages.get(subcategory);
+            if (introElements != null) {
+                debugLog("Print", LogLevel.INFO, "Adding introduction page for subcategory: " + subcategory);
+                copyIntroductionElements(document, introElements);
+                
+                // Add page break after introduction page
+                XWPFParagraph introPageBreak = document.createParagraph();
+                XWPFRun introPageBreakRun = introPageBreak.createRun();
+                introPageBreakRun.addBreak(BreakType.PAGE);
+            } else {
+                debugLog("Print", LogLevel.WARN, "No introduction page found for subcategory: " + subcategory);
+            }
+
             // Add solutions directly without headings
             globalQuestionCount = addQuestionsToDocument(document, model, true, globalQuestionCount, subcategory);
             
@@ -3128,6 +3433,12 @@ public class MedatoninDB extends JFrame {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Error saving solution document: " + e.getMessage(), "Error",
                     JOptionPane.ERROR_MESSAGE);
+        } finally {
+            try {
+                document.close();
+            } catch (IOException e) {
+                debugLog("Print", LogLevel.ERROR, "Error closing document: " + e.getMessage());
+            }
         }
     }
 
@@ -3160,6 +3471,20 @@ public class MedatoninDB extends JFrame {
                     pageBreakRun.addBreak(BreakType.PAGE);
                 }
 
+                // Insert introduction page for this subtest
+                List<IBodyElement> introElements = introductionPages.get(subcategory);
+                if (introElements != null) {
+                    debugLog("Print", LogLevel.INFO, "Adding introduction page for subcategory: " + subcategory);
+                    copyIntroductionElements(document, introElements);
+                    
+                    // Add page break after introduction page
+                    XWPFParagraph introPageBreak = document.createParagraph();
+                    XWPFRun introPageBreakRun = introPageBreak.createRun();
+                    introPageBreakRun.addBreak(BreakType.PAGE);
+                } else {
+                    debugLog("Print", LogLevel.WARN, "No introduction page found for subcategory: " + subcategory);
+                }
+
                 // Add questions directly without headings
                 globalQuestionCount = addQuestionsToDocument(document, model, false, globalQuestionCount, subcategory);
                 
@@ -3176,6 +3501,12 @@ public class MedatoninDB extends JFrame {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Error saving document: " + e.getMessage(), "Error",
                     JOptionPane.ERROR_MESSAGE);
+        } finally {
+            try {
+                document.close();
+            } catch (IOException e) {
+                debugLog("Print", LogLevel.ERROR, "Error closing document: " + e.getMessage());
+            }
         }
     }
 
@@ -3208,6 +3539,20 @@ public class MedatoninDB extends JFrame {
                     pageBreakRun.addBreak(BreakType.PAGE);
                 }
 
+                // Insert introduction page for this subtest
+                List<IBodyElement> introElements = introductionPages.get(subcategory);
+                if (introElements != null) {
+                    debugLog("Print", LogLevel.INFO, "Adding introduction page for subcategory: " + subcategory);
+                    copyIntroductionElements(document, introElements);
+                    
+                    // Add page break after introduction page
+                    XWPFParagraph introPageBreak = document.createParagraph();
+                    XWPFRun introPageBreakRun = introPageBreak.createRun();
+                    introPageBreakRun.addBreak(BreakType.PAGE);
+                } else {
+                    debugLog("Print", LogLevel.WARN, "No introduction page found for subcategory: " + subcategory);
+                }
+
                 // Add solutions directly without headings
                 globalQuestionCount = addQuestionsToDocument(document, model, true, globalQuestionCount, subcategory);
                 
@@ -3224,6 +3569,12 @@ public class MedatoninDB extends JFrame {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Error saving solution document: " + e.getMessage(), "Error",
                     JOptionPane.ERROR_MESSAGE);
+        } finally {
+            try {
+                document.close();
+            } catch (IOException e) {
+                debugLog("Print", LogLevel.ERROR, "Error closing document: " + e.getMessage());
+            }
         }
     }
 
