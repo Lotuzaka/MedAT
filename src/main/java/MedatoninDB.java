@@ -132,6 +132,9 @@ public class MedatoninDB extends JFrame {
     
     // Store introduction pages for each subtest
     private Map<String, List<IBodyElement>> introductionPages = new HashMap<>();
+    
+    // Store the temporary document that contains cloned introduction elements
+    private XWPFDocument introductionTempDoc;
 
     private JTable questionTable; // Table to hold questions and checkboxes
     private DefaultTableModel tableModel; // Table model for adding rows
@@ -253,6 +256,22 @@ public class MedatoninDB extends JFrame {
         
         // Load introduction pages from the DOCX file
         loadIntroductionPages();
+        
+        // Add shutdown hook to cleanup resources
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                if (introductionTempDoc != null) {
+                    introductionTempDoc.close();
+                    debugLog("Shutdown", LogLevel.INFO, "Closed introduction temp document");
+                }
+                if (ds != null) {
+                    ds.close();
+                    debugLog("Shutdown", LogLevel.INFO, "Closed database connection pool");
+                }
+            } catch (Exception e) {
+                debugLog("Shutdown", LogLevel.ERROR, "Error during shutdown: " + e.getMessage());
+            }
+        }));
         
         // SwingUtilities.invokeLater(() -> createLoginWindow());
         createMainWindow();
@@ -3053,6 +3072,9 @@ public class MedatoninDB extends JFrame {
             try (FileInputStream fis = new FileInputStream(introFile)) {
                 XWPFDocument introDoc = new XWPFDocument(fis);
                 
+                // Create a temporary document to clone elements into
+                introductionTempDoc = new XWPFDocument();
+                
                 List<IBodyElement> currentElements = new ArrayList<>();
                 String currentSubtest = null;
                 
@@ -3078,14 +3100,18 @@ public class MedatoninDB extends JFrame {
                             currentElements.clear();
                         }
                         
-                        // Add current element to the collection
+                        // Clone current element to the temp document while source is still open
                         if (currentSubtest != null) {
-                            currentElements.add(element);
+                            XWPFParagraph clonedPara = introductionTempDoc.createParagraph();
+                            copyParagraph(para, clonedPara, introductionTempDoc);
+                            currentElements.add(clonedPara);
                         }
                     } else if (element instanceof XWPFTable) {
-                        // Add tables to current subtest
+                        // Clone tables to current subtest while source is still open
                         if (currentSubtest != null) {
-                            currentElements.add(element);
+                            XWPFTable clonedTable = introductionTempDoc.createTable();
+                            copyTable((XWPFTable) element, clonedTable, introductionTempDoc);
+                            currentElements.add(clonedTable);
                         }
                     }
                 }
@@ -3096,7 +3122,12 @@ public class MedatoninDB extends JFrame {
                     debugLog("Print", LogLevel.INFO, "Loaded " + currentElements.size() + " elements for subtest: " + currentSubtest);
                 }
                 
+                // Close the source document - we've already cloned everything we need
                 introDoc.close();
+                
+                // Keep the temp document open - it contains our cloned elements
+                // Don't close introductionTempDoc here as it contains the cloned elements we're using
+                
                 debugLog("Print", LogLevel.INFO, "Successfully loaded introduction pages for " + introductionPages.size() + " subtests");
                 
             }
