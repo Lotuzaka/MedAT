@@ -14,6 +14,8 @@ import org.locationtech.jts.io.WKTWriter;
 import org.locationtech.jts.awt.ShapeWriter;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import docx.Docx4jPrinter;
+import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import javax.swing.*;
 import javax.swing.event.*;
 import javax.swing.plaf.basic.*;
@@ -3134,45 +3136,33 @@ public class MedatoninDB extends JFrame {
     // Method to print all categories and their subcategories to a single Word
     // document
     private void printAllCategories() {
-        XWPFDocument document = new XWPFDocument();
-        
-        // Set up page margins
-        setupPageMargins(document);
+        try {
+            docx.Docx4jPrinter printer = new docx.Docx4jPrinter();
+            List<List<Object>> introPages = printer.loadIntroductionPages(new File("untertest_introductionPage.docx"));
+            WordprocessingMLPackage pkg = WordprocessingMLPackage.createPackage();
+            int pageIndex = 0;
 
-        // Use a global question counter for page breaks
-        int globalQuestionCount = 0;
+            for (String category : categoryModels.keySet()) {
+                Map<String, DefaultTableModel> subcats = categoryModels.get(category);
+                for (String subcat : subcategoryOrder.get(category)) {
+                    if (pageIndex < introPages.size()) {
+                        for (Object o : introPages.get(pageIndex)) {
+                            pkg.getMainDocumentPart().addObject(o);
+                        }
+                        pageIndex++;
+                    }
 
-        // Iterate over all categories
-        for (String category : categoryModels.keySet()) {
-            Map<String, DefaultTableModel> subcategories = categoryModels.get(category);
-
-            // Iterate over subcategories without category/subcategory headings
-            for (String subcategory : subcategoryOrder.get(category)) {
-                DefaultTableModel model = subcategories.get(subcategory);
-                if (model == null || model.getRowCount() == 0) {
-                    continue; // Skip empty subcategories
+                    DefaultTableModel model = subcats.get(subcat);
+                    if (model != null && model.getRowCount() > 0) {
+                        printer.addQuestions(pkg, model);
+                        printer.addPageBreak(pkg);
+                    }
                 }
-
-                // Add page break before each subcategory (except the first one)
-                if (globalQuestionCount > 0) {
-                    XWPFParagraph pageBreakParagraph = document.createParagraph();
-                    XWPFRun pageBreakRun = pageBreakParagraph.createRun();
-                    pageBreakRun.addBreak(BreakType.PAGE);
-                }
-
-                // Add questions directly without headings
-                globalQuestionCount = addQuestionsToDocument(document, model, false, globalQuestionCount, subcategory);
-                
-                // Add stop sign page after each subcategory
-                addStopSignPage(document);
             }
-        }
 
-        // Save the document
-        try (FileOutputStream out = new FileOutputStream("All_Categories.docx")) {
-            document.write(out);
+            pkg.save(new File("All_Categories.docx"));
             JOptionPane.showMessageDialog(this, "Document saved: All_Categories.docx");
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Error saving document: " + e.getMessage(), "Error",
                     JOptionPane.ERROR_MESSAGE);

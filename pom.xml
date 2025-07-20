@@ -79,6 +79,13 @@
       <version>1.20.0</version>
     </dependency>
 
+    <!-- docx4j for advanced WordprocessingML handling -->
+    <dependency>
+      <groupId>org.docx4j</groupId>
+      <artifactId>docx4j</artifactId>
+      <version>8.3.7</version>
+    </dependency>
+
   </dependencies>
 
 
