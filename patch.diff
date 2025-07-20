@@ -1,9 +1,9 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
 diff --git a/pom.xml b/pom.xml
-index 72555fd66477791aab59f43a7d5d89fdbd6756ae..42f69a739bbe2702450611769723f36ec394c266 100644
+index 2080fb8f8f0e8744ec78e66116cf40e123425f9b..1284607f094c8bbdc5d7bd1dac96332f50de22db 100644
 --- a/pom.xml
 +++ b/pom.xml
-@@ -76,50 +76,57 @@
+@@ -76,50 +76,62 @@
      <dependency>
        <groupId>org.locationtech.jts</groupId>
        <artifactId>jts-core</artifactId>
@@ -29,11 +29,16 @@ index 72555fd66477791aab59f43a7d5d89fdbd6756ae..42f69a739bbe2702450611769723f36e
        <version>8.3.9</version>
      </dependency>
  
-+    <!-- Aggregate docx4j dependency -->
++    <!-- JAXB API and runtime for Java 9+ -->
 +    <dependency>
-+      <groupId>org.docx4j</groupId>
-+      <artifactId>docx4j</artifactId>
-+      <version>8.3.9</version>
++      <groupId>javax.xml.bind</groupId>
++      <artifactId>jaxb-api</artifactId>
++      <version>2.3.1</version>
++    </dependency>
++    <dependency>
++      <groupId>org.glassfish.jaxb</groupId>
++      <artifactId>jaxb-runtime</artifactId>
++      <version>2.3.1</version>
 +    </dependency>
 +
    </dependencies>

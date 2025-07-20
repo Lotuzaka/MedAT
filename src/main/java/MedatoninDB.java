@@ -3078,12 +3078,12 @@ public class MedatoninDB extends JFrame {
 
                 // Add questions using reflection to avoid import issues
                 java.lang.reflect.Method addQuestionsMethod = printer.getClass()
-                    .getMethod("addQuestions", Object.class, DefaultTableModel.class);
+                    .getMethod("addQuestions", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), DefaultTableModel.class);
                 addQuestionsMethod.invoke(printer, pkg, model);
                 
                 // Add stop sign page using reflection
                 java.lang.reflect.Method addStopSignMethod = printer.getClass()
-                    .getMethod("addStopSignPage", Object.class);
+                    .getMethod("addStopSignPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
                 addStopSignMethod.invoke(printer, pkg);
             }
 
@@ -3155,12 +3155,12 @@ public class MedatoninDB extends JFrame {
 
                 // Add solutions using reflection to avoid import issues
                 java.lang.reflect.Method addSolutionsMethod = printer.getClass()
-                    .getMethod("addQuestionsSolution", Object.class, DefaultTableModel.class);
+                    .getMethod("addQuestionsSolution", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), DefaultTableModel.class);
                 addSolutionsMethod.invoke(printer, pkg, model);
                 
                 // Add stop sign page using reflection
                 java.lang.reflect.Method addStopSignMethod = printer.getClass()
-                    .getMethod("addStopSignPage", Object.class);
+                    .getMethod("addStopSignPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
                 addStopSignMethod.invoke(printer, pkg);
             }
 
@@ -3231,7 +3231,7 @@ public class MedatoninDB extends JFrame {
                 Integer catIndex = INTRO_PAGE_INDEX.get(category);
                 if (catIndex != null && introPages instanceof List && catIndex < ((List<?>) introPages).size()) {
                     java.lang.reflect.Method appendMethod = printer.getClass()
-                        .getMethod("appendPage", Object.class, List.class);
+                        .getMethod("appendPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), List.class);
                     appendMethod.invoke(printer, pkg, ((List<?>) introPages).get(catIndex));
                 }
 
@@ -3240,7 +3240,7 @@ public class MedatoninDB extends JFrame {
                     Integer pageIdx = INTRO_PAGE_INDEX.get(subcat);
                     if (pageIdx != null && introPages instanceof List && pageIdx < ((List<?>) introPages).size()) {
                         java.lang.reflect.Method appendMethod = printer.getClass()
-                            .getMethod("appendPage", Object.class, List.class);
+                            .getMethod("appendPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), List.class);
                         appendMethod.invoke(printer, pkg, ((List<?>) introPages).get(pageIdx));
                     }
 
@@ -3248,12 +3248,12 @@ public class MedatoninDB extends JFrame {
                     if (model != null && model.getRowCount() > 0) {
                         // Add questions using reflection
                         java.lang.reflect.Method addQuestionsMethod = printer.getClass()
-                            .getMethod("addQuestions", Object.class, DefaultTableModel.class);
+                            .getMethod("addQuestions", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), DefaultTableModel.class);
                         addQuestionsMethod.invoke(printer, pkg, model);
                         
                         // Add page break using reflection
                         java.lang.reflect.Method addPageBreakMethod = printer.getClass()
-                            .getMethod("addPageBreak", Object.class);
+                            .getMethod("addPageBreak", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
                         addPageBreakMethod.invoke(printer, pkg);
                     }
                 }
@@ -3330,12 +3330,12 @@ public class MedatoninDB extends JFrame {
 
                     // Add questions with solutions using reflection
                     java.lang.reflect.Method addQuestionsSolutionMethod = printer.getClass()
-                        .getMethod("addQuestionsSolution", Object.class, DefaultTableModel.class);
+                        .getMethod("addQuestionsSolution", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), DefaultTableModel.class);
                     addQuestionsSolutionMethod.invoke(printer, pkg, model);
                     
                     // Add stop sign page using reflection
                     java.lang.reflect.Method addStopSignMethod = printer.getClass()
-                        .getMethod("addStopSignPage", Object.class);
+                        .getMethod("addStopSignPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
                     addStopSignMethod.invoke(printer, pkg);
                 }
             }
