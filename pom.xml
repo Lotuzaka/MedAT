@@ -56,8 +56,8 @@
     </dependency>
 
     <dependency>
-      <groupId>mysql</groupId>
-      <artifactId>mysql-connector-java</artifactId>
+      <groupId>com.mysql</groupId>
+      <artifactId>mysql-connector-j</artifactId>
       <version>8.0.33</version>
     </dependency>
   
@@ -79,11 +79,23 @@
       <version>1.20.0</version>
     </dependency>
 
-    <!-- docx4j for advanced WordprocessingML handling -->
+    <!-- docx4j dependencies for Word document generation -->
     <dependency>
       <groupId>org.docx4j</groupId>
-      <artifactId>docx4j</artifactId>
-      <version>8.3.7</version>
+      <artifactId>docx4j-openxml-objects</artifactId>
+      <version>8.3.9</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>org.docx4j</groupId>
+      <artifactId>docx4j-core</artifactId>
+      <version>8.3.9</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>org.docx4j</groupId>
+      <artifactId>docx4j-JAXB-MOXy</artifactId>
+      <version>8.3.9</version>
     </dependency>
 
   </dependencies>

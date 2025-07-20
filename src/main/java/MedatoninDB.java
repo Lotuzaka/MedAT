@@ -14,8 +14,6 @@ import org.locationtech.jts.io.WKTWriter;
 import org.locationtech.jts.awt.ShapeWriter;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import docx.Docx4jPrinter;
-import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import javax.swing.*;
 import javax.swing.event.*;
 import javax.swing.plaf.basic.*;
@@ -29,7 +27,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -3044,40 +3041,68 @@ public class MedatoninDB extends JFrame {
             return;
         }
 
-        XWPFDocument document = new XWPFDocument();
-        
-        // Set up page margins
-        setupPageMargins(document);
-
-        // Use a global question counter for page breaks
-        int globalQuestionCount = 0;
-
-        // Iterate over subcategories without category/subcategory headings
-        for (String subcategory : subcategoryOrder.get(category)) {
-            DefaultTableModel model = subcategories.get(subcategory);
-            if (model == null || model.getRowCount() == 0) {
-                continue; // Skip empty subcategories
-            }
-
-            // Add page break before each subcategory (except the first one)
-            if (globalQuestionCount > 0) {
-                XWPFParagraph pageBreakParagraph = document.createParagraph();
-                XWPFRun pageBreakRun = pageBreakParagraph.createRun();
-                pageBreakRun.addBreak(BreakType.PAGE);
-            }
-
-            // Add questions directly without headings
-            globalQuestionCount = addQuestionsToDocument(document, model, false, globalQuestionCount, subcategory);
+        try {
+            // Check if docx4j is available at runtime
+            Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage");
             
-            // Add stop sign page after each subcategory
-            addStopSignPage(document);
-        }
+            docx.Docx4jPrinter printer = new docx.Docx4jPrinter();
+            // Create document manually to avoid import issues
+            java.lang.reflect.Method createMethod = Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage")
+                .getMethod("createPackage");
+            Object pkg = createMethod.invoke(null);
+            
+            // Process each subcategory
+            for (String subcategory : subcategoryOrder.get(category)) {
+                DefaultTableModel model = subcategories.get(subcategory);
+                if (model == null || model.getRowCount() == 0) {
+                    continue; // Skip empty subcategories
+                }
 
-        // Save the document
-        try (FileOutputStream out = new FileOutputStream(category + ".docx")) {
-            document.write(out);
+                // Add questions using reflection to avoid import issues
+                java.lang.reflect.Method addQuestionsMethod = printer.getClass()
+                    .getMethod("addQuestions", Object.class, DefaultTableModel.class);
+                addQuestionsMethod.invoke(printer, pkg, model);
+                
+                // Add stop sign page using reflection
+                java.lang.reflect.Method addStopSignMethod = printer.getClass()
+                    .getMethod("addStopSignPage", Object.class);
+                addStopSignMethod.invoke(printer, pkg);
+            }
+
+            // Save the document using reflection
+            java.lang.reflect.Method saveMethod = pkg.getClass().getMethod("save", java.io.File.class);
+            saveMethod.invoke(pkg, new File(category + ".docx"));
+            
             JOptionPane.showMessageDialog(this, "Document saved: " + category + ".docx");
-        } catch (IOException e) {
+        } catch (ClassNotFoundException e) {
+            // docx4j is not available, show a helpful message
+            JOptionPane.showMessageDialog(this, 
+                "docx4j library is not available. Document printing functionality requires docx4j dependencies.\n\n" +
+                "To enable this feature:\n" +
+                "1. Add docx4j dependencies to pom.xml\n" +
+                "2. Run 'mvn clean install'\n" +
+                "3. Restart the application\n\n" +
+                "For now, question data has been logged to console.", 
+                "Print Feature Unavailable", 
+                JOptionPane.INFORMATION_MESSAGE);
+            
+            // Fallback: log the data to console
+            System.out.println("=== CATEGORY: " + category + " ===");
+            for (String subcategory : subcategoryOrder.get(category)) {
+                DefaultTableModel model = subcategories.get(subcategory);
+                if (model == null || model.getRowCount() == 0) {
+                    continue;
+                }
+                System.out.println("--- Subcategory: " + subcategory + " ---");
+                for (int i = 0; i < model.getRowCount(); i++) {
+                    Object questionText = model.getValueAt(i, 1);
+                    if (questionText != null) {
+                        System.out.println("Question " + (i + 1) + ": " + questionText);
+                    }
+                }
+            }
+            System.out.println("=== END CATEGORY ===");
+        } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Error saving document: " + e.getMessage(), "Error",
                     JOptionPane.ERROR_MESSAGE);
@@ -3093,40 +3118,72 @@ public class MedatoninDB extends JFrame {
             return;
         }
 
-        XWPFDocument document = new XWPFDocument();
-        
-        // Set up page margins
-        setupPageMargins(document);
-
-        // Use a global question counter for page breaks
-        int globalQuestionCount = 0;
-
-        // Iterate over subcategories without category/subcategory headings
-        for (String subcategory : subcategoryOrder.get(category)) {
-            DefaultTableModel model = subcategories.get(subcategory);
-            if (model == null || model.getRowCount() == 0) {
-                continue; // Skip empty subcategories
-            }
-
-            // Add page break before each subcategory (except the first one)
-            if (globalQuestionCount > 0) {
-                XWPFParagraph pageBreakParagraph = document.createParagraph();
-                XWPFRun pageBreakRun = pageBreakParagraph.createRun();
-                pageBreakRun.addBreak(BreakType.PAGE);
-            }
-
-            // Add solutions directly without headings
-            globalQuestionCount = addQuestionsToDocument(document, model, true, globalQuestionCount, subcategory);
+        try {
+            // Check if docx4j is available at runtime
+            Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage");
             
-            // Add stop sign page after each subcategory
-            addStopSignPage(document);
-        }
+            docx.Docx4jPrinter printer = new docx.Docx4jPrinter();
+            // Create document manually to avoid import issues
+            java.lang.reflect.Method createMethod = Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage")
+                .getMethod("createPackage");
+            Object pkg = createMethod.invoke(null);
+            
+            // Process each subcategory
+            for (String subcategory : subcategoryOrder.get(category)) {
+                DefaultTableModel model = subcategories.get(subcategory);
+                if (model == null || model.getRowCount() == 0) {
+                    continue; // Skip empty subcategories
+                }
 
-        // Save the document
-        try (FileOutputStream out = new FileOutputStream(category + "_Solutions.docx")) {
-            document.write(out);
+                // Add solutions using reflection to avoid import issues
+                java.lang.reflect.Method addSolutionsMethod = printer.getClass()
+                    .getMethod("addQuestionsSolution", Object.class, DefaultTableModel.class);
+                addSolutionsMethod.invoke(printer, pkg, model);
+                
+                // Add stop sign page using reflection
+                java.lang.reflect.Method addStopSignMethod = printer.getClass()
+                    .getMethod("addStopSignPage", Object.class);
+                addStopSignMethod.invoke(printer, pkg);
+            }
+
+            // Save the document using reflection
+            java.lang.reflect.Method saveMethod = pkg.getClass().getMethod("save", java.io.File.class);
+            saveMethod.invoke(pkg, new File(category + "_Solutions.docx"));
+            
             JOptionPane.showMessageDialog(this, "Solution document saved: " + category + "_Solutions.docx");
-        } catch (IOException e) {
+        } catch (ClassNotFoundException e) {
+            // docx4j is not available, show a helpful message
+            JOptionPane.showMessageDialog(this, 
+                "docx4j library is not available. Document printing functionality requires docx4j dependencies.\n\n" +
+                "To enable this feature:\n" +
+                "1. Add docx4j dependencies to pom.xml\n" +
+                "2. Run 'mvn clean install'\n" +
+                "3. Restart the application\n\n" +
+                "For now, solution data has been logged to console.", 
+                "Print Feature Unavailable", 
+                JOptionPane.INFORMATION_MESSAGE);
+            
+            // Fallback: log the solution data to console
+            System.out.println("=== SOLUTIONS FOR CATEGORY: " + category + " ===");
+            for (String subcategory : subcategoryOrder.get(category)) {
+                DefaultTableModel model = subcategories.get(subcategory);
+                if (model == null || model.getRowCount() == 0) {
+                    continue;
+                }
+                System.out.println("--- Subcategory: " + subcategory + " ---");
+                for (int i = 0; i < model.getRowCount(); i++) {
+                    Object questionText = model.getValueAt(i, 1);
+                    Object solutionText = model.getValueAt(i, 2);
+                    if (questionText != null) {
+                        System.out.println("Question " + (i + 1) + ": " + questionText);
+                        if (solutionText != null) {
+                            System.out.println("Solution " + (i + 1) + ": " + solutionText);
+                        }
+                    }
+                }
+            }
+            System.out.println("=== END SOLUTIONS ===");
+        } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Error saving solution document: " + e.getMessage(), "Error",
                     JOptionPane.ERROR_MESSAGE);
@@ -3137,31 +3194,77 @@ public class MedatoninDB extends JFrame {
     // document
     private void printAllCategories() {
         try {
+            // Check if docx4j is available at runtime
+            Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage");
+            
             docx.Docx4jPrinter printer = new docx.Docx4jPrinter();
-            List<List<Object>> introPages = printer.loadIntroductionPages(new File("untertest_introductionPage.docx"));
-            WordprocessingMLPackage pkg = WordprocessingMLPackage.createPackage();
-            int pageIndex = 0;
-
+            
+            // Load introduction pages using reflection
+            java.lang.reflect.Method loadMethod = printer.getClass()
+                .getMethod("loadIntroductionPages", java.io.File.class);
+            loadMethod.invoke(printer, new File("untertest_introductionPage.docx"));
+            
+            // Create document manually to avoid import issues
+            java.lang.reflect.Method createMethod = Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage")
+                .getMethod("createPackage");
+            Object pkg = createMethod.invoke(null);
+            
+            // Process all categories and subcategories
             for (String category : categoryModels.keySet()) {
                 Map<String, DefaultTableModel> subcats = categoryModels.get(category);
                 for (String subcat : subcategoryOrder.get(category)) {
-                    if (pageIndex < introPages.size()) {
-                        for (Object o : introPages.get(pageIndex)) {
-                            pkg.getMainDocumentPart().addObject(o);
-                        }
-                        pageIndex++;
-                    }
-
                     DefaultTableModel model = subcats.get(subcat);
                     if (model != null && model.getRowCount() > 0) {
-                        printer.addQuestions(pkg, model);
-                        printer.addPageBreak(pkg);
+                        // Add questions using reflection
+                        java.lang.reflect.Method addQuestionsMethod = printer.getClass()
+                            .getMethod("addQuestions", Object.class, DefaultTableModel.class);
+                        addQuestionsMethod.invoke(printer, pkg, model);
+                        
+                        // Add page break using reflection
+                        java.lang.reflect.Method addPageBreakMethod = printer.getClass()
+                            .getMethod("addPageBreak", Object.class);
+                        addPageBreakMethod.invoke(printer, pkg);
                     }
                 }
             }
 
-            pkg.save(new File("All_Categories.docx"));
+            // Save the document using reflection
+            java.lang.reflect.Method saveMethod = pkg.getClass().getMethod("save", java.io.File.class);
+            saveMethod.invoke(pkg, new File("All_Categories.docx"));
+
             JOptionPane.showMessageDialog(this, "Document saved: All_Categories.docx");
+        } catch (ClassNotFoundException e) {
+            // docx4j is not available, show a helpful message
+            JOptionPane.showMessageDialog(this, 
+                "docx4j library is not available. Document printing functionality requires docx4j dependencies.\n\n" +
+                "To enable this feature:\n" +
+                "1. Add docx4j dependencies to pom.xml\n" +
+                "2. Run 'mvn clean install'\n" +
+                "3. Restart the application\n\n" +
+                "For now, all category data has been logged to console.", 
+                "Print Feature Unavailable", 
+                JOptionPane.INFORMATION_MESSAGE);
+            
+            // Fallback: log all categories to console
+            System.out.println("=== ALL CATEGORIES ===");
+            for (String category : categoryModels.keySet()) {
+                System.out.println("CATEGORY: " + category);
+                Map<String, DefaultTableModel> subcats = categoryModels.get(category);
+                for (String subcat : subcategoryOrder.get(category)) {
+                    DefaultTableModel model = subcats.get(subcat);
+                    if (model != null && model.getRowCount() > 0) {
+                        System.out.println("  Subcategory: " + subcat);
+                        for (int i = 0; i < model.getRowCount(); i++) {
+                            Object questionText = model.getValueAt(i, 1);
+                            if (questionText != null) {
+                                System.out.println("    Question " + (i + 1) + ": " + questionText);
+                            }
+                        }
+                    }
+                }
+                System.out.println(""); // Empty line between categories
+            }
+            System.out.println("=== END ALL CATEGORIES ===");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Error saving document: " + e.getMessage(), "Error",
@@ -3172,45 +3275,81 @@ public class MedatoninDB extends JFrame {
     // Method to print all categories and their subcategories to a single solution
     // Word document
     private void printAllCategoriesSolution() {
-        XWPFDocument document = new XWPFDocument();
-        
-        // Set up page margins
-        setupPageMargins(document);
+        try {
+            // Check if docx4j is available at runtime
+            Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage");
+            
+            docx.Docx4jPrinter printer = new docx.Docx4jPrinter();
+            // Create document manually to avoid import issues
+            java.lang.reflect.Method createMethod = Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage")
+                .getMethod("createPackage");
+            Object pkg = createMethod.invoke(null);
 
-        // Use a global question counter for page breaks
-        int globalQuestionCount = 0;
+            // Iterate over all categories
+            for (String category : categoryModels.keySet()) {
+                Map<String, DefaultTableModel> subcategories = categoryModels.get(category);
 
-        // Iterate over all categories
-        for (String category : categoryModels.keySet()) {
-            Map<String, DefaultTableModel> subcategories = categoryModels.get(category);
+                // Iterate over subcategories without category/subcategory headings
+                for (String subcategory : subcategoryOrder.get(category)) {
+                    DefaultTableModel model = subcategories.get(subcategory);
+                    if (model == null || model.getRowCount() == 0) {
+                        continue; // Skip empty subcategories
+                    }
 
-            // Iterate over subcategories without category/subcategory headings
-            for (String subcategory : subcategoryOrder.get(category)) {
-                DefaultTableModel model = subcategories.get(subcategory);
-                if (model == null || model.getRowCount() == 0) {
-                    continue; // Skip empty subcategories
+                    // Add solutions using reflection to avoid import issues
+                    java.lang.reflect.Method addSolutionsMethod = printer.getClass()
+                        .getMethod("addQuestionsSolution", Object.class, DefaultTableModel.class);
+                    addSolutionsMethod.invoke(printer, pkg, model);
+                    
+                    // Add stop sign page using reflection
+                    java.lang.reflect.Method addStopSignMethod = printer.getClass()
+                        .getMethod("addStopSignPage", Object.class);
+                    addStopSignMethod.invoke(printer, pkg);
                 }
-
-                // Add page break before each subcategory (except the first one)
-                if (globalQuestionCount > 0) {
-                    XWPFParagraph pageBreakParagraph = document.createParagraph();
-                    XWPFRun pageBreakRun = pageBreakParagraph.createRun();
-                    pageBreakRun.addBreak(BreakType.PAGE);
-                }
-
-                // Add solutions directly without headings
-                globalQuestionCount = addQuestionsToDocument(document, model, true, globalQuestionCount, subcategory);
-                
-                // Add stop sign page after each subcategory
-                addStopSignPage(document);
             }
-        }
 
-        // Save the document
-        try (FileOutputStream out = new FileOutputStream("All_Categories_Solutions.docx")) {
-            document.write(out);
+            // Save the document using reflection
+            java.lang.reflect.Method saveMethod = pkg.getClass().getMethod("save", java.io.File.class);
+            saveMethod.invoke(pkg, new File("All_Categories_Solutions.docx"));
+            
             JOptionPane.showMessageDialog(this, "Solution document saved: All_Categories_Solutions.docx");
-        } catch (IOException e) {
+        } catch (ClassNotFoundException e) {
+            // docx4j is not available, show a helpful message
+            JOptionPane.showMessageDialog(this, 
+                "docx4j library is not available. Document printing functionality requires docx4j dependencies.\n\n" +
+                "To enable this feature:\n" +
+                "1. Add docx4j dependencies to pom.xml\n" +
+                "2. Run 'mvn clean install'\n" +
+                "3. Restart the application\n\n" +
+                "For now, all solution data has been logged to console.", 
+                "Print Feature Unavailable", 
+                JOptionPane.INFORMATION_MESSAGE);
+            
+            // Fallback: log all solutions to console
+            System.out.println("=== ALL CATEGORY SOLUTIONS ===");
+            for (String category : categoryModels.keySet()) {
+                System.out.println("CATEGORY: " + category);
+                Map<String, DefaultTableModel> subcategories = categoryModels.get(category);
+                for (String subcategory : subcategoryOrder.get(category)) {
+                    DefaultTableModel model = subcategories.get(subcategory);
+                    if (model != null && model.getRowCount() > 0) {
+                        System.out.println("  Subcategory: " + subcategory);
+                        for (int i = 0; i < model.getRowCount(); i++) {
+                            Object questionText = model.getValueAt(i, 1);
+                            Object solutionText = model.getValueAt(i, 2);
+                            if (questionText != null) {
+                                System.out.println("    Question " + (i + 1) + ": " + questionText);
+                                if (solutionText != null) {
+                                    System.out.println("    Solution " + (i + 1) + ": " + solutionText);
+                                }
+                            }
+                        }
+                    }
+                }
+                System.out.println(""); // Empty line between categories
+            }
+            System.out.println("=== END ALL SOLUTIONS ===");
+        } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Error saving solution document: " + e.getMessage(), "Error",
                     JOptionPane.ERROR_MESSAGE);
