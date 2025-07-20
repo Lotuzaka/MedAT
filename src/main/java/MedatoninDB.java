@@ -127,7 +127,7 @@ public class MedatoninDB extends JFrame {
 
     private String currentUsername; // To store the logged-in username
     // Store sub-databases for each category
-    private Map<String, Map<String, DefaultTableModel>> categoryModels = new HashMap<>();;
+    private Map<String, Map<String, DefaultTableModel>> categoryModels = new HashMap<>();
     private Map<String, List<String>> subcategoryOrder = new HashMap<>();
 
     // Mapping of category or subcategory names to introduction page index
@@ -3078,7 +3078,7 @@ public class MedatoninDB extends JFrame {
 
             pkg.save(new File(category + ".docx"));
             JOptionPane.showMessageDialog(this, "Document saved: " + category + ".docx");
-        } catch (ClassNotFoundException e) {
+        } catch (NoClassDefFoundError e) {
             // docx4j is not available, show a helpful message
             JOptionPane.showMessageDialog(this, 
                 "docx4j library is not available. Document printing functionality requires docx4j dependencies.\n\n" +
@@ -3139,7 +3139,7 @@ public class MedatoninDB extends JFrame {
 
             pkg.save(new File(category + "_Solutions.docx"));
             JOptionPane.showMessageDialog(this, "Solution document saved: " + category + "_Solutions.docx");
-        } catch (ClassNotFoundException e) {
+        } catch (NoClassDefFoundError e) {
             // docx4j is not available, show a helpful message
             JOptionPane.showMessageDialog(this, 
                 "docx4j library is not available. Document printing functionality requires docx4j dependencies.\n\n" +
@@ -3209,7 +3209,7 @@ public class MedatoninDB extends JFrame {
 
             pkg.save(new File("All_Categories.docx"));
             JOptionPane.showMessageDialog(this, "Document saved: All_Categories.docx");
-        } catch (ClassNotFoundException e) {
+        } catch (NoClassDefFoundError e) {
             // docx4j is not available, show a helpful message
             JOptionPane.showMessageDialog(this, 
                 "docx4j library is not available. Document printing functionality requires docx4j dependencies.\n\n" +
@@ -3273,7 +3273,7 @@ public class MedatoninDB extends JFrame {
 
             pkg.save(new File("All_Categories_Solutions.docx"));
             JOptionPane.showMessageDialog(this, "Solution document saved: All_Categories_Solutions.docx");
-        } catch (ClassNotFoundException e) {
+        } catch (NoClassDefFoundError e) {
             // docx4j is not available, show a helpful message
             JOptionPane.showMessageDialog(this, 
                 "docx4j library is not available. Document printing functionality requires docx4j dependencies.\n\n" +
