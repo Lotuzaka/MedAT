@@ -1,9 +1,9 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
 diff --git a/pom.xml b/pom.xml
-index af129376e91975af81bb0b547c4c5a1bc1e1972e..73a1071a22bcd20bea013508ada0f0c4cc06328d 100644
+index af129376e91975af81bb0b547c4c5a1bc1e1972e..4b46133bc8c506313362efefd753c0194ad86b41 100644
 --- a/pom.xml
 +++ b/pom.xml
-@@ -57,50 +57,57 @@
+@@ -57,50 +57,69 @@
  
      <dependency>
        <groupId>mysql</groupId>
@@ -36,6 +36,18 @@ index af129376e91975af81bb0b547c4c5a1bc1e1972e..73a1071a22bcd20bea013508ada0f0c4
 +      <version>8.3.7</version>
 +    </dependency>
 +
++    <!-- JAXB dependencies required for docx4j on Java 11+ -->
++    <dependency>
++      <groupId>jakarta.xml.bind</groupId>
++      <artifactId>jakarta.xml.bind-api</artifactId>
++      <version>2.3.3</version>
++    </dependency>
++    <dependency>
++      <groupId>org.glassfish.jaxb</groupId>
++      <artifactId>jaxb-runtime</artifactId>
++      <version>2.3.3</version>
++    </dependency>
++
    </dependencies>
  
  
@@ -62,7 +74,7 @@ index af129376e91975af81bb0b547c4c5a1bc1e1972e..73a1071a22bcd20bea013508ada0f0c4
          <version>3.2.4</version>
          <executions>
 diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
-index b766cd49a1415a814314fb0fb477aa80d6857e25..8c5e643321d4805c3bc2f90a004c624d5be9409a 100644
+index b766cd49a1415a814314fb0fb477aa80d6857e25..756d37abe20d74b4483113f43b55f484ec1d3066 100644
 --- a/src/main/java/MedatoninDB.java
 +++ b/src/main/java/MedatoninDB.java
 @@ -1,41 +1,43 @@
@@ -109,7 +121,76 @@ index b766cd49a1415a814314fb0fb477aa80d6857e25..8c5e643321d4805c3bc2f90a004c624d
  // import java.io.BufferedWriter; // No longer needed
  // import java.io.OutputStreamWriter; // No longer needed
  
-@@ -3112,89 +3114,77 @@ public class MedatoninDB extends JFrame {
+@@ -107,50 +109,68 @@ public class MedatoninDB extends JFrame {
+         
+         for (String preferred : preferredFonts) {
+             for (String available : availableFonts) {
+                 if (available.equals(preferred)) {
+                     return preferred;
+                 }
+             }
+         }
+         return "SansSerif"; // Fallback
+     }
+ 
+     /* ------------------------------------------------------------- FIELDS */
+ 
+     // DB
+     private Connection conn;
+     private QuestionDAO questionDAO;
+     private OptionDAO optionDAO;
+     private testSimulationDAO simulationDAO;
+     private HikariDataSource ds; // Store datasource for proper lifecycle
+ 
+     private String currentUsername; // To store the logged-in username
+     // Store sub-databases for each category
+     private Map<String, Map<String, DefaultTableModel>> categoryModels = new HashMap<>();;
+     private Map<String, List<String>> subcategoryOrder = new HashMap<>();
+ 
++    // Mapping of category or subcategory names to introduction page index
++    private static final Map<String, Integer> INTRO_PAGE_INDEX = Map.ofEntries(
++            Map.entry("Biologie", 0),
++            Map.entry("Chemie", 1),
++            Map.entry("Physik", 2),
++            Map.entry("Mathematik", 3),
++            Map.entry("Textverständnis", 4),
++            Map.entry("Figuren Zusammensetzen", 5),
++            Map.entry("Gedächtnis und Merkfähigkeit (Lernphase)", 6),
++            Map.entry("Zahlenfolgen", 7),
++            Map.entry("Wortflüssigkeit", 8),
++            Map.entry("Gedächtnis und Merkfähigkeit (Abrufphase)", 9),
++            Map.entry("Implikationen erkennen", 10),
++            Map.entry("Emotionen regulieren", 11),
++            Map.entry("Emotionen erkennen", 12),
++            Map.entry("Soziales entscheiden", 13)
++    );
++
+     private JTable questionTable; // Table to hold questions and checkboxes
+     private DefaultTableModel tableModel; // Table model for adding rows
+     private JLabel userTextField; // Haupt-Textfeld for real-time editing
+ 
+     private String currentCategory = "Biologie", currentSubcategory = ""; // Track the current subcategory
+     private JButton printCategoryButton; // Button that will dynamically change label
+     private JButton bioButton, chemButton, physButton, mathButton, kffButton; // Category buttons
+     private JPanel subcategoryPanel; // Panel to hold subcategory buttons
+     private JButton selectedSubcategoryButton = null; // Class-level variable to keep track of the currently selected
+                                                       // subcategory button
+ 
+     private Map<JTable, Integer> tablePendingDeleteRowMap = new HashMap<>(); // Track pending delete row per table
+     private ImageIcon gearIcon; // Load the gear icon
+     private ImageIcon penIcon; // Load the pen icon
+     private ImageIcon penEditIcon; // Load the pen edit icon
+ 
+     private boolean isEditMode = false; // Variable to check if edit mode is enabled
+     private Point initialClickPoint; // Initial click point for the drag
+     private JButton draggedButton; // Reference to the button being dragged
+     private JPanel draggedContainer; // Panel that contains the dragged button
+     private int originalIndex = -1; // Original index of the dragged button
+     private int dragThreshold = 5; // Threshold in pixels to start dragging
+     private boolean isDragging = false; // Indicates if a drag operation is in progress
+     private int lastTargetIndex = -1; // **Declaration of lastTargetIndex**
+     private Set<QuestionIdentifier> pendingDeleteQuestions = new HashSet<>();
+@@ -3112,89 +3132,79 @@ public class MedatoninDB extends JFrame {
                  XWPFRun pageBreakRun = pageBreakParagraph.createRun();
                  pageBreakRun.addBreak(BreakType.PAGE);
              }
@@ -152,40 +233,41 @@ index b766cd49a1415a814314fb0fb477aa80d6857e25..8c5e643321d4805c3bc2f90a004c624d
 -                DefaultTableModel model = subcategories.get(subcategory);
 -                if (model == null || model.getRowCount() == 0) {
 -                    continue; // Skip empty subcategories
--                }
 +        try {
-+            docx.Docx4jPrinter printer = new docx.Docx4jPrinter();
++            Docx4jPrinter printer = new Docx4jPrinter();
 +            List<List<Object>> introPages = printer.loadIntroductionPages(new File("untertest_introductionPage.docx"));
 +            WordprocessingMLPackage pkg = WordprocessingMLPackage.createPackage();
-+            int pageIndex = 0;
 +
 +            for (String category : categoryModels.keySet()) {
-+                Map<String, DefaultTableModel> subcats = categoryModels.get(category);
-+                for (String subcat : subcategoryOrder.get(category)) {
-+                    if (pageIndex < introPages.size()) {
-+                        for (Object o : introPages.get(pageIndex)) {
-+                            pkg.getMainDocumentPart().addObject(o);
-+                        }
-+                        pageIndex++;
-+                    }
++                Integer catIndex = INTRO_PAGE_INDEX.get(category);
++                if (catIndex != null && catIndex < introPages.size()) {
++                    printer.appendPage(pkg, introPages.get(catIndex));
+                 }
  
 -                // Add page break before each subcategory (except the first one)
 -                if (globalQuestionCount > 0) {
 -                    XWPFParagraph pageBreakParagraph = document.createParagraph();
 -                    XWPFRun pageBreakRun = pageBreakParagraph.createRun();
 -                    pageBreakRun.addBreak(BreakType.PAGE);
-+                    DefaultTableModel model = subcats.get(subcat);
-+                    if (model != null && model.getRowCount() > 0) {
-+                        printer.addQuestions(pkg, model);
-+                        printer.addPageBreak(pkg);
+-                }
++                Map<String, DefaultTableModel> subcats = categoryModels.get(category);
++                for (String subcat : subcategoryOrder.get(category)) {
++                    Integer pageIdx = INTRO_PAGE_INDEX.get(subcat);
++                    if (pageIdx != null && pageIdx < introPages.size()) {
++                        printer.appendPage(pkg, introPages.get(pageIdx));
 +                    }
-                 }
--
+ 
 -                // Add questions directly without headings
 -                globalQuestionCount = addQuestionsToDocument(document, model, false, globalQuestionCount, subcategory);
 -                
 -                // Add stop sign page after each subcategory
 -                addStopSignPage(document);
++                    DefaultTableModel model = subcats.get(subcat);
++                    if (model != null && model.getRowCount() > 0) {
++                        printer.addQuestions(pkg, model);
++                        printer.addPageBreak(pkg);
++                    }
++                }
              }
 -        }
  
@@ -223,10 +305,10 @@ index b766cd49a1415a814314fb0fb477aa80d6857e25..8c5e643321d4805c3bc2f90a004c624d
                  if (model == null || model.getRowCount() == 0) {
 diff --git a/src/main/java/docx/Docx4jPrinter.java b/src/main/java/docx/Docx4jPrinter.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..4777b61a89a0727673d505f8c27490b77c9374c1
+index 0000000000000000000000000000000000000000..d5673b547cda42be148513c712ab860dfa083fa9
 --- /dev/null
 +++ b/src/main/java/docx/Docx4jPrinter.java
-@@ -0,0 +1,104 @@
+@@ -0,0 +1,113 @@
 +package docx;
 +
 +import org.docx4j.openpackaging.exceptions.Docx4JException;
@@ -262,7 +344,7 @@ index 0000000000000000000000000000000000000000..4777b61a89a0727673d505f8c27490b7
 +            }
 +        }
 +        if (!current.isEmpty()) {
-+            pages.add(current);
++            pages.add(new ArrayList<>(current));
 +        }
 +        return pages;
 +    }
@@ -329,6 +411,15 @@ index 0000000000000000000000000000000000000000..4777b61a89a0727673d505f8c27490b7
 +        br.setType(STBrType.PAGE);
 +        p.getContent().add(br);
 +        pkg.getMainDocumentPart().addObject(p);
++    }
++
++    /**
++     * Append the provided introduction page objects to the document.
++     */
++    public void appendPage(WordprocessingMLPackage pkg, List<Object> page) {
++        for (Object o : page) {
++            pkg.getMainDocumentPart().addObject(o);
++        }
 +    }
 +}
  
