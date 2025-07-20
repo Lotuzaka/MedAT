@@ -20,6 +20,8 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.BasicStroke;
 import java.awt.Shape;
+import java.awt.Color;
+import org.locationtech.jts.io.WKTReader;
 
 // Import geometry classes for Figuren questions
 import org.locationtech.jts.geom.Geometry;
@@ -409,6 +411,9 @@ public class Docx4jPrinter {
                 // Draw the shape with hand-drawn appearance
                 Shape awtShape = shapeWriter.toShape(shape);
                 Shape transformedShape = transform.createTransformedShape(awtShape);
+                g2d.setColor(new Color(200, 200, 200));
+                g2d.fill(transformedShape);
+                g2d.setColor(Color.BLACK);
                 g2d.draw(transformedShape);
                 
                 currentX += shapeSpacing;
@@ -420,6 +425,109 @@ public class Docx4jPrinter {
         g2d.dispose();
         return image;
     }
+
+    /**
+     * Create an image for a single option shape using grey fill and black outline.
+     */
+    private BufferedImage createOptionShapeImage(String wkt) throws Exception {
+        Geometry geometry = new WKTReader().read(wkt);
+
+        int width = 300;
+        int height = 240;
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2d = image.createGraphics();
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2d.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+
+        g2d.setColor(Color.WHITE);
+        g2d.fillRect(0, 0, width, height);
+
+        ShapeWriter writer = new ShapeWriter();
+        Envelope env = geometry.getEnvelopeInternal();
+        double scaleX = width / env.getWidth();
+        double scaleY = height / env.getHeight();
+        double scale = Math.min(scaleX, scaleY) * 0.9;
+
+        AffineTransform at = new AffineTransform();
+        at.translate(width / 2.0, height / 2.0);
+        at.scale(scale, -scale);
+        at.translate(-env.centre().x, -env.centre().y);
+
+        Shape shape = writer.toShape(geometry);
+        Shape ts = at.createTransformedShape(shape);
+        g2d.setColor(new Color(200, 200, 200));
+        g2d.fill(ts);
+        g2d.setColor(Color.BLACK);
+        g2d.setStroke(new BasicStroke(2.0f));
+        g2d.draw(ts);
+
+        g2d.dispose();
+        return image;
+    }
+
+    /**
+     * Add Figuren option images in a two-row table (images above labels).
+     */
+    private void addFigurenOptionsImages(WordprocessingMLPackage pkg, Object figurenOptionsData) {
+        try {
+            java.lang.reflect.Field optionsField = figurenOptionsData.getClass().getField("options");
+            @SuppressWarnings("unchecked")
+            java.util.List<Object> options = (java.util.List<Object>) optionsField.get(figurenOptionsData);
+            if (options == null || options.isEmpty()) {
+                return;
+            }
+
+            Tbl table = factory.createTbl();
+            Tr imageRow = factory.createTr();
+            Tr labelRow = factory.createTr();
+
+            for (Object opt : options) {
+                String label = String.valueOf(opt.getClass().getMethod("getLabel").invoke(opt));
+                String text = String.valueOf(opt.getClass().getMethod("getText").invoke(opt));
+                String shapeData = (String) opt.getClass().getMethod("getShapeData").invoke(opt);
+
+                // Image cell
+                Tc imgCell = factory.createTc();
+                P imgP = factory.createP();
+
+                if ("X".equals(text) || "E".equalsIgnoreCase(label)) {
+                    R r = factory.createR();
+                    Text t = factory.createText();
+                    t.setValue("X");
+                    r.getContent().add(t);
+                    imgP.getContent().add(r);
+                } else if (shapeData != null && !shapeData.isBlank()) {
+                    BufferedImage img = createOptionShapeImage(shapeData);
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    ImageIO.write(img, "PNG", baos);
+                    R r = factory.createR();
+                    addImageToRun(pkg, r, baos.toByteArray(), "opt_" + label + ".png");
+                    imgP.getContent().add(r);
+                }
+
+                imgCell.getContent().add(imgP);
+                imageRow.getContent().add(imgCell);
+
+                // Label cell
+                Tc labelCell = factory.createTc();
+                P labelP = factory.createP();
+                R lr = factory.createR();
+                Text lt = factory.createText();
+                lt.setValue(label + ")");
+                lr.getContent().add(lt);
+                labelP.getContent().add(lr);
+                labelCell.getContent().add(labelP);
+                labelRow.getContent().add(labelCell);
+            }
+
+            table.getContent().add(imageRow);
+            table.getContent().add(labelRow);
+            pkg.getMainDocumentPart().addObject(table);
+        } catch (Exception e) {
+            System.out.println("Could not add Figuren option images: " + e.getMessage());
+        }
+    }
     
     /**
      * Add question options from the table model with horizontal layout and proper A-E labels.
@@ -427,6 +535,15 @@ public class Docx4jPrinter {
     private void addQuestionOptions(WordprocessingMLPackage pkg, DefaultTableModel model, int startRow) {
         // Look for options in subsequent rows
         int currentRow = startRow + 1;
+
+        if (currentRow < model.getRowCount()) {
+            Object optObj = model.getValueAt(currentRow, 1);
+            if (optObj != null && optObj.getClass().getSimpleName().equals("FigurenOptionsData")) {
+                addFigurenOptionsImages(pkg, optObj);
+                return;
+            }
+        }
+
         java.util.List<String> optionTexts = new ArrayList<>();
         
         // Collect all options first
