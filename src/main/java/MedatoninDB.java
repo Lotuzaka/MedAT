@@ -14,8 +14,6 @@ import org.locationtech.jts.io.WKTWriter;
 import org.locationtech.jts.awt.ShapeWriter;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import docx.Docx4jPrinter;
-import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import javax.swing.*;
 import javax.swing.event.*;
 import javax.swing.plaf.basic.*;
@@ -3062,8 +3060,14 @@ public class MedatoninDB extends JFrame {
         }
 
         try {
-            Docx4jPrinter printer = new Docx4jPrinter();
-            WordprocessingMLPackage pkg = WordprocessingMLPackage.createPackage();
+            // Check if docx4j is available at runtime
+            Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage");
+            
+            docx.Docx4jPrinter printer = new docx.Docx4jPrinter();
+            // Create document manually to avoid import issues
+            java.lang.reflect.Method createMethod = Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage")
+                .getMethod("createPackage");
+            Object pkg = createMethod.invoke(null);
             
             // Process each subcategory
             for (String subcategory : subcategoryOrder.get(category)) {
@@ -3072,13 +3076,23 @@ public class MedatoninDB extends JFrame {
                     continue; // Skip empty subcategories
                 }
 
-                printer.addQuestions(pkg, model);
-                printer.addStopSignPage(pkg);
+                // Add questions using reflection to avoid import issues
+                java.lang.reflect.Method addQuestionsMethod = printer.getClass()
+                    .getMethod("addQuestions", Object.class, DefaultTableModel.class);
+                addQuestionsMethod.invoke(printer, pkg, model);
+                
+                // Add stop sign page using reflection
+                java.lang.reflect.Method addStopSignMethod = printer.getClass()
+                    .getMethod("addStopSignPage", Object.class);
+                addStopSignMethod.invoke(printer, pkg);
             }
 
-            pkg.save(new File(category + ".docx"));
+            // Save the document using reflection
+            java.lang.reflect.Method saveMethod = pkg.getClass().getMethod("save", java.io.File.class);
+            saveMethod.invoke(pkg, new File(category + ".docx"));
+            
             JOptionPane.showMessageDialog(this, "Document saved: " + category + ".docx");
-        } catch (NoClassDefFoundError e) {
+        } catch (ClassNotFoundException e) {
             // docx4j is not available, show a helpful message
             JOptionPane.showMessageDialog(this, 
                 "docx4j library is not available. Document printing functionality requires docx4j dependencies.\n\n" +
@@ -3123,8 +3137,14 @@ public class MedatoninDB extends JFrame {
         }
 
         try {
-            Docx4jPrinter printer = new Docx4jPrinter();
-            WordprocessingMLPackage pkg = WordprocessingMLPackage.createPackage();
+            // Check if docx4j is available at runtime
+            Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage");
+            
+            docx.Docx4jPrinter printer = new docx.Docx4jPrinter();
+            // Create document manually to avoid import issues
+            java.lang.reflect.Method createMethod = Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage")
+                .getMethod("createPackage");
+            Object pkg = createMethod.invoke(null);
             
             // Process each subcategory
             for (String subcategory : subcategoryOrder.get(category)) {
@@ -3133,13 +3153,23 @@ public class MedatoninDB extends JFrame {
                     continue; // Skip empty subcategories
                 }
 
-                printer.addQuestionsSolution(pkg, model);
-                printer.addStopSignPage(pkg);
+                // Add solutions using reflection to avoid import issues
+                java.lang.reflect.Method addSolutionsMethod = printer.getClass()
+                    .getMethod("addQuestionsSolution", Object.class, DefaultTableModel.class);
+                addSolutionsMethod.invoke(printer, pkg, model);
+                
+                // Add stop sign page using reflection
+                java.lang.reflect.Method addStopSignMethod = printer.getClass()
+                    .getMethod("addStopSignPage", Object.class);
+                addStopSignMethod.invoke(printer, pkg);
             }
 
-            pkg.save(new File(category + "_Solutions.docx"));
+            // Save the document using reflection
+            java.lang.reflect.Method saveMethod = pkg.getClass().getMethod("save", java.io.File.class);
+            saveMethod.invoke(pkg, new File(category + "_Solutions.docx"));
+            
             JOptionPane.showMessageDialog(this, "Solution document saved: " + category + "_Solutions.docx");
-        } catch (NoClassDefFoundError e) {
+        } catch (ClassNotFoundException e) {
             // docx4j is not available, show a helpful message
             JOptionPane.showMessageDialog(this, 
                 "docx4j library is not available. Document printing functionality requires docx4j dependencies.\n\n" +
@@ -3182,34 +3212,59 @@ public class MedatoninDB extends JFrame {
     // document
     private void printAllCategories() {
         try {
-            Docx4jPrinter printer = new Docx4jPrinter();
-            List<List<Object>> introPages = printer.loadIntroductionPages(new File("untertest_introductionPage.docx"));
-            WordprocessingMLPackage pkg = WordprocessingMLPackage.createPackage();
+            // Check if docx4j is available at runtime
+            Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage");
+            
+            docx.Docx4jPrinter printer = new docx.Docx4jPrinter();
+            
+            // Load introduction pages using reflection
+            java.lang.reflect.Method loadMethod = printer.getClass()
+                .getMethod("loadIntroductionPages", java.io.File.class);
+            Object introPages = loadMethod.invoke(printer, new File("untertest_introductionPage.docx"));
+            
+            // Create document manually to avoid import issues
+            java.lang.reflect.Method createMethod = Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage")
+                .getMethod("createPackage");
+            Object pkg = createMethod.invoke(null);
 
             for (String category : categoryModels.keySet()) {
                 Integer catIndex = INTRO_PAGE_INDEX.get(category);
-                if (catIndex != null && catIndex < introPages.size()) {
-                    printer.appendPage(pkg, introPages.get(catIndex));
+                if (catIndex != null && introPages instanceof List && catIndex < ((List<?>) introPages).size()) {
+                    java.lang.reflect.Method appendMethod = printer.getClass()
+                        .getMethod("appendPage", Object.class, List.class);
+                    appendMethod.invoke(printer, pkg, ((List<?>) introPages).get(catIndex));
                 }
 
                 Map<String, DefaultTableModel> subcats = categoryModels.get(category);
                 for (String subcat : subcategoryOrder.get(category)) {
                     Integer pageIdx = INTRO_PAGE_INDEX.get(subcat);
-                    if (pageIdx != null && pageIdx < introPages.size()) {
-                        printer.appendPage(pkg, introPages.get(pageIdx));
+                    if (pageIdx != null && introPages instanceof List && pageIdx < ((List<?>) introPages).size()) {
+                        java.lang.reflect.Method appendMethod = printer.getClass()
+                            .getMethod("appendPage", Object.class, List.class);
+                        appendMethod.invoke(printer, pkg, ((List<?>) introPages).get(pageIdx));
                     }
 
                     DefaultTableModel model = subcats.get(subcat);
                     if (model != null && model.getRowCount() > 0) {
-                        printer.addQuestions(pkg, model);
-                        printer.addPageBreak(pkg);
+                        // Add questions using reflection
+                        java.lang.reflect.Method addQuestionsMethod = printer.getClass()
+                            .getMethod("addQuestions", Object.class, DefaultTableModel.class);
+                        addQuestionsMethod.invoke(printer, pkg, model);
+                        
+                        // Add page break using reflection
+                        java.lang.reflect.Method addPageBreakMethod = printer.getClass()
+                            .getMethod("addPageBreak", Object.class);
+                        addPageBreakMethod.invoke(printer, pkg);
                     }
                 }
             }
 
-            pkg.save(new File("All_Categories.docx"));
+            // Save the document using reflection
+            java.lang.reflect.Method saveMethod = pkg.getClass().getMethod("save", java.io.File.class);
+            saveMethod.invoke(pkg, new File("All_Categories.docx"));
+
             JOptionPane.showMessageDialog(this, "Document saved: All_Categories.docx");
-        } catch (NoClassDefFoundError e) {
+        } catch (ClassNotFoundException e) {
             // docx4j is not available, show a helpful message
             JOptionPane.showMessageDialog(this, 
                 "docx4j library is not available. Document printing functionality requires docx4j dependencies.\n\n" +
@@ -3252,8 +3307,15 @@ public class MedatoninDB extends JFrame {
     // Word document
     private void printAllCategoriesSolution() {
         try {
-            Docx4jPrinter printer = new Docx4jPrinter();
-            WordprocessingMLPackage pkg = WordprocessingMLPackage.createPackage();
+            // Check if docx4j is available at runtime
+            Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage");
+            
+            docx.Docx4jPrinter printer = new docx.Docx4jPrinter();
+            
+            // Create document manually to avoid import issues
+            java.lang.reflect.Method createMethod = Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage")
+                .getMethod("createPackage");
+            Object pkg = createMethod.invoke(null);
 
             // Iterate over all categories
             for (String category : categoryModels.keySet()) {
@@ -3266,14 +3328,24 @@ public class MedatoninDB extends JFrame {
                         continue; // Skip empty subcategories
                     }
 
-                    printer.addQuestionsSolution(pkg, model);
-                    printer.addStopSignPage(pkg);
+                    // Add questions with solutions using reflection
+                    java.lang.reflect.Method addQuestionsSolutionMethod = printer.getClass()
+                        .getMethod("addQuestionsSolution", Object.class, DefaultTableModel.class);
+                    addQuestionsSolutionMethod.invoke(printer, pkg, model);
+                    
+                    // Add stop sign page using reflection
+                    java.lang.reflect.Method addStopSignMethod = printer.getClass()
+                        .getMethod("addStopSignPage", Object.class);
+                    addStopSignMethod.invoke(printer, pkg);
                 }
             }
 
-            pkg.save(new File("All_Categories_Solutions.docx"));
+            // Save the document using reflection
+            java.lang.reflect.Method saveMethod = pkg.getClass().getMethod("save", java.io.File.class);
+            saveMethod.invoke(pkg, new File("All_Categories_Solutions.docx"));
+            
             JOptionPane.showMessageDialog(this, "Solution document saved: All_Categories_Solutions.docx");
-        } catch (NoClassDefFoundError e) {
+        } catch (ClassNotFoundException e) {
             // docx4j is not available, show a helpful message
             JOptionPane.showMessageDialog(this, 
                 "docx4j library is not available. Document printing functionality requires docx4j dependencies.\n\n" +
@@ -3317,6 +3389,7 @@ public class MedatoninDB extends JFrame {
     }
 
     // Helper method to add questions and answers to the document
+    @SuppressWarnings("unused") // Legacy POI method - kept for potential future use
     private int addQuestionsToDocument(XWPFDocument document, DefaultTableModel model, boolean isSolution, int globalQuestionCount, String subcategory) {
         int rowCount = model.getRowCount();
         int questionCount = 0; // Track number of questions for page breaks
@@ -3895,6 +3968,7 @@ public class MedatoninDB extends JFrame {
     }
 
     // Helper method to add a stop sign page at the end of the document
+    @SuppressWarnings("unused") // Legacy POI method - kept for potential future use
     private void addStopSignPage(XWPFDocument document) {
         try {
             // Create a new page with page break

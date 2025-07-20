@@ -1,61 +1,66 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
-diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
-index 66ad6bac6ad1d788caeb9db0e5b01800dd95872e..2ea75c07a81fc183223a6d1112f279dd4fad3d6e 100644
---- a/src/main/java/MedatoninDB.java
-+++ b/src/main/java/MedatoninDB.java
-@@ -105,51 +105,51 @@ public class MedatoninDB extends JFrame {
-         String[] preferredFonts = {"Inter", "SF Pro Display", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "SansSerif"};
-         GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
-         String[] availableFonts = ge.getAvailableFontFamilyNames();
-         
-         for (String preferred : preferredFonts) {
-             for (String available : availableFonts) {
-                 if (available.equals(preferred)) {
-                     return preferred;
-                 }
-             }
-         }
-         return "SansSerif"; // Fallback
-     }
+diff --git a/pom.xml b/pom.xml
+index 72555fd66477791aab59f43a7d5d89fdbd6756ae..42f69a739bbe2702450611769723f36ec394c266 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -76,50 +76,57 @@
+     <dependency>
+       <groupId>org.locationtech.jts</groupId>
+       <artifactId>jts-core</artifactId>
+       <version>1.20.0</version>
+     </dependency>
  
-     /* ------------------------------------------------------------- FIELDS */
+     <!-- docx4j dependencies for Word document generation -->
+     <dependency>
+       <groupId>org.docx4j</groupId>
+       <artifactId>docx4j-openxml-objects</artifactId>
+       <version>8.3.9</version>
+     </dependency>
+     
+     <dependency>
+       <groupId>org.docx4j</groupId>
+       <artifactId>docx4j-core</artifactId>
+       <version>8.3.9</version>
+     </dependency>
+     
+     <dependency>
+       <groupId>org.docx4j</groupId>
+       <artifactId>docx4j-JAXB-MOXy</artifactId>
+       <version>8.3.9</version>
+     </dependency>
  
-     // DB
-     private Connection conn;
-     private QuestionDAO questionDAO;
-     private OptionDAO optionDAO;
-     private testSimulationDAO simulationDAO;
-     private HikariDataSource ds; // Store datasource for proper lifecycle
++    <!-- Aggregate docx4j dependency -->
++    <dependency>
++      <groupId>org.docx4j</groupId>
++      <artifactId>docx4j</artifactId>
++      <version>8.3.9</version>
++    </dependency>
++
+   </dependencies>
  
-     private String currentUsername; // To store the logged-in username
-     // Store sub-databases for each category
--    private Map<String, Map<String, DefaultTableModel>> categoryModels = new HashMap<>();;
-+    private Map<String, Map<String, DefaultTableModel>> categoryModels = new HashMap<>();
-     private Map<String, List<String>> subcategoryOrder = new HashMap<>();
  
-     // Mapping of category or subcategory names to introduction page index
-     private static final Map<String, Integer> INTRO_PAGE_INDEX = Map.ofEntries(
-             Map.entry("Biologie", 0),
-             Map.entry("Chemie", 1),
-             Map.entry("Physik", 2),
-             Map.entry("Mathematik", 3),
-             Map.entry("Textverständnis", 4),
-             Map.entry("Figuren Zusammensetzen", 5),
-             Map.entry("Gedächtnis und Merkfähigkeit (Lernphase)", 6),
-             Map.entry("Zahlenfolgen", 7),
-             Map.entry("Wortflüssigkeit", 8),
-             Map.entry("Gedächtnis und Merkfähigkeit (Abrufphase)", 9),
-             Map.entry("Implikationen erkennen", 10),
-             Map.entry("Emotionen regulieren", 11),
-             Map.entry("Emotionen erkennen", 12),
-             Map.entry("Soziales entscheiden", 13)
-     );
+   <build>
+     <plugins>
+       <!-- Maven JAR Plugin -->
+       <plugin>
+         <groupId>org.apache.maven.plugins</groupId>
+         <artifactId>maven-jar-plugin</artifactId>
+         <version>3.1.2</version>
+         <configuration>
+           <archive>
+             <manifestEntries>
+               <Main-Class>MedatoninDB</Main-Class> <!-- Replace with the correct package name -->
+             </manifestEntries>
+           </archive>
+         </configuration>
+       </plugin>
  
-     private JTable questionTable; // Table to hold questions and checkboxes
-     private DefaultTableModel tableModel; // Table model for adding rows
-     private JLabel userTextField; // Haupt-Textfeld for real-time editing
- 
-     private String currentCategory = "Biologie", currentSubcategory = ""; // Track the current subcategory
+       <!-- Maven Shade Plugin -->
+       <plugin>
+         <groupId>org.apache.maven.plugins</groupId>
+         <artifactId>maven-shade-plugin</artifactId>
+         <version>3.2.4</version>
+         <executions>
  
 EOF
 )
