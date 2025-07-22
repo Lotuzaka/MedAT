@@ -282,6 +282,9 @@ public class Docx4jPrinter {
      * Add a stop sign page to the document with centered image or text.
      */
     public void addStopSignPage(WordprocessingMLPackage pkg) {
+        // Ensure no blank page was added by previous operations
+        removeTrailingPageBreak(pkg);
+
         // Create a new page
         addPageBreak(pkg);
 
@@ -337,6 +340,34 @@ public class Docx4jPrinter {
             P emptyP = factory.createP();
             pkg.getMainDocumentPart().addObject(emptyP);
         }
+    }
+
+    /** Remove trailing page break if the last paragraph only contains a page break. */
+    private void removeTrailingPageBreak(WordprocessingMLPackage pkg) {
+        java.util.List<Object> content = pkg.getMainDocumentPart().getContent();
+        if (content.isEmpty()) {
+            return;
+        }
+        Object last = content.get(content.size() - 1);
+        if (isPageBreakParagraph(last)) {
+            content.remove(content.size() - 1);
+        }
+    }
+
+    /** Check if the given object is a paragraph consisting solely of a page break. */
+    private boolean isPageBreakParagraph(Object obj) {
+        if (obj instanceof P p) {
+            for (Object c : p.getContent()) {
+                Object val = c;
+                if (c instanceof javax.xml.bind.JAXBElement) {
+                    val = ((javax.xml.bind.JAXBElement<?>) c).getValue();
+                }
+                if (val instanceof Br br && br.getType() == STBrType.PAGE) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /** Add a page break to the document. */

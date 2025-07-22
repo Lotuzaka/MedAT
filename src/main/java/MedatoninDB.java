@@ -3088,12 +3088,8 @@ public class MedatoninDB extends JFrame {
                     .getMethod("addStopSignPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
                 addStopSignMethod.invoke(printer, pkg);
 
-                // Add page break after stop sign if more subcategories follow
-                if (i < subcatList.size() - 1) {
-                    java.lang.reflect.Method addPageBreakMethod = printer.getClass()
-                        .getMethod("addPageBreak", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
-                    addPageBreakMethod.invoke(printer, pkg);
-                }
+                // Remove potential trailing page break from questions
+                // (stop sign page will handle page separation)
             }
 
             // Save the document using reflection with conflict resolution
@@ -3194,12 +3190,7 @@ public class MedatoninDB extends JFrame {
                     .getMethod("addStopSignPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
                 addStopSignMethod.invoke(printer, pkg);
 
-                // Add page break after stop sign if more subcategories follow
-                if (i < subcatList.size() - 1) {
-                    java.lang.reflect.Method addPageBreakMethod = printer.getClass()
-                        .getMethod("addPageBreak", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
-                    addPageBreakMethod.invoke(printer, pkg);
-                }
+                // Stop sign already starts a new page; no extra break needed
             }
 
             // Save the document using reflection with conflict resolution
@@ -3420,13 +3411,7 @@ public class MedatoninDB extends JFrame {
                         .getMethod("addStopSignPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
                     addStopSignMethod.invoke(printer, pkg);
 
-                    boolean moreSubcats = i < subcatList.size() - 1;
-                    boolean moreCategories = c < categoryList.size() - 1;
-                    if (moreSubcats || moreCategories) {
-                        java.lang.reflect.Method addPageBreakMethod = printer.getClass()
-                            .getMethod("addPageBreak", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
-                        addPageBreakMethod.invoke(printer, pkg);
-                    }
+                    // Next introduction page already begins on a new page
                 }
             }
 
