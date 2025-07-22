@@ -124,7 +124,7 @@ public class Docx4jPrinter {
                     figurenCounter++;
                     // Add page break before the 4th, 7th, 10th, etc. question (every 3rd question
                     // starting from 4th)
-                    if (figurenCounter > 3 && (figurenCounter - 1) % 3 == 0) {
+                    if (figurenCounter > 3 &&  (figurenCounter - 1) % 3 == 0) {
                         addPageBreak(pkg);
                     }
                 }
@@ -178,6 +178,9 @@ public class Docx4jPrinter {
                 }
             }
         }
+
+        // Ensure no leftover page break after the last question
+        removeTrailingPageBreak(pkg);
     }
 
     /**
@@ -276,20 +279,23 @@ public class Docx4jPrinter {
                 }
             }
         }
+
+        // Clean up any trailing page break from the questions
+        removeTrailingPageBreak(pkg);
     }
 
     /**
      * Add a stop sign page to the document with centered image or text.
      */
     public void addStopSignPage(WordprocessingMLPackage pkg) {
-        // Ensure no blank page was added by previous operations
+        // Ensure no leftover page break from the previous section
         removeTrailingPageBreak(pkg);
 
-        // Create a new page
+        // Start the STOP page on a new sheet
         addPageBreak(pkg);
 
-        // Add multiple empty paragraphs for vertical centering
-        for (int i = 0; i < 8; i++) {
+        // Add a few empty paragraphs for simple vertical centering
+        for (int i = 0; i < 5; i++) {
             P emptyP = factory.createP();
             pkg.getMainDocumentPart().addObject(emptyP);
         }
@@ -335,11 +341,12 @@ public class Docx4jPrinter {
         centerP.getContent().add(stopR);
         pkg.getMainDocumentPart().addObject(centerP);
 
-        // Add more empty paragraphs for bottom spacing
-        for (int i = 0; i < 8; i++) {
-            P emptyP = factory.createP();
-            pkg.getMainDocumentPart().addObject(emptyP);
-        }
+        // Minimal bottom spacing so the next page begins flush at the top
+        P bottom = factory.createP();
+        pkg.getMainDocumentPart().addObject(bottom);
+
+        // Start next section on a new page
+        addPageBreak(pkg);
     }
 
     /**
@@ -1017,7 +1024,8 @@ public class Docx4jPrinter {
                     byte[] imageBytes = fis.readAllBytes();
                     fis.close();
 
-                    addImageToRun(pkg, run, imageBytes, "stopp_sign.png");
+                    int size = (int) (4 / 2.54 * 96); // ~4cm
+                    addImageToRunWithSize(pkg, run, imageBytes, "stopp_sign.png", size, size);
                     return true;
                 }
             } catch (Exception e) {
@@ -1031,7 +1039,8 @@ public class Docx4jPrinter {
             if (is != null) {
                 byte[] imageBytes = is.readAllBytes();
                 is.close();
-                addImageToRun(pkg, run, imageBytes, "stopp_sign.png");
+                int size = (int) (4 / 2.54 * 96); // ~4cm
+                addImageToRunWithSize(pkg, run, imageBytes, "stopp_sign.png", size, size);
                 return true;
             }
         } catch (Exception e) {

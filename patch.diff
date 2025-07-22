@@ -1,9 +1,140 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
 diff --git a/src/main/java/docx/Docx4jPrinter.java b/src/main/java/docx/Docx4jPrinter.java
-index 298234bf37bd20946f62ee16ad9b9c6c07146e17..83341a719890ddba9ebcb0f440f19fbdf5250878 100644
+index 83341a719890ddba9ebcb0f440f19fbdf5250878..472b1593ea7220348dcd71e40c22508c730369d1 100644
 --- a/src/main/java/docx/Docx4jPrinter.java
 +++ b/src/main/java/docx/Docx4jPrinter.java
-@@ -320,62 +320,77 @@ public class Docx4jPrinter {
+@@ -156,50 +156,53 @@ public class Docx4jPrinter {
+                 if (isFigurenQuestion) {
+                     try {
+                         addFigurenShapeImage(pkg, questionObj);
+                     } catch (Exception e) {
+                         // If image generation fails, add a text representation
+                         P pieceP = factory.createP();
+                         R pieceR = factory.createR();
+                         Text pieceT = factory.createText();
+                         pieceT.setValue("Bausteine: " + questionObj.toString());
+                         pieceR.getContent().add(pieceT);
+                         pieceP.getContent().add(pieceR);
+                         pkg.getMainDocumentPart().addObject(pieceP);
+                     }
+                 }
+ 
+                 // Add options/answers if they exist in the model
+                 // Also skip option rows to avoid re-processing them
+                 r = addQuestionOptions(pkg, model, r);
+ 
+                 // Add spacing after non-Figuren questions only
+                 if (!isFigurenQuestion) {
+                     addSpacing(pkg);
+                 }
+             }
+         }
++
++        // Ensure no leftover page break after the last question
++        removeTrailingPageBreak(pkg);
+     }
+ 
+     /**
+      * Add questions with solutions to the document with proper handling for
+      * different question types.
+      */
+     public void addQuestionsSolution(WordprocessingMLPackage pkg, DefaultTableModel model) {
+         int figurenCounter = 0; // Counter for Figuren questions
+ 
+         for (int r = 0; r < model.getRowCount(); r++) {
+             String number = Objects.toString(model.getValueAt(r, 0), "");
+             Object questionObj = model.getValueAt(r, 1);
+             String solution = Objects.toString(model.getValueAt(r, 2), "");
+ 
+             if (!number.isEmpty() && questionObj != null) {
+                 String questionText;
+                 boolean isFigurenQuestion = false;
+ 
+                 // Handle Figuren questions (DissectedPieces objects)
+                 if (questionObj.getClass().getSimpleName().equals("DissectedPieces")) {
+                     questionText = "Welche Figur lässt sich aus den folgenden Bausteinen zusammensetzen?";
+                     isFigurenQuestion = true;
+                 } else {
+                     questionText = questionObj.toString();
+                 }
+diff --git a/src/main/java/docx/Docx4jPrinter.java b/src/main/java/docx/Docx4jPrinter.java
+index 83341a719890ddba9ebcb0f440f19fbdf5250878..472b1593ea7220348dcd71e40c22508c730369d1 100644
+--- a/src/main/java/docx/Docx4jPrinter.java
++++ b/src/main/java/docx/Docx4jPrinter.java
+@@ -254,114 +257,118 @@ public class Docx4jPrinter {
+                         pkg.getMainDocumentPart().addObject(pieceP);
+                     }
+                 }
+ 
+                 // Add options/answers if they exist in the model
+                 // Also skip option rows to avoid re-processing them
+                 r = addQuestionOptions(pkg, model, r);
+ 
+                 // Add solution if available
+                 if (!solution.isEmpty()) {
+                     P solutionP = factory.createP();
+                     R solutionR = factory.createR();
+                     Text solutionT = factory.createText();
+                     solutionT.setValue("Lösung: " + solution);
+                     solutionR.getContent().add(solutionT);
+                     solutionP.getContent().add(solutionR);
+                     pkg.getMainDocumentPart().addObject(solutionP);
+                 }
+ 
+                 // Add spacing after non-Figuren questions only
+                 if (!isFigurenQuestion) {
+                     addSpacing(pkg);
+                 }
+             }
+         }
++
++        // Clean up any trailing page break from the questions
++        removeTrailingPageBreak(pkg);
+     }
+ 
+     /**
+      * Add a stop sign page to the document with centered image or text.
+      */
+     public void addStopSignPage(WordprocessingMLPackage pkg) {
+-        // Ensure no blank page was added by previous operations
++        // Ensure no leftover page break from the previous section
+         removeTrailingPageBreak(pkg);
+ 
+-        // Create a new page
++        // Start the STOP page on a new sheet
+         addPageBreak(pkg);
+ 
+-        // Add multiple empty paragraphs for vertical centering
+-        for (int i = 0; i < 8; i++) {
++        // Add a few empty paragraphs for simple vertical centering
++        for (int i = 0; i < 5; i++) {
+             P emptyP = factory.createP();
+             pkg.getMainDocumentPart().addObject(emptyP);
+         }
+ 
+         // Create centered paragraph for stop sign
+         P centerP = factory.createP();
+         PPr pPr = factory.createPPr();
+         Jc jc = factory.createJc();
+         jc.setVal(JcEnumeration.CENTER);
+         pPr.setJc(jc);
+         centerP.setPPr(pPr);
+ 
+         R stopR = factory.createR();
+ 
+         // Try to add stop sign image, fallback to styled text
+         boolean imageAdded = false;
+         try {
+             imageAdded = addStopSignImage(pkg, stopR);
+         } catch (Exception e) {
+             System.out.println("Could not add stop sign image: " + e.getMessage());
+         }
+ 
+         if (!imageAdded) {
+             // Fallback: Add large styled "STOP" text
+             RPr rPr = factory.createRPr();
+             HpsMeasure fontSize = factory.createHpsMeasure();
+             fontSize.setVal(java.math.BigInteger.valueOf(72)); // 36pt font
              rPr.setSz(fontSize);
              rPr.setSzCs(fontSize);
  
@@ -22,70 +153,116 @@ index 298234bf37bd20946f62ee16ad9b9c6c07146e17..83341a719890ddba9ebcb0f440f19fbd
          centerP.getContent().add(stopR);
          pkg.getMainDocumentPart().addObject(centerP);
  
-         // Add more empty paragraphs for bottom spacing
-         for (int i = 0; i < 8; i++) {
-             P emptyP = factory.createP();
-             pkg.getMainDocumentPart().addObject(emptyP);
-         }
+-        // Add more empty paragraphs for bottom spacing
+-        for (int i = 0; i < 8; i++) {
+-            P emptyP = factory.createP();
+-            pkg.getMainDocumentPart().addObject(emptyP);
+-        }
++        // Minimal bottom spacing so the next page begins flush at the top
++        P bottom = factory.createP();
++        pkg.getMainDocumentPart().addObject(bottom);
++
++        // Start next section on a new page
++        addPageBreak(pkg);
      }
  
--    /** Remove trailing page break if the last paragraph only contains a page break. */
-+    /**
-+     * Remove trailing page breaks and empty paragraphs to avoid blank pages
-+     * before inserting the next section.
-+     */
+     /**
+      * Remove trailing page breaks and empty paragraphs to avoid blank pages
+      * before inserting the next section.
+      */
      private void removeTrailingPageBreak(WordprocessingMLPackage pkg) {
          java.util.List<Object> content = pkg.getMainDocumentPart().getContent();
--        if (content.isEmpty()) {
--            return;
-+        // Remove any empty trailing paragraphs
-+        while (!content.isEmpty() && isEmptyParagraph(content.get(content.size() - 1))) {
-+            content.remove(content.size() - 1);
-         }
--        Object last = content.get(content.size() - 1);
--        if (isPageBreakParagraph(last)) {
-+
-+        // Remove a trailing page break paragraph if present
-+        if (!content.isEmpty() && isPageBreakParagraph(content.get(content.size() - 1))) {
+         // Remove any empty trailing paragraphs
+         while (!content.isEmpty() && isEmptyParagraph(content.get(content.size() - 1))) {
              content.remove(content.size() - 1);
-+
-+            // Also remove any empty paragraphs that may precede the page break
-+            while (!content.isEmpty() && isEmptyParagraph(content.get(content.size() - 1))) {
-+                content.remove(content.size() - 1);
-+            }
+         }
+ 
+         // Remove a trailing page break paragraph if present
+         if (!content.isEmpty() && isPageBreakParagraph(content.get(content.size() - 1))) {
+             content.remove(content.size() - 1);
+ 
+             // Also remove any empty paragraphs that may precede the page break
+             while (!content.isEmpty() && isEmptyParagraph(content.get(content.size() - 1))) {
+                 content.remove(content.size() - 1);
+             }
          }
      }
  
-+    /** Check if the given object is an empty paragraph with no content. */
-+    private boolean isEmptyParagraph(Object obj) {
-+        return obj instanceof P p && p.getContent().isEmpty();
-+    }
-+
-     /** Check if the given object is a paragraph consisting solely of a page break. */
-     private boolean isPageBreakParagraph(Object obj) {
-         if (obj instanceof P p) {
-             for (Object c : p.getContent()) {
-                 Object val = c;
-                 if (c instanceof javax.xml.bind.JAXBElement) {
-                     val = ((javax.xml.bind.JAXBElement<?>) c).getValue();
-                 }
-                 if (val instanceof Br br && br.getType() == STBrType.PAGE) {
+     /** Check if the given object is an empty paragraph with no content. */
+diff --git a/src/main/java/docx/Docx4jPrinter.java b/src/main/java/docx/Docx4jPrinter.java
+index 83341a719890ddba9ebcb0f440f19fbdf5250878..472b1593ea7220348dcd71e40c22508c730369d1 100644
+--- a/src/main/java/docx/Docx4jPrinter.java
++++ b/src/main/java/docx/Docx4jPrinter.java
+@@ -995,65 +1002,67 @@ public class Docx4jPrinter {
+             pkg.getMainDocumentPart().addObject(spacingP);
+         }
+ 
+         return currentRow - 1;
+     }
+ 
+     /**
+      * Try to add stop sign image to the document.
+      */
+     private boolean addStopSignImage(WordprocessingMLPackage pkg, R run) {
+         String[] possiblePaths = {
+                 "stopp_sign.png",
+                 "src/main/resources/images/stopp_sign.png",
+                 "resources/images/stopp_sign.png",
+                 "images/stopp_sign.png"
+         };
+ 
+         for (String path : possiblePaths) {
+             try {
+                 File imageFile = new File(path);
+                 if (imageFile.exists()) {
+                     FileInputStream fis = new FileInputStream(imageFile);
+                     byte[] imageBytes = fis.readAllBytes();
+                     fis.close();
+ 
+-                    addImageToRun(pkg, run, imageBytes, "stopp_sign.png");
++                    int size = (int) (4 / 2.54 * 96); // ~4cm
++                    addImageToRunWithSize(pkg, run, imageBytes, "stopp_sign.png", size, size);
                      return true;
                  }
+             } catch (Exception e) {
+                 // Continue to next path
              }
          }
+ 
+         // Try from resources
+         try {
+             InputStream is = getClass().getResourceAsStream("/images/stopp_sign.png");
+             if (is != null) {
+                 byte[] imageBytes = is.readAllBytes();
+                 is.close();
+-                addImageToRun(pkg, run, imageBytes, "stopp_sign.png");
++                int size = (int) (4 / 2.54 * 96); // ~4cm
++                addImageToRunWithSize(pkg, run, imageBytes, "stopp_sign.png", size, size);
+                 return true;
+             }
+         } catch (Exception e) {
+             // Fallback to text
+         }
+ 
          return false;
      }
  
-     /** Add a page break to the document. */
-     public void addPageBreak(WordprocessingMLPackage pkg) {
-         // Create a new paragraph
-         P p = factory.createP();
-         // Create a run inside it
-         R r = factory.createR();
-         // Create the page-break element
-         Br br = factory.createBr();
-         br.setType(STBrType.PAGE);
+     /**
+      * Add image to a specific run.
+      */
+     private void addImageToRun(WordprocessingMLPackage pkg, R run, byte[] imageBytes, String filename)
+             throws Exception {
+         BinaryPartAbstractImage imagePart = BinaryPartAbstractImage.createImagePart(pkg, imageBytes);
+         Inline inline = imagePart.createImageInline(filename, "Image", 1, 2, false);
+ 
+         // Create drawing object
+         org.docx4j.wml.Drawing drawing = factory.createDrawing();
+         drawing.getAnchorOrInline().add(inline);
+         run.getContent().add(drawing);
+     }
+ 
+     /**
+      * Add image to a specific run with explicit size control.
  
 EOF
 )
