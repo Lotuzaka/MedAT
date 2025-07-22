@@ -5291,7 +5291,7 @@ public class MedatoninDB extends JFrame {
     /**
      * Data holder for Figuren options and dissected pieces.
      */
-    static class FigurenOptionsData {
+    public static class FigurenOptionsData {
         public final List<OptionDAO> options;
         public final FigurenGenerator.DissectedPieces dissectedPieces;
         
