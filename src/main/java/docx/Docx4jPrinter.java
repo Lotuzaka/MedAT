@@ -99,7 +99,7 @@ public class Docx4jPrinter {
      * different question types.
      */
     public void addQuestions(WordprocessingMLPackage pkg, DefaultTableModel model) {
-        int figurenQuestionCount = 0; // Track Figuren questions for pagination
+        int figurenBlocksOnPage = 0;  // Track Figuren question blocks on the current page
         
         for (int r = 0; r < model.getRowCount(); r++) {
             String number = Objects.toString(model.getValueAt(r, 0), "");
@@ -113,7 +113,6 @@ public class Docx4jPrinter {
                 if (questionObj.getClass().getSimpleName().equals("DissectedPieces")) {
                     questionText = "Welche Figur lässt sich aus den folgenden Bausteinen zusammensetzen?";
                     isFigurenQuestion = true;
-                    figurenQuestionCount++;
                 } else {
                     questionText = questionObj.toString();
                 }
@@ -159,12 +158,14 @@ public class Docx4jPrinter {
                 // Add options/answers if they exist in the model
                 addQuestionOptions(pkg, model, r);
 
-                // For Figuren questions: no spacing between question blocks, 
-                // but add page break after every 3rd question
+                // For Figuren questions: no spacing between question blocks.
+                // Add page break BEFORE every 4th question.
                 if (isFigurenQuestion) {
-                    if (figurenQuestionCount % 3 == 0) {
+                    // Check if this is the 4th, 7th, 10th, etc. question (before adding it)
+                    if (figurenBlocksOnPage > 0 && figurenBlocksOnPage % 3 == 0) {
                         addPageBreak(pkg);
                     }
+                    figurenBlocksOnPage++;
                 } else {
                     // Add spacing after non-Figuren questions
                     addSpacing(pkg);
@@ -178,7 +179,7 @@ public class Docx4jPrinter {
      * different question types.
      */
     public void addQuestionsSolution(WordprocessingMLPackage pkg, DefaultTableModel model) {
-        int figurenQuestionCount = 0; // Track Figuren questions for pagination
+        int figurenBlocksOnPage = 0;  // Track Figuren question blocks on the current page
         
         for (int r = 0; r < model.getRowCount(); r++) {
             String number = Objects.toString(model.getValueAt(r, 0), "");
@@ -193,7 +194,6 @@ public class Docx4jPrinter {
                 if (questionObj.getClass().getSimpleName().equals("DissectedPieces")) {
                     questionText = "Welche Figur lässt sich aus den folgenden Bausteinen zusammensetzen?";
                     isFigurenQuestion = true;
-                    figurenQuestionCount++;
                 } else {
                     questionText = questionObj.toString();
                 }
@@ -250,12 +250,14 @@ public class Docx4jPrinter {
                     pkg.getMainDocumentPart().addObject(solutionP);
                 }
 
-                // For Figuren questions: no spacing between question blocks, 
-                // but add page break after every 3rd question
+                // For Figuren questions: no spacing between question blocks.
+                // Add page break BEFORE every 4th question.
                 if (isFigurenQuestion) {
-                    if (figurenQuestionCount % 3 == 0) {
+                    // Check if this is the 4th, 7th, 10th, etc. question (before adding it)
+                    if (figurenBlocksOnPage > 0 && figurenBlocksOnPage % 3 == 0) {
                         addPageBreak(pkg);
                     }
+                    figurenBlocksOnPage++;
                 } else {
                     // Add spacing after non-Figuren questions
                     addSpacing(pkg);
@@ -368,13 +370,35 @@ public class Docx4jPrinter {
                 // Generate image from shapes
                 BufferedImage shapeImage = createShapeImage(shapes);
 
+                // Scale to a maximum height of 4cm (~151px at 96dpi)
+                int width = shapeImage.getWidth();
+                int height = shapeImage.getHeight();
+                final int MAX_HEIGHT_PX = (int) (4 / 2.54 * 96);
+                if (height > MAX_HEIGHT_PX) {
+                    double scale = MAX_HEIGHT_PX / (double) height;
+                    width = (int) Math.round(width * scale);
+                    height = MAX_HEIGHT_PX;
+                }
+
                 // Convert to byte array
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 ImageIO.write(shapeImage, "PNG", baos);
                 byte[] imageBytes = baos.toByteArray();
 
-                // Add image to document
-                addImageToDocument(pkg, imageBytes, "Figuren_Pieces.png");
+                // Add image to document with explicit size and center alignment
+                P imgP = factory.createP();
+                
+                // Center the dissected pieces image
+                PPr imgPPr = factory.createPPr();
+                Jc imgJc = factory.createJc();
+                imgJc.setVal(JcEnumeration.CENTER);
+                imgPPr.setJc(imgJc);
+                imgP.setPPr(imgPPr);
+                
+                R imgR = factory.createR();
+                addImageToRunWithSize(pkg, imgR, imageBytes, "Figuren_Pieces.png", width, height);
+                imgP.getContent().add(imgR);
+                pkg.getMainDocumentPart().addObject(imgP);
             }
         } catch (Exception e) {
             System.out.println("Could not generate Figuren image: " + e.getMessage());
@@ -485,13 +509,10 @@ public class Docx4jPrinter {
 
         g2d.dispose();
         
-        // Crop the image to remove excess white space above and below shapes
-        int padding = 10; // Small padding to avoid cutting off stroke edges
+        // Crop the image to the exact vertical bounds of the drawn shapes
+        int padding = 2; // minimal padding to avoid cutting off stroke edges
         int cropY = Math.max(0, minY - padding);
-        int cropHeight = Math.min(initialHeight - cropY, maxY + padding - cropY);
-        
-        // Ensure minimum height for readability
-        cropHeight = Math.max(cropHeight, 60);
+        int cropHeight = Math.min(initialHeight - cropY, (maxY + padding) - cropY);
         
         BufferedImage croppedImage = new BufferedImage(initialWidth, cropHeight, BufferedImage.TYPE_INT_RGB);
         Graphics2D cropG2d = croppedImage.createGraphics();
@@ -502,44 +523,157 @@ public class Docx4jPrinter {
     }
 
     /**
-     * Create an image for a single option shape using grey fill and black outline - optimized for table cells.
+     * Create an image for a single option shape using grey fill and black outline - optimized for table cells with tight cropping.
      */
     private BufferedImage createOptionShapeImage(String wkt) throws Exception {
         Geometry geometry = new WKTReader().read(wkt);
 
-        // Smaller dimensions to fit properly in table cells
-        int width = 120;  // Reduced from 300
-        int height = 100; // Reduced from 240
-        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-        Graphics2D g2d = image.createGraphics();
+        // Start with larger initial dimensions for better rendering quality, then crop tightly
+        int initialWidth = 200;  // Larger initial size for better quality
+        int initialHeight = 160; // Larger initial size for better quality
+        BufferedImage tempImage = new BufferedImage(initialWidth, initialHeight, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2d = tempImage.createGraphics();
+        
+        // Enhanced anti-aliasing settings for crisp output
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
         g2d.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
+        // Set white background
         g2d.setColor(Color.WHITE);
-        g2d.fillRect(0, 0, width, height);
+        g2d.fillRect(0, 0, initialWidth, initialHeight);
 
         ShapeWriter writer = new ShapeWriter();
         Envelope env = geometry.getEnvelopeInternal();
-        double scaleX = width / env.getWidth();
-        double scaleY = height / env.getHeight();
-        double scale = Math.min(scaleX, scaleY) * 0.8; // Reduced from 0.9 to give more margin
+        double scaleX = initialWidth / env.getWidth();
+        double scaleY = initialHeight / env.getHeight();
+        double scale = Math.min(scaleX, scaleY) * 0.85; // Scale to fit with some margin for crisp rendering
 
         AffineTransform at = new AffineTransform();
-        at.translate(width / 2.0, height / 2.0);
+        at.translate(initialWidth / 2.0, initialHeight / 2.0);
         at.scale(scale, -scale);
         at.translate(-env.centre().x, -env.centre().y);
 
         Shape shape = writer.toShape(geometry);
-        Shape ts = at.createTransformedShape(shape);
+        Shape transformedShape = at.createTransformedShape(shape);
+        
+        // Draw with grey fill and black outline to match dissected pieces
         g2d.setColor(new java.awt.Color(180, 180, 180)); // Grey fill to match dissected pieces
-        g2d.fill(ts);
+        g2d.fill(transformedShape);
         g2d.setColor(java.awt.Color.BLACK);
-        g2d.setStroke(new BasicStroke(1.5f)); // Thinner stroke for smaller size
-        g2d.draw(ts);
+        g2d.setStroke(new BasicStroke(1.5f)); // Appropriate stroke for option figures
+        g2d.draw(transformedShape);
 
         g2d.dispose();
-        return image;
+        
+        // Apply tight cropping similar to dissected pieces
+        BufferedImage croppedImage = cropOptionImageToContent(tempImage);
+        
+        // Scale to fixed width of 2.5cm (approximately 95 pixels at 96 DPI)
+        int targetWidth = (int) (2.5 * 96 / 2.54); // 2.5cm = ~95 pixels at 96 DPI
+        int targetHeight = (int) (croppedImage.getHeight() * ((double) targetWidth / croppedImage.getWidth()));
+        
+        BufferedImage finalImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
+        Graphics2D finalG2d = finalImage.createGraphics();
+        finalG2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        finalG2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        finalG2d.drawImage(croppedImage, 0, 0, targetWidth, targetHeight, null);
+        finalG2d.dispose();
+        
+        return finalImage;
+    }
+    
+    /**
+     * Optimized cropping method for option figures - removes all white space around drawn shapes.
+     */
+    private BufferedImage cropOptionImageToContent(BufferedImage image) {
+        int width = image.getWidth();
+        int height = image.getHeight();
+        
+        // Find the bounds of non-white content using aggressive scanning
+        int minX = width, minY = height, maxX = 0, maxY = 0;
+        boolean hasContent = false;
+        
+        // Very aggressive white threshold - only pure white is considered background
+        int whiteThreshold = 248;
+        
+        // Scan from top to find first content row
+        for (int y = 0; y < height && minY == height; y++) {
+            for (int x = 0; x < width; x++) {
+                if (isContentPixel(image.getRGB(x, y), whiteThreshold)) {
+                    minY = y;
+                    hasContent = true;
+                    break;
+                }
+            }
+        }
+        
+        // Scan from bottom to find last content row
+        for (int y = height - 1; y >= 0 && maxY == 0; y--) {
+            for (int x = 0; x < width; x++) {
+                if (isContentPixel(image.getRGB(x, y), whiteThreshold)) {
+                    maxY = y;
+                    break;
+                }
+            }
+        }
+        
+        // If no content found, return original image
+        if (!hasContent) {
+            return image;
+        }
+        
+        // Scan from left to find first content column within vertical bounds
+        for (int x = 0; x < width && minX == width; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                if (isContentPixel(image.getRGB(x, y), whiteThreshold)) {
+                    minX = x;
+                    break;
+                }
+            }
+        }
+        
+        // Scan from right to find last content column within vertical bounds
+        for (int x = width - 1; x >= 0 && maxX == 0; x--) {
+            for (int y = minY; y <= maxY; y++) {
+                if (isContentPixel(image.getRGB(x, y), whiteThreshold)) {
+                    maxX = x;
+                    break;
+                }
+            }
+        }
+        
+        // Add minimal padding to avoid cutting off stroke edges
+        int paddingX = 2;
+        int paddingY = 2;
+        
+        minX = Math.max(0, minX - paddingX);
+        minY = Math.max(0, minY - paddingY);
+        maxX = Math.min(width - 1, maxX + paddingX);
+        maxY = Math.min(height - 1, maxY + paddingY);
+        
+        // Calculate cropped dimensions
+        int croppedWidth = maxX - minX + 1;
+        int croppedHeight = maxY - minY + 1;
+        
+        // Create tightly cropped image
+        BufferedImage croppedImage = new BufferedImage(croppedWidth, croppedHeight, BufferedImage.TYPE_INT_RGB);
+        Graphics2D cropG2d = croppedImage.createGraphics();
+        cropG2d.drawImage(image, 0, 0, croppedWidth, croppedHeight, minX, minY, maxX + 1, maxY + 1, null);
+        cropG2d.dispose();
+        
+        return croppedImage;
+    }
+    
+    /**
+     * Helper method to check if a pixel contains content (not white).
+     */
+    private boolean isContentPixel(int rgb, int whiteThreshold) {
+        int red = (rgb >> 16) & 0xFF;
+        int green = (rgb >> 8) & 0xFF;
+        int blue = rgb & 0xFF;
+        return red < whiteThreshold || green < whiteThreshold || blue < whiteThreshold;
     }
 
     /**
@@ -587,6 +721,12 @@ public class Docx4jPrinter {
                 imgCellWidth.setType("dxa");
                 imgCellWidth.setW(BigInteger.valueOf(1800)); // Reduced width for smaller images
                 imgCellPr.setTcW(imgCellWidth);
+
+                // Center content vertically
+                CTVerticalJc vAlign = factory.createCTVerticalJc();
+                vAlign.setVal(STVerticalJc.CENTER);
+                imgCellPr.setVAlign(vAlign);
+
                 imgCell.setTcPr(imgCellPr);
                 
                 P imgP = factory.createP();
@@ -629,7 +769,8 @@ public class Docx4jPrinter {
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     ImageIO.write(img, "PNG", baos);
                     R r = factory.createR();
-                    addImageToRunWithSize(pkg, r, baos.toByteArray(), "opt_" + label + ".png", 120, 100);
+                    // Use actual image dimensions from the optimized cropping
+                    addImageToRunWithSize(pkg, r, baos.toByteArray(), "opt_" + label + ".png", img.getWidth(), img.getHeight());
                     imgP.getContent().add(r);
                 }
 
@@ -645,6 +786,12 @@ public class Docx4jPrinter {
                 labelCellWidth.setType("dxa");
                 labelCellWidth.setW(BigInteger.valueOf(1800)); // Same width as image cell
                 labelCellPr.setTcW(labelCellWidth);
+
+                // Center vertically for better alignment
+                CTVerticalJc labelVAlign = factory.createCTVerticalJc();
+                labelVAlign.setVal(STVerticalJc.CENTER);
+                labelCellPr.setVAlign(labelVAlign);
+
                 labelCell.setTcPr(labelCellPr);
                 
                 P labelP = factory.createP();
@@ -690,12 +837,13 @@ public class Docx4jPrinter {
     }
 
     /**
-     * Add question options from the table model with horizontal layout and proper A-E labels.
+     * Add question options from the table model with vertical layout for KFF subtests and proper A-E labels.
      */
     private void addQuestionOptions(WordprocessingMLPackage pkg, DefaultTableModel model, int startRow) {
         // Look for options in subsequent rows
         int currentRow = startRow + 1;
 
+        // First check if this is a Figuren question with options data
         if (currentRow < model.getRowCount()) {
             Object optObj = model.getValueAt(currentRow, 1);
             if (optObj != null && optObj.getClass().getSimpleName().equals("FigurenOptionsData")) {
@@ -706,100 +854,74 @@ public class Docx4jPrinter {
 
         java.util.List<String> optionTexts = new ArrayList<>();
         
-        // Collect all options first
+        // Collect all options that follow this question - but ONLY process each option row ONCE
         while (currentRow < model.getRowCount()) {
             Object rowIdentifier = model.getValueAt(currentRow, 0);
+            
+            // Stop if we encounter another question (numeric identifier)
             if (rowIdentifier != null && rowIdentifier.toString().matches("\\d+")) {
                 break; // Next question encountered
             }
-            Object optionObj = model.getValueAt(currentRow, 1);
-            if (optionObj != null) {
-                    String optionText;
-                    if (optionObj.getClass().getSimpleName().equals("FigurenOptionsData")) {
-                        try {
-                            // Use reflection to access option data
-                           java.lang.reflect.Field optionsField = optionObj.getClass().getDeclaredField("options");
-                            optionsField.setAccessible(true);
-                            @SuppressWarnings("unchecked")
-                            java.util.List<Object> options = (java.util.List<Object>) optionsField.get(optionObj);
-                            if (options != null && !options.isEmpty()) {
-                                optionText = "[Figur Option]";
-                            } else {
-                                optionText = optionObj.toString();
-                            }
-                        } catch (Exception e) {
-                            optionText = optionObj.toString();
-                        }
-                    } else {
-                        optionText = optionObj.toString();
-                    }
+            
+            // Stop if we encounter an empty identifier (end of options)
+            if (rowIdentifier == null || rowIdentifier.toString().trim().isEmpty()) {
+                currentRow++;
+                continue;
+            }
+            
+            // Check if this is an option row (should have A), B), C), D), E) or X) pattern)
+            String identifier = rowIdentifier.toString().trim();
+            if (identifier.matches("[A-E]\\)|X\\)")) {
+                Object optionObj = model.getValueAt(currentRow, 1);
+                if (optionObj != null) {
+                    String optionText = optionObj.toString();
                     optionTexts.add(optionText);
                 }
-                currentRow++;
+            }
+            currentRow++;
         }
 
-    // Now display options horizontally with proper labels (A, B, C, D, E where E is
-    // "X")
-    if(!optionTexts.isEmpty())
+        // Display options vertically (untereinander) with proper labels (A, B, C, D, E/X)
+        if (!optionTexts.isEmpty()) {
+            for (int i = 0; i < optionTexts.size() && i < 5; i++) { // Limit to 5 options (A-E/X)
+                P optionP = factory.createP();
+                
+                // Set paragraph spacing for better layout
+                PPr pPr = factory.createPPr();
+                PPrBase.Spacing spacing = factory.createPPrBaseSpacing();
+                spacing.setBefore(BigInteger.valueOf(60)); // Reduced spacing before each option
+                spacing.setAfter(BigInteger.valueOf(60));  // Reduced spacing after each option
+                pPr.setSpacing(spacing);
+                optionP.setPPr(pPr);
 
-    {
-        // Create a paragraph for horizontal option layout
-        P optionsP = factory.createP();
+                R optionR = factory.createR();
 
-        // Set paragraph spacing for better layout
-        PPr pPr = factory.createPPr();
-        PPrBase.Spacing spacing = factory.createPPrBaseSpacing();
-        spacing.setBefore(BigInteger.valueOf(120)); // Space before options
-        spacing.setAfter(BigInteger.valueOf(120)); // Space after options
-        pPr.setSpacing(spacing);
-        optionsP.setPPr(pPr);
+                // Remove bold formatting for option labels (nicht bold)
+                // No RPr settings for bold formatting
 
-        for (int i = 0; i < optionTexts.size() && i < 5; i++) { // Limit to 5 options (A-E)
-            if (i > 0) {
-                // Add spacing between options
-                R spacingR = factory.createR();
-                Text spacingT = factory.createText();
-                spacingT.setValue("        "); // Multiple spaces for horizontal separation
-                spacingR.getContent().add(spacingT);
-                optionsP.getContent().add(spacingR);
+                Text optionT = factory.createText();
+
+                // Create proper option label (A, B, C, D, E/X)
+                char optionLabel;
+                if (i == 4) { // 5th option (index 4) should be "X"
+                    optionLabel = 'X';
+                } else {
+                    optionLabel = (char) ('A' + i);
+                }
+
+                // Format: "A) OptionText"
+                String formattedOption = optionLabel + ") " + optionTexts.get(i);
+                optionT.setValue(formattedOption);
+                optionR.getContent().add(optionT);
+                optionP.getContent().add(optionR);
+                
+                pkg.getMainDocumentPart().addObject(optionP);
             }
 
-            R optionR = factory.createR();
-
-            // Set bold formatting for option labels
-            RPr rPr = factory.createRPr();
-            BooleanDefaultTrue bold = factory.createBooleanDefaultTrue();
-            rPr.setB(bold);
-            optionR.setRPr(rPr);
-
-            Text optionT = factory.createText();
-
-            // Create proper option label (A, B, C, D, X for the 5th option)
-            char optionLabel;
-            if (i == 4) { // 5th option (index 4) should be "X"
-                optionLabel = 'X';
-            } else {
-                optionLabel = (char) ('A' + i);
-            }
-
-            // Format: "A) OptionText"
-            String formattedOption = optionLabel + ") " + optionTexts.get(i);
-            optionT.setValue(formattedOption);
-            optionR.getContent().add(optionT);
-            optionsP.getContent().add(optionR);
+            // Add spacing after all options
+            P spacingP = factory.createP();
+            pkg.getMainDocumentPart().addObject(spacingP);
         }
-
-        pkg.getMainDocumentPart().addObject(optionsP);
-
-        // Add extra spacing after options
-        P spacingP = factory.createP();
-        R spacingR = factory.createR();
-        Text spacingT = factory.createText();
-        spacingT.setValue(" "); // Empty line for spacing
-        spacingR.getContent().add(spacingT);
-        spacingP.getContent().add(spacingR);
-        pkg.getMainDocumentPart().addObject(spacingP);
-    }
     }
 
     /**
@@ -843,17 +965,6 @@ public class Docx4jPrinter {
         }
         
         return false;
-    }
-
-    /**
-     * Add image to document as a new paragraph.
-     */
-    private void addImageToDocument(WordprocessingMLPackage pkg, byte[] imageBytes, String filename) throws Exception {
-        P imageP = factory.createP();
-        R imageR = factory.createR();
-        addImageToRun(pkg, imageR, imageBytes, filename);
-        imageP.getContent().add(imageR);
-        pkg.getMainDocumentPart().addObject(imageP);
     }
 
     /**
