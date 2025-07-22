@@ -43,7 +43,7 @@
         <artifactId>exec-maven-plugin</artifactId>
         <version>3.2.0</version>
         <configuration>
-          <mainClass>xyz.medat.gui.MedatoninDB</mainClass>
+          <mainClass>MedatoninDB</mainClass>
         </configuration>
       </plugin>
       <plugin>

@@ -3087,11 +3087,31 @@ public class MedatoninDB extends JFrame {
                 addStopSignMethod.invoke(printer, pkg);
             }
 
-            // Save the document using reflection
-            java.lang.reflect.Method saveMethod = pkg.getClass().getMethod("save", java.io.File.class);
-            saveMethod.invoke(pkg, new File(category + ".docx"));
+            // Save the document using reflection with conflict resolution
+            String baseFileName = category + ".docx";
+            File outputFile = new File(baseFileName);
             
-            JOptionPane.showMessageDialog(this, "Document saved: " + category + ".docx");
+            // If file is in use, try alternative names
+            int counter = 1;
+            while (!canWriteToFile(outputFile)) {
+                String fileName = category + "_" + counter + ".docx";
+                outputFile = new File(fileName);
+                counter++;
+                
+                // Prevent infinite loop
+                if (counter > 100) {
+                    throw new RuntimeException("Unable to find available filename after 100 attempts");
+                }
+            }
+            
+            java.lang.reflect.Method saveMethod = pkg.getClass().getMethod("save", java.io.File.class);
+            saveMethod.invoke(pkg, outputFile);
+            
+            String message = "Document saved: " + outputFile.getName();
+            if (!outputFile.getName().equals(baseFileName)) {
+                message += "\n\n(Original filename was in use, saved with alternative name)";
+            }
+            JOptionPane.showMessageDialog(this, message);
         } catch (ClassNotFoundException e) {
             // docx4j is not available, show a helpful message
             JOptionPane.showMessageDialog(this, 
@@ -3164,11 +3184,31 @@ public class MedatoninDB extends JFrame {
                 addStopSignMethod.invoke(printer, pkg);
             }
 
-            // Save the document using reflection
-            java.lang.reflect.Method saveMethod = pkg.getClass().getMethod("save", java.io.File.class);
-            saveMethod.invoke(pkg, new File(category + "_Solutions.docx"));
+            // Save the document using reflection with conflict resolution
+            String baseFileName = category + "_Solutions.docx";
+            File outputFile = new File(baseFileName);
             
-            JOptionPane.showMessageDialog(this, "Solution document saved: " + category + "_Solutions.docx");
+            // If file is in use, try alternative names
+            int counter = 1;
+            while (!canWriteToFile(outputFile)) {
+                String fileName = category + "_Solutions_" + counter + ".docx";
+                outputFile = new File(fileName);
+                counter++;
+                
+                // Prevent infinite loop
+                if (counter > 100) {
+                    throw new RuntimeException("Unable to find available filename after 100 attempts");
+                }
+            }
+            
+            java.lang.reflect.Method saveMethod = pkg.getClass().getMethod("save", java.io.File.class);
+            saveMethod.invoke(pkg, outputFile);
+            
+            String message = "Solution document saved: " + outputFile.getName();
+            if (!outputFile.getName().equals(baseFileName)) {
+                message += "\n\n(Original filename was in use, saved with alternative name)";
+            }
+            JOptionPane.showMessageDialog(this, message);
         } catch (ClassNotFoundException e) {
             // docx4j is not available, show a helpful message
             JOptionPane.showMessageDialog(this, 
@@ -3259,11 +3299,31 @@ public class MedatoninDB extends JFrame {
                 }
             }
 
-            // Save the document using reflection
+            // Save the document using reflection with conflict resolution
+            String baseFileName = "All_Categories.docx";
+            File outputFile = new File(baseFileName);
+            
+            // If file is in use, try alternative names
+            int counter = 1;
+            while (!canWriteToFile(outputFile)) {
+                String fileName = "All_Categories_" + counter + ".docx";
+                outputFile = new File(fileName);
+                counter++;
+                
+                // Prevent infinite loop
+                if (counter > 100) {
+                    throw new RuntimeException("Unable to find available filename after 100 attempts");
+                }
+            }
+            
             java.lang.reflect.Method saveMethod = pkg.getClass().getMethod("save", java.io.File.class);
-            saveMethod.invoke(pkg, new File("All_Categories.docx"));
+            saveMethod.invoke(pkg, outputFile);
 
-            JOptionPane.showMessageDialog(this, "Document saved: All_Categories.docx");
+            String message = "Document saved: " + outputFile.getName();
+            if (!outputFile.getName().equals(baseFileName)) {
+                message += "\n\n(Original filename was in use, saved with alternative name)";
+            }
+            JOptionPane.showMessageDialog(this, message);
         } catch (ClassNotFoundException e) {
             // docx4j is not available, show a helpful message
             JOptionPane.showMessageDialog(this, 
@@ -3340,11 +3400,31 @@ public class MedatoninDB extends JFrame {
                 }
             }
 
-            // Save the document using reflection
-            java.lang.reflect.Method saveMethod = pkg.getClass().getMethod("save", java.io.File.class);
-            saveMethod.invoke(pkg, new File("All_Categories_Solutions.docx"));
+            // Save the document using reflection with conflict resolution
+            String baseFileName = "All_Categories_Solutions.docx";
+            File outputFile = new File(baseFileName);
             
-            JOptionPane.showMessageDialog(this, "Solution document saved: All_Categories_Solutions.docx");
+            // If file is in use, try alternative names
+            int counter = 1;
+            while (!canWriteToFile(outputFile)) {
+                String fileName = "All_Categories_Solutions_" + counter + ".docx";
+                outputFile = new File(fileName);
+                counter++;
+                
+                // Prevent infinite loop
+                if (counter > 100) {
+                    throw new RuntimeException("Unable to find available filename after 100 attempts");
+                }
+            }
+            
+            java.lang.reflect.Method saveMethod = pkg.getClass().getMethod("save", java.io.File.class);
+            saveMethod.invoke(pkg, outputFile);
+            
+            String message = "Solution document saved: " + outputFile.getName();
+            if (!outputFile.getName().equals(baseFileName)) {
+                message += "\n\n(Original filename was in use, saved with alternative name)";
+            }
+            JOptionPane.showMessageDialog(this, message);
         } catch (ClassNotFoundException e) {
             // docx4j is not available, show a helpful message
             JOptionPane.showMessageDialog(this, 
@@ -5305,5 +5385,26 @@ public class MedatoninDB extends JFrame {
     /**
      * Enum for question difficulty with color and symbol.
      */
+
+    /**
+     * Helper method to check if a file can be written to (not locked by another process).
+     * @param file The file to check
+     * @return true if the file can be written to, false otherwise
+     */
+    private boolean canWriteToFile(File file) {
+        // If file doesn't exist, we can write to it
+        if (!file.exists()) {
+            return true;
+        }
+        
+        // Try to open the file for writing to check if it's locked
+        try (java.io.FileOutputStream fos = new java.io.FileOutputStream(file, true)) {
+            return true;
+        } catch (java.io.IOException e) {
+            // File is locked or cannot be written to
+            debugLog("Print", LogLevel.WARN, "File is locked or cannot be written to: " + file.getName() + " - " + e.getMessage());
+            return false;
+        }
+    }
 
 }
