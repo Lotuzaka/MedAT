@@ -3070,7 +3070,9 @@ public class MedatoninDB extends JFrame {
             Object pkg = createMethod.invoke(null);
             
             // Process each subcategory
-            for (String subcategory : subcategoryOrder.get(category)) {
+            java.util.List<String> subcatList = subcategoryOrder.get(category);
+            for (int i = 0; i < subcatList.size(); i++) {
+                String subcategory = subcatList.get(i);
                 DefaultTableModel model = subcategories.get(subcategory);
                 if (model == null || model.getRowCount() == 0) {
                     continue; // Skip empty subcategories
@@ -3080,11 +3082,18 @@ public class MedatoninDB extends JFrame {
                 java.lang.reflect.Method addQuestionsMethod = printer.getClass()
                     .getMethod("addQuestions", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), DefaultTableModel.class);
                 addQuestionsMethod.invoke(printer, pkg, model);
-                
+
                 // Add stop sign page using reflection
                 java.lang.reflect.Method addStopSignMethod = printer.getClass()
                     .getMethod("addStopSignPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
                 addStopSignMethod.invoke(printer, pkg);
+
+                // Add page break after stop sign if more subcategories follow
+                if (i < subcatList.size() - 1) {
+                    java.lang.reflect.Method addPageBreakMethod = printer.getClass()
+                        .getMethod("addPageBreak", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
+                    addPageBreakMethod.invoke(printer, pkg);
+                }
             }
 
             // Save the document using reflection with conflict resolution
@@ -3167,7 +3176,9 @@ public class MedatoninDB extends JFrame {
             Object pkg = createMethod.invoke(null);
             
             // Process each subcategory
-            for (String subcategory : subcategoryOrder.get(category)) {
+            java.util.List<String> subcatList = subcategoryOrder.get(category);
+            for (int i = 0; i < subcatList.size(); i++) {
+                String subcategory = subcatList.get(i);
                 DefaultTableModel model = subcategories.get(subcategory);
                 if (model == null || model.getRowCount() == 0) {
                     continue; // Skip empty subcategories
@@ -3177,11 +3188,18 @@ public class MedatoninDB extends JFrame {
                 java.lang.reflect.Method addSolutionsMethod = printer.getClass()
                     .getMethod("addQuestionsSolution", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), DefaultTableModel.class);
                 addSolutionsMethod.invoke(printer, pkg, model);
-                
+
                 // Add stop sign page using reflection
                 java.lang.reflect.Method addStopSignMethod = printer.getClass()
                     .getMethod("addStopSignPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
                 addStopSignMethod.invoke(printer, pkg);
+
+                // Add page break after stop sign if more subcategories follow
+                if (i < subcatList.size() - 1) {
+                    java.lang.reflect.Method addPageBreakMethod = printer.getClass()
+                        .getMethod("addPageBreak", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
+                    addPageBreakMethod.invoke(printer, pkg);
+                }
             }
 
             // Save the document using reflection with conflict resolution
@@ -3378,11 +3396,15 @@ public class MedatoninDB extends JFrame {
             Object pkg = createMethod.invoke(null);
 
             // Iterate over all categories
-            for (String category : categoryModels.keySet()) {
+            java.util.List<String> categoryList = new java.util.ArrayList<>(categoryModels.keySet());
+            for (int c = 0; c < categoryList.size(); c++) {
+                String category = categoryList.get(c);
                 Map<String, DefaultTableModel> subcategories = categoryModels.get(category);
 
                 // Iterate over subcategories without category/subcategory headings
-                for (String subcategory : subcategoryOrder.get(category)) {
+                java.util.List<String> subcatList = subcategoryOrder.get(category);
+                for (int i = 0; i < subcatList.size(); i++) {
+                    String subcategory = subcatList.get(i);
                     DefaultTableModel model = subcategories.get(subcategory);
                     if (model == null || model.getRowCount() == 0) {
                         continue; // Skip empty subcategories
@@ -3392,11 +3414,19 @@ public class MedatoninDB extends JFrame {
                     java.lang.reflect.Method addQuestionsSolutionMethod = printer.getClass()
                         .getMethod("addQuestionsSolution", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), DefaultTableModel.class);
                     addQuestionsSolutionMethod.invoke(printer, pkg, model);
-                    
+
                     // Add stop sign page using reflection
                     java.lang.reflect.Method addStopSignMethod = printer.getClass()
                         .getMethod("addStopSignPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
                     addStopSignMethod.invoke(printer, pkg);
+
+                    boolean moreSubcats = i < subcatList.size() - 1;
+                    boolean moreCategories = c < categoryList.size() - 1;
+                    if (moreSubcats || moreCategories) {
+                        java.lang.reflect.Method addPageBreakMethod = printer.getClass()
+                            .getMethod("addPageBreak", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
+                        addPageBreakMethod.invoke(printer, pkg);
+                    }
                 }
             }
 

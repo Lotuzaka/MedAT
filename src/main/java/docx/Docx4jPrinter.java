@@ -337,8 +337,6 @@ public class Docx4jPrinter {
             P emptyP = factory.createP();
             pkg.getMainDocumentPart().addObject(emptyP);
         }
-
-        addPageBreak(pkg);
     }
 
     /** Add a page break to the document. */
@@ -902,9 +900,9 @@ public class Docx4jPrinter {
                 continue;
             }
 
-            // Check if this is an option row (should have A), B), C), D), E) or X) pattern)
+            // Check if this is an option row (should have A) through E))
             String identifier = rowIdentifier.toString().trim();
-            if (identifier.matches("[A-E]\\)|X\\)")) {
+            if (identifier.matches("[A-E]\\)")) {
                 Object optionObj = model.getValueAt(currentRow, 1);
                 if (optionObj != null) {
                     String optionText = optionObj.toString();
@@ -914,10 +912,9 @@ public class Docx4jPrinter {
             currentRow++;
         }
 
-        // Display options vertically (untereinander) with proper labels (A, B, C, D,
-        // E/X)
+        // Display options vertically (untereinander) with labels A-E
         if (!optionTexts.isEmpty()) {
-            for (int i = 0; i < optionTexts.size() && i < 5; i++) { // Limit to 5 options (A-E/X)
+            for (int i = 0; i < optionTexts.size() && i < 5; i++) { // Limit to 5 options (A-E)
                 P optionP = factory.createP();
 
                 // Set paragraph spacing for better layout
@@ -935,13 +932,8 @@ public class Docx4jPrinter {
 
                 Text optionT = factory.createText();
 
-                // Create proper option label (A, B, C, D, E/X)
-                char optionLabel;
-                if (i == 4) { // 5th option (index 4) should be "X"
-                    optionLabel = 'X';
-                } else {
-                    optionLabel = (char) ('A' + i);
-                }
+                // Create proper option label (A, B, C, D, E)
+                char optionLabel = (char) ('A' + i);
 
                 // Format: "A) OptionText"
                 String formattedOption = optionLabel + ") " + optionTexts.get(i);
