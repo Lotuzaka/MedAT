@@ -1,67 +1,9 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
 diff --git a/src/main/java/docx/Docx4jPrinter.java b/src/main/java/docx/Docx4jPrinter.java
-index c71870e85a491a3bf24ee5460c2cea8ce40e85ea..298234bf37bd20946f62ee16ad9b9c6c07146e17 100644
+index 298234bf37bd20946f62ee16ad9b9c6c07146e17..83341a719890ddba9ebcb0f440f19fbdf5250878 100644
 --- a/src/main/java/docx/Docx4jPrinter.java
 +++ b/src/main/java/docx/Docx4jPrinter.java
-@@ -260,50 +260,53 @@ public class Docx4jPrinter {
-                 r = addQuestionOptions(pkg, model, r);
- 
-                 // Add solution if available
-                 if (!solution.isEmpty()) {
-                     P solutionP = factory.createP();
-                     R solutionR = factory.createR();
-                     Text solutionT = factory.createText();
-                     solutionT.setValue("Lösung: " + solution);
-                     solutionR.getContent().add(solutionT);
-                     solutionP.getContent().add(solutionR);
-                     pkg.getMainDocumentPart().addObject(solutionP);
-                 }
- 
-                 // Add spacing after non-Figuren questions only
-                 if (!isFigurenQuestion) {
-                     addSpacing(pkg);
-                 }
-             }
-         }
-     }
- 
-     /**
-      * Add a stop sign page to the document with centered image or text.
-      */
-     public void addStopSignPage(WordprocessingMLPackage pkg) {
-+        // Ensure no blank page was added by previous operations
-+        removeTrailingPageBreak(pkg);
-+
-         // Create a new page
-         addPageBreak(pkg);
- 
-         // Add multiple empty paragraphs for vertical centering
-         for (int i = 0; i < 8; i++) {
-             P emptyP = factory.createP();
-             pkg.getMainDocumentPart().addObject(emptyP);
-         }
- 
-         // Create centered paragraph for stop sign
-         P centerP = factory.createP();
-         PPr pPr = factory.createPPr();
-         Jc jc = factory.createJc();
-         jc.setVal(JcEnumeration.CENTER);
-         pPr.setJc(jc);
-         centerP.setPPr(pPr);
- 
-         R stopR = factory.createR();
- 
-         // Try to add stop sign image, fallback to styled text
-         boolean imageAdded = false;
-         try {
-             imageAdded = addStopSignImage(pkg, stopR);
-         } catch (Exception e) {
-             System.out.println("Could not add stop sign image: " + e.getMessage());
-diff --git a/src/main/java/docx/Docx4jPrinter.java b/src/main/java/docx/Docx4jPrinter.java
-index c71870e85a491a3bf24ee5460c2cea8ce40e85ea..298234bf37bd20946f62ee16ad9b9c6c07146e17 100644
---- a/src/main/java/docx/Docx4jPrinter.java
-+++ b/src/main/java/docx/Docx4jPrinter.java
-@@ -317,50 +320,78 @@ public class Docx4jPrinter {
+@@ -320,62 +320,77 @@ public class Docx4jPrinter {
              rPr.setSz(fontSize);
              rPr.setSzCs(fontSize);
  
@@ -87,34 +29,54 @@ index c71870e85a491a3bf24ee5460c2cea8ce40e85ea..298234bf37bd20946f62ee16ad9b9c6c
          }
      }
  
-+    /** Remove trailing page break if the last paragraph only contains a page break. */
-+    private void removeTrailingPageBreak(WordprocessingMLPackage pkg) {
-+        java.util.List<Object> content = pkg.getMainDocumentPart().getContent();
-+        if (content.isEmpty()) {
-+            return;
-+        }
-+        Object last = content.get(content.size() - 1);
-+        if (isPageBreakParagraph(last)) {
+-    /** Remove trailing page break if the last paragraph only contains a page break. */
++    /**
++     * Remove trailing page breaks and empty paragraphs to avoid blank pages
++     * before inserting the next section.
++     */
+     private void removeTrailingPageBreak(WordprocessingMLPackage pkg) {
+         java.util.List<Object> content = pkg.getMainDocumentPart().getContent();
+-        if (content.isEmpty()) {
+-            return;
++        // Remove any empty trailing paragraphs
++        while (!content.isEmpty() && isEmptyParagraph(content.get(content.size() - 1))) {
 +            content.remove(content.size() - 1);
-+        }
-+    }
+         }
+-        Object last = content.get(content.size() - 1);
+-        if (isPageBreakParagraph(last)) {
 +
-+    /** Check if the given object is a paragraph consisting solely of a page break. */
-+    private boolean isPageBreakParagraph(Object obj) {
-+        if (obj instanceof P p) {
-+            for (Object c : p.getContent()) {
-+                Object val = c;
-+                if (c instanceof javax.xml.bind.JAXBElement) {
-+                    val = ((javax.xml.bind.JAXBElement<?>) c).getValue();
-+                }
-+                if (val instanceof Br br && br.getType() == STBrType.PAGE) {
-+                    return true;
-+                }
++        // Remove a trailing page break paragraph if present
++        if (!content.isEmpty() && isPageBreakParagraph(content.get(content.size() - 1))) {
+             content.remove(content.size() - 1);
++
++            // Also remove any empty paragraphs that may precede the page break
++            while (!content.isEmpty() && isEmptyParagraph(content.get(content.size() - 1))) {
++                content.remove(content.size() - 1);
 +            }
-+        }
-+        return false;
+         }
+     }
+ 
++    /** Check if the given object is an empty paragraph with no content. */
++    private boolean isEmptyParagraph(Object obj) {
++        return obj instanceof P p && p.getContent().isEmpty();
 +    }
 +
+     /** Check if the given object is a paragraph consisting solely of a page break. */
+     private boolean isPageBreakParagraph(Object obj) {
+         if (obj instanceof P p) {
+             for (Object c : p.getContent()) {
+                 Object val = c;
+                 if (c instanceof javax.xml.bind.JAXBElement) {
+                     val = ((javax.xml.bind.JAXBElement<?>) c).getValue();
+                 }
+                 if (val instanceof Br br && br.getType() == STBrType.PAGE) {
+                     return true;
+                 }
+             }
+         }
+         return false;
+     }
+ 
      /** Add a page break to the document. */
      public void addPageBreak(WordprocessingMLPackage pkg) {
          // Create a new paragraph
@@ -124,22 +86,6 @@ index c71870e85a491a3bf24ee5460c2cea8ce40e85ea..298234bf37bd20946f62ee16ad9b9c6c
          // Create the page-break element
          Br br = factory.createBr();
          br.setType(STBrType.PAGE);
-         // Put the break into the run, then the run into the paragraph
-         r.getContent().add(br);
-         p.getContent().add(r);
-         // Add that paragraph to the document
-         pkg.getMainDocumentPart().addObject(p);
-     }
- 
-     /**
-      * Append the provided introduction page objects to the document.
-      */
-     public void appendPage(WordprocessingMLPackage pkg, java.util.List<Object> page) {
-         for (Object o : page) {
-             pkg.getMainDocumentPart().addObject(o);
-         }
-     }
- 
  
 EOF
 )

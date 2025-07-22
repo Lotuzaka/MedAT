@@ -342,16 +342,31 @@ public class Docx4jPrinter {
         }
     }
 
-    /** Remove trailing page break if the last paragraph only contains a page break. */
+    /**
+     * Remove trailing page breaks and empty paragraphs to avoid blank pages
+     * before inserting the next section.
+     */
     private void removeTrailingPageBreak(WordprocessingMLPackage pkg) {
         java.util.List<Object> content = pkg.getMainDocumentPart().getContent();
-        if (content.isEmpty()) {
-            return;
-        }
-        Object last = content.get(content.size() - 1);
-        if (isPageBreakParagraph(last)) {
+        // Remove any empty trailing paragraphs
+        while (!content.isEmpty() && isEmptyParagraph(content.get(content.size() - 1))) {
             content.remove(content.size() - 1);
         }
+
+        // Remove a trailing page break paragraph if present
+        if (!content.isEmpty() && isPageBreakParagraph(content.get(content.size() - 1))) {
+            content.remove(content.size() - 1);
+
+            // Also remove any empty paragraphs that may precede the page break
+            while (!content.isEmpty() && isEmptyParagraph(content.get(content.size() - 1))) {
+                content.remove(content.size() - 1);
+            }
+        }
+    }
+
+    /** Check if the given object is an empty paragraph with no content. */
+    private boolean isEmptyParagraph(Object obj) {
+        return obj instanceof P p && p.getContent().isEmpty();
     }
 
     /** Check if the given object is a paragraph consisting solely of a page break. */
