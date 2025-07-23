@@ -3064,6 +3064,12 @@ public class MedatoninDB extends JFrame {
             Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage");
             
             docx.Docx4jPrinter printer = new docx.Docx4jPrinter();
+
+            // Load introduction pages from the static DOCX file
+            java.lang.reflect.Method loadMethod = printer.getClass()
+                .getMethod("loadIntroductionPages", java.io.File.class);
+            Object introPages = loadMethod.invoke(printer, new File("untertest_introductionPage.docx"));
+
             // Create document manually to avoid import issues
             java.lang.reflect.Method createMethod = Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage")
                 .getMethod("createPackage");
@@ -3076,6 +3082,14 @@ public class MedatoninDB extends JFrame {
                 DefaultTableModel model = subcategories.get(subcategory);
                 if (model == null || model.getRowCount() == 0) {
                     continue; // Skip empty subcategories
+                }
+
+                // Insert introduction page for this subcategory if available
+                Integer pageIdx = INTRO_PAGE_INDEX.get(subcategory);
+                if (pageIdx != null && introPages instanceof java.util.List && pageIdx < ((java.util.List<?>) introPages).size()) {
+                    java.lang.reflect.Method appendMethod = printer.getClass()
+                        .getMethod("appendPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), java.util.List.class);
+                    appendMethod.invoke(printer, pkg, ((java.util.List<?>) introPages).get(pageIdx));
                 }
 
                 // Add questions using reflection to avoid import issues
@@ -3166,6 +3180,12 @@ public class MedatoninDB extends JFrame {
             Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage");
             
             docx.Docx4jPrinter printer = new docx.Docx4jPrinter();
+
+            // Load introduction pages
+            java.lang.reflect.Method loadMethod = printer.getClass()
+                .getMethod("loadIntroductionPages", java.io.File.class);
+            Object introPages = loadMethod.invoke(printer, new File("untertest_introductionPage.docx"));
+
             // Create document manually to avoid import issues
             java.lang.reflect.Method createMethod = Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage")
                 .getMethod("createPackage");
@@ -3178,6 +3198,14 @@ public class MedatoninDB extends JFrame {
                 DefaultTableModel model = subcategories.get(subcategory);
                 if (model == null || model.getRowCount() == 0) {
                     continue; // Skip empty subcategories
+                }
+
+                // Insert introduction page for this subcategory if available
+                Integer pageIdx = INTRO_PAGE_INDEX.get(subcategory);
+                if (pageIdx != null && introPages instanceof java.util.List && pageIdx < ((java.util.List<?>) introPages).size()) {
+                    java.lang.reflect.Method appendMethod = printer.getClass()
+                        .getMethod("appendPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), java.util.List.class);
+                    appendMethod.invoke(printer, pkg, ((java.util.List<?>) introPages).get(pageIdx));
                 }
 
                 // Add solutions using reflection to avoid import issues
@@ -3380,7 +3408,12 @@ public class MedatoninDB extends JFrame {
             Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage");
             
             docx.Docx4jPrinter printer = new docx.Docx4jPrinter();
-            
+
+            // Load introduction pages for all subcategories
+            java.lang.reflect.Method loadMethod = printer.getClass()
+                .getMethod("loadIntroductionPages", java.io.File.class);
+            Object introPages = loadMethod.invoke(printer, new File("untertest_introductionPage.docx"));
+
             // Create document manually to avoid import issues
             java.lang.reflect.Method createMethod = Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage")
                 .getMethod("createPackage");
@@ -3399,6 +3432,14 @@ public class MedatoninDB extends JFrame {
                     DefaultTableModel model = subcategories.get(subcategory);
                     if (model == null || model.getRowCount() == 0) {
                         continue; // Skip empty subcategories
+                    }
+
+                    // Insert introduction page for this subcategory if available
+                    Integer pageIdx = INTRO_PAGE_INDEX.get(subcategory);
+                    if (pageIdx != null && introPages instanceof java.util.List && pageIdx < ((java.util.List<?>) introPages).size()) {
+                        java.lang.reflect.Method appendMethod = printer.getClass()
+                            .getMethod("appendPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), java.util.List.class);
+                        appendMethod.invoke(printer, pkg, ((java.util.List<?>) introPages).get(pageIdx));
                     }
 
                     // Add questions with solutions using reflection

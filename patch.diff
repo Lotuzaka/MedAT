@@ -1,268 +1,260 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
-diff --git a/src/main/java/docx/Docx4jPrinter.java b/src/main/java/docx/Docx4jPrinter.java
-index 83341a719890ddba9ebcb0f440f19fbdf5250878..472b1593ea7220348dcd71e40c22508c730369d1 100644
---- a/src/main/java/docx/Docx4jPrinter.java
-+++ b/src/main/java/docx/Docx4jPrinter.java
-@@ -156,50 +156,53 @@ public class Docx4jPrinter {
-                 if (isFigurenQuestion) {
-                     try {
-                         addFigurenShapeImage(pkg, questionObj);
-                     } catch (Exception e) {
-                         // If image generation fails, add a text representation
-                         P pieceP = factory.createP();
-                         R pieceR = factory.createR();
-                         Text pieceT = factory.createText();
-                         pieceT.setValue("Bausteine: " + questionObj.toString());
-                         pieceR.getContent().add(pieceT);
-                         pieceP.getContent().add(pieceR);
-                         pkg.getMainDocumentPart().addObject(pieceP);
+diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
+index 6732f74c15d1154e7075cf26e126662f7a88bd63..78fef373bdd99749b49ed36f21cb793e93cc8aed 100644
+--- a/src/main/java/MedatoninDB.java
++++ b/src/main/java/MedatoninDB.java
+@@ -3042,64 +3042,78 @@ public class MedatoninDB extends JFrame {
+             pageMar.setTop(java.math.BigInteger.valueOf(850));
+             pageMar.setBottom(java.math.BigInteger.valueOf(850));
+             pageMar.setLeft(java.math.BigInteger.valueOf(1134));
+             pageMar.setRight(java.math.BigInteger.valueOf(1134));
+             
+             debugLog("Print", LogLevel.INFO, "Set page margins: Top/Bottom=1.5cm, Left/Right=2cm");
+         } catch (Exception e) {
+             debugLog("Print", LogLevel.ERROR, "Error setting page margins: " + e.getMessage());
+         }
+     }
+ 
+     // Method to print the current category to a Word document
+     private void printCategory(String category) {
+         Map<String, DefaultTableModel> subcategories = categoryModels.get(category);
+         if (subcategories == null) {
+             JOptionPane.showMessageDialog(this, "No data available for category: " + category, "Error",
+                     JOptionPane.ERROR_MESSAGE);
+             return;
+         }
+ 
+         try {
+             // Check if docx4j is available at runtime
+             Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage");
+             
+             docx.Docx4jPrinter printer = new docx.Docx4jPrinter();
++
++            // Load introduction pages from the static DOCX file
++            java.lang.reflect.Method loadMethod = printer.getClass()
++                .getMethod("loadIntroductionPages", java.io.File.class);
++            Object introPages = loadMethod.invoke(printer, new File("untertest_introductionPage.docx"));
++
+             // Create document manually to avoid import issues
+             java.lang.reflect.Method createMethod = Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage")
+                 .getMethod("createPackage");
+             Object pkg = createMethod.invoke(null);
+             
+             // Process each subcategory
+             java.util.List<String> subcatList = subcategoryOrder.get(category);
+             for (int i = 0; i < subcatList.size(); i++) {
+                 String subcategory = subcatList.get(i);
+                 DefaultTableModel model = subcategories.get(subcategory);
+                 if (model == null || model.getRowCount() == 0) {
+                     continue; // Skip empty subcategories
+                 }
+ 
++                // Insert introduction page for this subcategory if available
++                Integer pageIdx = INTRO_PAGE_INDEX.get(subcategory);
++                if (pageIdx != null && introPages instanceof java.util.List && pageIdx < ((java.util.List<?>) introPages).size()) {
++                    java.lang.reflect.Method appendMethod = printer.getClass()
++                        .getMethod("appendPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), java.util.List.class);
++                    appendMethod.invoke(printer, pkg, ((java.util.List<?>) introPages).get(pageIdx));
++                }
++
+                 // Add questions using reflection to avoid import issues
+                 java.lang.reflect.Method addQuestionsMethod = printer.getClass()
+                     .getMethod("addQuestions", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), DefaultTableModel.class);
+                 addQuestionsMethod.invoke(printer, pkg, model);
+ 
+                 // Add stop sign page using reflection
+                 java.lang.reflect.Method addStopSignMethod = printer.getClass()
+                     .getMethod("addStopSignPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
+                 addStopSignMethod.invoke(printer, pkg);
+ 
+                 // Remove potential trailing page break from questions
+                 // (stop sign page will handle page separation)
+             }
+ 
+             // Save the document using reflection with conflict resolution
+             String baseFileName = category + ".docx";
+             File outputFile = new File(baseFileName);
+             
+             // If file is in use, try alternative names
+             int counter = 1;
+             while (!canWriteToFile(outputFile)) {
+                 String fileName = category + "_" + counter + ".docx";
+                 outputFile = new File(fileName);
+                 counter++;
+                 
+diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
+index 6732f74c15d1154e7075cf26e126662f7a88bd63..78fef373bdd99749b49ed36f21cb793e93cc8aed 100644
+--- a/src/main/java/MedatoninDB.java
++++ b/src/main/java/MedatoninDB.java
+@@ -3144,64 +3158,78 @@ public class MedatoninDB extends JFrame {
                      }
                  }
- 
-                 // Add options/answers if they exist in the model
-                 // Also skip option rows to avoid re-processing them
-                 r = addQuestionOptions(pkg, model, r);
- 
-                 // Add spacing after non-Figuren questions only
-                 if (!isFigurenQuestion) {
-                     addSpacing(pkg);
-                 }
              }
+             System.out.println("=== END CATEGORY ===");
+         } catch (Exception e) {
+             e.printStackTrace();
+             JOptionPane.showMessageDialog(this, "Error saving document: " + e.getMessage(), "Error",
+                     JOptionPane.ERROR_MESSAGE);
          }
-+
-+        // Ensure no leftover page break after the last question
-+        removeTrailingPageBreak(pkg);
      }
  
-     /**
-      * Add questions with solutions to the document with proper handling for
-      * different question types.
-      */
-     public void addQuestionsSolution(WordprocessingMLPackage pkg, DefaultTableModel model) {
-         int figurenCounter = 0; // Counter for Figuren questions
+     // Method to print the solution document for the current category
+     private void printCategorySolution(String category) {
+         Map<String, DefaultTableModel> subcategories = categoryModels.get(category);
+         if (subcategories == null) {
+             JOptionPane.showMessageDialog(this, "No data available for category: " + category, "Error",
+                     JOptionPane.ERROR_MESSAGE);
+             return;
+         }
  
-         for (int r = 0; r < model.getRowCount(); r++) {
-             String number = Objects.toString(model.getValueAt(r, 0), "");
-             Object questionObj = model.getValueAt(r, 1);
-             String solution = Objects.toString(model.getValueAt(r, 2), "");
- 
-             if (!number.isEmpty() && questionObj != null) {
-                 String questionText;
-                 boolean isFigurenQuestion = false;
- 
-                 // Handle Figuren questions (DissectedPieces objects)
-                 if (questionObj.getClass().getSimpleName().equals("DissectedPieces")) {
-                     questionText = "Welche Figur lässt sich aus den folgenden Bausteinen zusammensetzen?";
-                     isFigurenQuestion = true;
-                 } else {
-                     questionText = questionObj.toString();
+         try {
+             // Check if docx4j is available at runtime
+             Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage");
+             
+             docx.Docx4jPrinter printer = new docx.Docx4jPrinter();
++
++            // Load introduction pages
++            java.lang.reflect.Method loadMethod = printer.getClass()
++                .getMethod("loadIntroductionPages", java.io.File.class);
++            Object introPages = loadMethod.invoke(printer, new File("untertest_introductionPage.docx"));
++
+             // Create document manually to avoid import issues
+             java.lang.reflect.Method createMethod = Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage")
+                 .getMethod("createPackage");
+             Object pkg = createMethod.invoke(null);
+             
+             // Process each subcategory
+             java.util.List<String> subcatList = subcategoryOrder.get(category);
+             for (int i = 0; i < subcatList.size(); i++) {
+                 String subcategory = subcatList.get(i);
+                 DefaultTableModel model = subcategories.get(subcategory);
+                 if (model == null || model.getRowCount() == 0) {
+                     continue; // Skip empty subcategories
                  }
-diff --git a/src/main/java/docx/Docx4jPrinter.java b/src/main/java/docx/Docx4jPrinter.java
-index 83341a719890ddba9ebcb0f440f19fbdf5250878..472b1593ea7220348dcd71e40c22508c730369d1 100644
---- a/src/main/java/docx/Docx4jPrinter.java
-+++ b/src/main/java/docx/Docx4jPrinter.java
-@@ -254,114 +257,118 @@ public class Docx4jPrinter {
-                         pkg.getMainDocumentPart().addObject(pieceP);
+ 
++                // Insert introduction page for this subcategory if available
++                Integer pageIdx = INTRO_PAGE_INDEX.get(subcategory);
++                if (pageIdx != null && introPages instanceof java.util.List && pageIdx < ((java.util.List<?>) introPages).size()) {
++                    java.lang.reflect.Method appendMethod = printer.getClass()
++                        .getMethod("appendPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), java.util.List.class);
++                    appendMethod.invoke(printer, pkg, ((java.util.List<?>) introPages).get(pageIdx));
++                }
++
+                 // Add solutions using reflection to avoid import issues
+                 java.lang.reflect.Method addSolutionsMethod = printer.getClass()
+                     .getMethod("addQuestionsSolution", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), DefaultTableModel.class);
+                 addSolutionsMethod.invoke(printer, pkg, model);
+ 
+                 // Add stop sign page using reflection
+                 java.lang.reflect.Method addStopSignMethod = printer.getClass()
+                     .getMethod("addStopSignPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
+                 addStopSignMethod.invoke(printer, pkg);
+ 
+                 // Stop sign already starts a new page; no extra break needed
+             }
+ 
+             // Save the document using reflection with conflict resolution
+             String baseFileName = category + "_Solutions.docx";
+             File outputFile = new File(baseFileName);
+             
+             // If file is in use, try alternative names
+             int counter = 1;
+             while (!canWriteToFile(outputFile)) {
+                 String fileName = category + "_Solutions_" + counter + ".docx";
+                 outputFile = new File(fileName);
+                 counter++;
+                 
+                 // Prevent infinite loop
+diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
+index 6732f74c15d1154e7075cf26e126662f7a88bd63..78fef373bdd99749b49ed36f21cb793e93cc8aed 100644
+--- a/src/main/java/MedatoninDB.java
++++ b/src/main/java/MedatoninDB.java
+@@ -3358,71 +3386,84 @@ public class MedatoninDB extends JFrame {
+                             Object questionText = model.getValueAt(i, 1);
+                             if (questionText != null) {
+                                 System.out.println("    Question " + (i + 1) + ": " + questionText);
+                             }
+                         }
                      }
                  }
- 
-                 // Add options/answers if they exist in the model
-                 // Also skip option rows to avoid re-processing them
-                 r = addQuestionOptions(pkg, model, r);
- 
-                 // Add solution if available
-                 if (!solution.isEmpty()) {
-                     P solutionP = factory.createP();
-                     R solutionR = factory.createR();
-                     Text solutionT = factory.createText();
-                     solutionT.setValue("Lösung: " + solution);
-                     solutionR.getContent().add(solutionT);
-                     solutionP.getContent().add(solutionR);
-                     pkg.getMainDocumentPart().addObject(solutionP);
-                 }
- 
-                 // Add spacing after non-Figuren questions only
-                 if (!isFigurenQuestion) {
-                     addSpacing(pkg);
-                 }
+                 System.out.println(""); // Empty line between categories
              }
-         }
-+
-+        // Clean up any trailing page break from the questions
-+        removeTrailingPageBreak(pkg);
-     }
- 
-     /**
-      * Add a stop sign page to the document with centered image or text.
-      */
-     public void addStopSignPage(WordprocessingMLPackage pkg) {
--        // Ensure no blank page was added by previous operations
-+        // Ensure no leftover page break from the previous section
-         removeTrailingPageBreak(pkg);
- 
--        // Create a new page
-+        // Start the STOP page on a new sheet
-         addPageBreak(pkg);
- 
--        // Add multiple empty paragraphs for vertical centering
--        for (int i = 0; i < 8; i++) {
-+        // Add a few empty paragraphs for simple vertical centering
-+        for (int i = 0; i < 5; i++) {
-             P emptyP = factory.createP();
-             pkg.getMainDocumentPart().addObject(emptyP);
-         }
- 
-         // Create centered paragraph for stop sign
-         P centerP = factory.createP();
-         PPr pPr = factory.createPPr();
-         Jc jc = factory.createJc();
-         jc.setVal(JcEnumeration.CENTER);
-         pPr.setJc(jc);
-         centerP.setPPr(pPr);
- 
-         R stopR = factory.createR();
- 
-         // Try to add stop sign image, fallback to styled text
-         boolean imageAdded = false;
-         try {
-             imageAdded = addStopSignImage(pkg, stopR);
+             System.out.println("=== END ALL CATEGORIES ===");
          } catch (Exception e) {
-             System.out.println("Could not add stop sign image: " + e.getMessage());
-         }
- 
-         if (!imageAdded) {
-             // Fallback: Add large styled "STOP" text
-             RPr rPr = factory.createRPr();
-             HpsMeasure fontSize = factory.createHpsMeasure();
-             fontSize.setVal(java.math.BigInteger.valueOf(72)); // 36pt font
-             rPr.setSz(fontSize);
-             rPr.setSzCs(fontSize);
- 
-             // Make it bold
-             BooleanDefaultTrue bold = factory.createBooleanDefaultTrue();
-             rPr.setB(bold);
-             rPr.setBCs(bold);
- 
-             stopR.setRPr(rPr);
- 
-             Text stopText = factory.createText();
-             stopText.setValue("STOP");
-             stopR.getContent().add(stopText);
-         }
- 
-         centerP.getContent().add(stopR);
-         pkg.getMainDocumentPart().addObject(centerP);
- 
--        // Add more empty paragraphs for bottom spacing
--        for (int i = 0; i < 8; i++) {
--            P emptyP = factory.createP();
--            pkg.getMainDocumentPart().addObject(emptyP);
--        }
-+        // Minimal bottom spacing so the next page begins flush at the top
-+        P bottom = factory.createP();
-+        pkg.getMainDocumentPart().addObject(bottom);
-+
-+        // Start next section on a new page
-+        addPageBreak(pkg);
-     }
- 
-     /**
-      * Remove trailing page breaks and empty paragraphs to avoid blank pages
-      * before inserting the next section.
-      */
-     private void removeTrailingPageBreak(WordprocessingMLPackage pkg) {
-         java.util.List<Object> content = pkg.getMainDocumentPart().getContent();
-         // Remove any empty trailing paragraphs
-         while (!content.isEmpty() && isEmptyParagraph(content.get(content.size() - 1))) {
-             content.remove(content.size() - 1);
-         }
- 
-         // Remove a trailing page break paragraph if present
-         if (!content.isEmpty() && isPageBreakParagraph(content.get(content.size() - 1))) {
-             content.remove(content.size() - 1);
- 
-             // Also remove any empty paragraphs that may precede the page break
-             while (!content.isEmpty() && isEmptyParagraph(content.get(content.size() - 1))) {
-                 content.remove(content.size() - 1);
-             }
+             e.printStackTrace();
+             JOptionPane.showMessageDialog(this, "Error saving document: " + e.getMessage(), "Error",
+                     JOptionPane.ERROR_MESSAGE);
          }
      }
  
-     /** Check if the given object is an empty paragraph with no content. */
-diff --git a/src/main/java/docx/Docx4jPrinter.java b/src/main/java/docx/Docx4jPrinter.java
-index 83341a719890ddba9ebcb0f440f19fbdf5250878..472b1593ea7220348dcd71e40c22508c730369d1 100644
---- a/src/main/java/docx/Docx4jPrinter.java
-+++ b/src/main/java/docx/Docx4jPrinter.java
-@@ -995,65 +1002,67 @@ public class Docx4jPrinter {
-             pkg.getMainDocumentPart().addObject(spacingP);
-         }
- 
-         return currentRow - 1;
-     }
- 
-     /**
-      * Try to add stop sign image to the document.
-      */
-     private boolean addStopSignImage(WordprocessingMLPackage pkg, R run) {
-         String[] possiblePaths = {
-                 "stopp_sign.png",
-                 "src/main/resources/images/stopp_sign.png",
-                 "resources/images/stopp_sign.png",
-                 "images/stopp_sign.png"
-         };
- 
-         for (String path : possiblePaths) {
-             try {
-                 File imageFile = new File(path);
-                 if (imageFile.exists()) {
-                     FileInputStream fis = new FileInputStream(imageFile);
-                     byte[] imageBytes = fis.readAllBytes();
-                     fis.close();
- 
--                    addImageToRun(pkg, run, imageBytes, "stopp_sign.png");
-+                    int size = (int) (4 / 2.54 * 96); // ~4cm
-+                    addImageToRunWithSize(pkg, run, imageBytes, "stopp_sign.png", size, size);
-                     return true;
-                 }
-             } catch (Exception e) {
-                 // Continue to next path
-             }
-         }
- 
-         // Try from resources
+     // Method to print all categories and their subcategories to a single solution
+     // Word document
+     private void printAllCategoriesSolution() {
          try {
-             InputStream is = getClass().getResourceAsStream("/images/stopp_sign.png");
-             if (is != null) {
-                 byte[] imageBytes = is.readAllBytes();
-                 is.close();
--                addImageToRun(pkg, run, imageBytes, "stopp_sign.png");
-+                int size = (int) (4 / 2.54 * 96); // ~4cm
-+                addImageToRunWithSize(pkg, run, imageBytes, "stopp_sign.png", size, size);
-                 return true;
+             // Check if docx4j is available at runtime
+             Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage");
+             
+             docx.Docx4jPrinter printer = new docx.Docx4jPrinter();
+-            
++
++            // Load introduction pages for all subcategories
++            java.lang.reflect.Method loadMethod = printer.getClass()
++                .getMethod("loadIntroductionPages", java.io.File.class);
++            Object introPages = loadMethod.invoke(printer, new File("untertest_introductionPage.docx"));
++
+             // Create document manually to avoid import issues
+             java.lang.reflect.Method createMethod = Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage")
+                 .getMethod("createPackage");
+             Object pkg = createMethod.invoke(null);
+ 
+             // Iterate over all categories
+             java.util.List<String> categoryList = new java.util.ArrayList<>(categoryModels.keySet());
+             for (int c = 0; c < categoryList.size(); c++) {
+                 String category = categoryList.get(c);
+                 Map<String, DefaultTableModel> subcategories = categoryModels.get(category);
+ 
+                 // Iterate over subcategories without category/subcategory headings
+                 java.util.List<String> subcatList = subcategoryOrder.get(category);
+                 for (int i = 0; i < subcatList.size(); i++) {
+                     String subcategory = subcatList.get(i);
+                     DefaultTableModel model = subcategories.get(subcategory);
+                     if (model == null || model.getRowCount() == 0) {
+                         continue; // Skip empty subcategories
+                     }
+ 
++                    // Insert introduction page for this subcategory if available
++                    Integer pageIdx = INTRO_PAGE_INDEX.get(subcategory);
++                    if (pageIdx != null && introPages instanceof java.util.List && pageIdx < ((java.util.List<?>) introPages).size()) {
++                        java.lang.reflect.Method appendMethod = printer.getClass()
++                            .getMethod("appendPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), java.util.List.class);
++                        appendMethod.invoke(printer, pkg, ((java.util.List<?>) introPages).get(pageIdx));
++                    }
++
+                     // Add questions with solutions using reflection
+                     java.lang.reflect.Method addQuestionsSolutionMethod = printer.getClass()
+                         .getMethod("addQuestionsSolution", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), DefaultTableModel.class);
+                     addQuestionsSolutionMethod.invoke(printer, pkg, model);
+ 
+                     // Add stop sign page using reflection
+                     java.lang.reflect.Method addStopSignMethod = printer.getClass()
+                         .getMethod("addStopSignPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
+                     addStopSignMethod.invoke(printer, pkg);
+ 
+                     // Next introduction page already begins on a new page
+                 }
              }
-         } catch (Exception e) {
-             // Fallback to text
-         }
  
-         return false;
-     }
- 
-     /**
-      * Add image to a specific run.
-      */
-     private void addImageToRun(WordprocessingMLPackage pkg, R run, byte[] imageBytes, String filename)
-             throws Exception {
-         BinaryPartAbstractImage imagePart = BinaryPartAbstractImage.createImagePart(pkg, imageBytes);
-         Inline inline = imagePart.createImageInline(filename, "Image", 1, 2, false);
- 
-         // Create drawing object
-         org.docx4j.wml.Drawing drawing = factory.createDrawing();
-         drawing.getAnchorOrInline().add(inline);
-         run.getContent().add(drawing);
-     }
- 
-     /**
-      * Add image to a specific run with explicit size control.
+             // Save the document using reflection with conflict resolution
+             String baseFileName = "All_Categories_Solutions.docx";
+             File outputFile = new File(baseFileName);
+             
+             // If file is in use, try alternative names
+             int counter = 1;
+             while (!canWriteToFile(outputFile)) {
+                 String fileName = "All_Categories_Solutions_" + counter + ".docx";
+                 outputFile = new File(fileName);
+                 counter++;
+                 
  
 EOF
 )
