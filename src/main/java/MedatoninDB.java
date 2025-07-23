@@ -130,17 +130,25 @@ public class MedatoninDB extends JFrame {
 
     // Mapping of category or subcategory names to introduction page index
     private static final Map<String, Integer> INTRO_PAGE_INDEX = Map.ofEntries(
+            // Science categories
             Map.entry("Biologie", 0),
             Map.entry("Chemie", 1),
             Map.entry("Physik", 2),
             Map.entry("Mathematik", 3),
+
+            // Additional categories that may not be present in the DB
             Map.entry("Textverständnis", 4),
+
+            // KFF subtests – map both the official and database names
             Map.entry("Figuren Zusammensetzen", 5),
+            Map.entry("Figuren", 5),
             Map.entry("Gedächtnis und Merkfähigkeit (Lernphase)", 6),
+            Map.entry("Merkfähigkeiten", 6),
             Map.entry("Zahlenfolgen", 7),
             Map.entry("Wortflüssigkeit", 8),
             Map.entry("Gedächtnis und Merkfähigkeit (Abrufphase)", 9),
             Map.entry("Implikationen erkennen", 10),
+            Map.entry("Implikationen", 10),
             Map.entry("Emotionen regulieren", 11),
             Map.entry("Emotionen erkennen", 12),
             Map.entry("Soziales entscheiden", 13)
