@@ -3092,7 +3092,7 @@ public class MedatoninDB extends JFrame {
                     continue; // Skip empty subcategories
                 }
 
-                // Insert introduction page for this subcategory if available
+                // Insert introduction page for this specific subcategory (Untertest)
                 Integer pageIdx = INTRO_PAGE_INDEX.get(subcategory);
                 if (pageIdx != null && introPages instanceof java.util.List && pageIdx < ((java.util.List<?>) introPages).size()) {
                     java.lang.reflect.Method appendMethod = printer.getClass()
@@ -3208,7 +3208,7 @@ public class MedatoninDB extends JFrame {
                     continue; // Skip empty subcategories
                 }
 
-                // Insert introduction page for this subcategory if available
+                // Insert introduction page for this specific subcategory (Untertest)
                 Integer pageIdx = INTRO_PAGE_INDEX.get(subcategory);
                 if (pageIdx != null && introPages instanceof java.util.List && pageIdx < ((java.util.List<?>) introPages).size()) {
                     java.lang.reflect.Method appendMethod = printer.getClass()
