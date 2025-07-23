@@ -100,7 +100,8 @@ public class Docx4jPrinter {
      */
     public void addQuestions(WordprocessingMLPackage pkg, DefaultTableModel model) {
         int figurenCounter = 0; // Counter for Figuren questions
-        boolean isFirstQuestionOnPage = true; // Track if this is the first question on the current page
+        int nonFigCounter = 0; // Counter for non-Figuren questions
+        boolean isFirstQuestionOnPage = true; // Track if this is the first question on each page
 
         for (int r = 0; r < model.getRowCount(); r++) {
             String number = Objects.toString(model.getValueAt(r, 0), "");
@@ -118,33 +119,38 @@ public class Docx4jPrinter {
                     questionText = questionObj.toString();
                 }
 
-                // For Figuren questions: Add page break BEFORE every 4th, 7th, 10th, etc.
-                // question
-                if (isFigurenQuestion) {
-
-                    figurenCounter++;
-                    // Add page break before the 4th, 7th, 10th, etc. question (every 3rd question
-                    // starting from 4th)
-                    if (figurenCounter > 3 &&  (figurenCounter - 1) % 3 == 0) {
+                // Add page break for non-Figuren questions every 5 questions
+                if (!isFigurenQuestion) {
+                    nonFigCounter++;
+                    if (nonFigCounter > 5 && (nonFigCounter - 1) % 5 == 0) {
+                        // Remove any existing trailing breaks to avoid blank page
+                        removeTrailingPageBreak(pkg);
                         addPageBreak(pkg);
-                        isFirstQuestionOnPage = true; // Reset flag after page break
+                        isFirstQuestionOnPage = true; // Reset for new page
+                    }
+                }
+
+                // For Figuren questions: existing page break logic
+                if (isFigurenQuestion) {
+                    figurenCounter++;
+                if (figurenCounter > 3 && (figurenCounter - 1) % 3 == 0) {
+                        // Clean any trailing breaks to avoid blank page before new section
+                        removeTrailingPageBreak(pkg);
+                        addPageBreak(pkg);
+                        isFirstQuestionOnPage = true; // Reset for new page
                     }
                 }
 
                 // Add question text with special formatting for Figuren questions
                 P questionP = factory.createP();
-
-                // For Figuren questions, add special spacing: Vor 6pt, Nach 6pt, Zeilenabstand
-                // Mehrfach 1.15
-                if (isFigurenQuestion) {
-                    PPr questionPPr = factory.createPPr();
-                    PPrBase.Spacing questionSpacing = factory.createPPrBaseSpacing();
-                    questionSpacing.setBefore(BigInteger.valueOf(120)); // 6pt = 120 twips
-                    questionSpacing.setAfter(BigInteger.valueOf(120)); // 6pt = 120 twips
-                    questionSpacing.setLine(BigInteger.valueOf(276)); // 1.15 * 240 = 276 twips
-                    questionSpacing.setLineRule(STLineSpacingRule.AUTO);
-                    questionPPr.setSpacing(questionSpacing);
-                    questionP.setPPr(questionPPr);
+                // For non-Figuren first question on a page, reset default spacing
+                if (!isFigurenQuestion && isFirstQuestionOnPage) {
+                    PPr noSpacingPr = factory.createPPr();
+                    PPrBase.Spacing noSpacing = factory.createPPrBaseSpacing();
+                    noSpacing.setBefore(BigInteger.ZERO);
+                    noSpacing.setAfter(BigInteger.ZERO);
+                    noSpacingPr.setSpacing(noSpacing);
+                    questionP.setPPr(noSpacingPr);
                 }
 
                 R questionR = factory.createR();
@@ -188,8 +194,9 @@ public class Docx4jPrinter {
      * different question types.
      */
     public void addQuestionsSolution(WordprocessingMLPackage pkg, DefaultTableModel model) {
-        int figurenCounter = 0; // Counter for Figuren questions
-        boolean isFirstQuestionOnPage = true; // Track if this is the first question on the current page
+        int figurenCounter = 0;           // Counter for Figuren questions
+        int nonFigCounter = 0;            // Counter for non-Figuren questions
+        boolean isFirstQuestionOnPage = true; // Track if first question on a new page
 
         for (int r = 0; r < model.getRowCount(); r++) {
             String number = Objects.toString(model.getValueAt(r, 0), "");
@@ -208,16 +215,21 @@ public class Docx4jPrinter {
                     questionText = questionObj.toString();
                 }
 
-                // For Figuren questions: Add page break BEFORE every 4th, 7th, 10th, etc.
-                // question
-                if (isFigurenQuestion) {
+                // Page break for non-Figuren questions every 5 questions (before 6th, 11th, etc.)
+                if (!isFigurenQuestion) {
+                    nonFigCounter++;
+                    if (nonFigCounter > 5 && (nonFigCounter - 1) % 5 == 0) {
+                        addPageBreak(pkg);
+                        isFirstQuestionOnPage = true; // Start new page
+                    }
+                }
 
+                // For Figuren questions: existing page break logic
+                if (isFigurenQuestion) {
                     figurenCounter++;
-                    // Add page break before the 4th, 7th, 10th, etc. question (every 3rd question
-                    // starting from 4th)
                     if (figurenCounter > 3 && (figurenCounter - 1) % 3 == 0) {
                         addPageBreak(pkg);
-                        isFirstQuestionOnPage = true; // Reset flag after page break
+                        isFirstQuestionOnPage = true; // Reset for new page
                     }
                 }
 
