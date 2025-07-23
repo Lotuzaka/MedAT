@@ -100,6 +100,7 @@ public class Docx4jPrinter {
      */
     public void addQuestions(WordprocessingMLPackage pkg, DefaultTableModel model) {
         int figurenCounter = 0; // Counter for Figuren questions
+        boolean isFirstQuestionOnPage = true; // Track if this is the first question on the current page
 
         for (int r = 0; r < model.getRowCount(); r++) {
             String number = Objects.toString(model.getValueAt(r, 0), "");
@@ -126,6 +127,7 @@ public class Docx4jPrinter {
                     // starting from 4th)
                     if (figurenCounter > 3 &&  (figurenCounter - 1) % 3 == 0) {
                         addPageBreak(pkg);
+                        isFirstQuestionOnPage = true; // Reset flag after page break
                     }
                 }
 
@@ -170,12 +172,10 @@ public class Docx4jPrinter {
 
                 // Add options/answers if they exist in the model
                 // Also skip option rows to avoid re-processing them
-                r = addQuestionOptions(pkg, model, r);
+                r = addQuestionOptions(pkg, model, r, isFirstQuestionOnPage);
 
-                // Add spacing after non-Figuren questions only
-                if (!isFigurenQuestion) {
-                    addSpacing(pkg);
-                }
+                // Reset the first question flag after processing the first question
+                isFirstQuestionOnPage = false;
             }
         }
 
@@ -189,6 +189,7 @@ public class Docx4jPrinter {
      */
     public void addQuestionsSolution(WordprocessingMLPackage pkg, DefaultTableModel model) {
         int figurenCounter = 0; // Counter for Figuren questions
+        boolean isFirstQuestionOnPage = true; // Track if this is the first question on the current page
 
         for (int r = 0; r < model.getRowCount(); r++) {
             String number = Objects.toString(model.getValueAt(r, 0), "");
@@ -216,6 +217,7 @@ public class Docx4jPrinter {
                     // starting from 4th)
                     if (figurenCounter > 3 && (figurenCounter - 1) % 3 == 0) {
                         addPageBreak(pkg);
+                        isFirstQuestionOnPage = true; // Reset flag after page break
                     }
                 }
 
@@ -260,7 +262,7 @@ public class Docx4jPrinter {
 
                 // Add options/answers if they exist in the model
                 // Also skip option rows to avoid re-processing them
-                r = addQuestionOptions(pkg, model, r);
+                r = addQuestionOptions(pkg, model, r, isFirstQuestionOnPage);
 
                 // Add solution if available
                 if (!solution.isEmpty()) {
@@ -273,10 +275,8 @@ public class Docx4jPrinter {
                     pkg.getMainDocumentPart().addObject(solutionP);
                 }
 
-                // Add spacing after non-Figuren questions only
-                if (!isFigurenQuestion) {
-                    addSpacing(pkg);
-                }
+                // Reset the first question flag after processing the first question
+                isFirstQuestionOnPage = false;
             }
         }
 
@@ -922,7 +922,7 @@ public class Docx4jPrinter {
      * and proper A-E labels. Returns the last row index that was processed so the
      * caller can skip option rows.
      */
-    private int addQuestionOptions(WordprocessingMLPackage pkg, DefaultTableModel model, int startRow) {
+    private int addQuestionOptions(WordprocessingMLPackage pkg, DefaultTableModel model, int startRow, boolean isFirstQuestionOnPage) {
         // Look for options in subsequent rows
         int currentRow = startRow + 1;
 
@@ -997,9 +997,11 @@ public class Docx4jPrinter {
                 pkg.getMainDocumentPart().addObject(optionP);
             }
 
-            // Add spacing after all options
-            P spacingP = factory.createP();
-            pkg.getMainDocumentPart().addObject(spacingP);
+            // Add spacing after all options only if this is NOT the first question on the page
+            if (!isFirstQuestionOnPage) {
+                P spacingP = factory.createP();
+                pkg.getMainDocumentPart().addObject(spacingP);
+            }
         }
 
         return currentRow - 1;
@@ -1024,7 +1026,7 @@ public class Docx4jPrinter {
                     byte[] imageBytes = fis.readAllBytes();
                     fis.close();
 
-                    int size = (int) (4 / 2.54 * 96); // ~4cm
+                    int size = (int) (10 / 2.54 * 96); // ~10cm (increased from 4cm)
                     addImageToRunWithSize(pkg, run, imageBytes, "stopp_sign.png", size, size);
                     return true;
                 }
@@ -1039,7 +1041,7 @@ public class Docx4jPrinter {
             if (is != null) {
                 byte[] imageBytes = is.readAllBytes();
                 is.close();
-                int size = (int) (4 / 2.54 * 96); // ~4cm
+                int size = (int) (10 / 2.54 * 96); // ~10cm (increased from 4cm)
                 addImageToRunWithSize(pkg, run, imageBytes, "stopp_sign.png", size, size);
                 return true;
             }
