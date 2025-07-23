@@ -3313,13 +3313,6 @@ public class MedatoninDB extends JFrame {
             Object pkg = createMethod.invoke(null);
 
             for (String category : categoryModels.keySet()) {
-                Integer catIndex = INTRO_PAGE_INDEX.get(category);
-                if (catIndex != null && introPages instanceof List && catIndex < ((List<?>) introPages).size()) {
-                    java.lang.reflect.Method appendMethod = printer.getClass()
-                        .getMethod("appendPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), List.class);
-                    appendMethod.invoke(printer, pkg, ((List<?>) introPages).get(catIndex));
-                }
-
                 Map<String, DefaultTableModel> subcats = categoryModels.get(category);
                 for (String subcat : subcategoryOrder.get(category)) {
                     Integer pageIdx = INTRO_PAGE_INDEX.get(subcat);
