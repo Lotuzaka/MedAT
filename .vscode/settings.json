@@ -11,15 +11,51 @@
         "org.mockito.ArgumentMatchers.*",
         "org.mockito.Answers.*"
     ],
-    "java.configuration.updateBuildConfiguration": "automatic",
-    "emeraldwalk.runonsave": {
-        "commands": [
-            {
-                "match": ".*",
-                "cmd": "git add .; git commit -m \"auto\"; git push"
-            }
-        ],
-        "chatgpt.lang": "en",
-        "amazonQ.workspaceIndex": true
-    }
+    "java.configuration.updateBuildConfiguration": "interactive",
+    
+    // DISABLED: This was causing freezing when switching focus
+    // "emeraldwalk.runonsave": {
+    //     "commands": [
+    //         {
+    //             "match": ".*",
+    //             "cmd": "git add .; git commit -m \"auto\"; git push"
+    //         }
+    //     ]
+    // },
+    
+    // Performance improvements - Enhanced according to diagnosis
+    "files.watcherExclude": {
+        "**/target/**": true,
+        "**/.git/**": true,
+        "**/node_modules/**": true,
+        "**/*.class": true,
+        "**/*.jar": true,
+        "**/*.docx": true,
+        "**/*.exe": true,
+        "**/hs_err_pid*.log": true
+    },
+    
+    "search.exclude": {
+        "**/target": true,
+        "**/.git": true,
+        "**/node_modules": true,
+        "**/*.class": true,
+        "**/*.jar": true,
+        "**/*.docx": true
+    },
+    
+    // Java-Server optimized
+    "java.jdt.ls.vmargs": "-Xms128m -Xmx2048m -XX:+UseG1GC -XX:+UseStringDeduplication",
+    "java.import.gradle.enabled": false,
+    "java.import.maven.enabled": true,
+    "java.inlayHints.parameterNames.enabled": "none",
+    "java.compile.nullAnalysis.mode": "disabled",
+    "java.completion.maxResults": 20,
+    
+    // Copilot entschärfen (testweise)
+    "github.copilot.inlineSuggest.enable": false,
+    "github.copilot.editor.enableAutoCompletions": false,
+    
+    "chatgpt.lang": "en",
+    "amazonQ.workspaceIndex": true
 }

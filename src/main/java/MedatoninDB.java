@@ -3355,38 +3355,107 @@ public class MedatoninDB extends JFrame {
                 .getMethod("createPackage");
             Object pkg = createMethod.invoke(null);
             
-            // Process each subcategory
+            // Process each subcategory with special handling for Gedächtnis- und Merkfähigkeit
             java.util.List<String> subcatList = subcategoryOrder.get(category);
             int totalSubcategories = subcatList.size();
             
-            for (int i = 0; i < subcatList.size(); i++) {
-                String subcategory = subcatList.get(i);
-                DefaultTableModel model = subcategories.get(subcategory);
-                if (model == null || model.getRowCount() == 0) {
-                    continue; // Skip empty subcategories
+            // Check if we need to handle Gedächtnis- und Merkfähigkeit special case
+            boolean hasGedaechtnisSubcat = subcatList.contains("Merkfähigkeiten");
+            java.util.List<String> processOrder = new java.util.ArrayList<>();
+            
+            // Build the processing order with proper Gedächtnis handling
+            for (String subcat : subcatList) {
+                if (subcat.equals("Figuren")) {
+                    processOrder.add(subcat);
+                } else if (subcat.equals("Merkfähigkeiten") && hasGedaechtnisSubcat) {
+                    // Add Lernphase first, right after Figuren
+                    processOrder.add("Gedächtnis und Merkfähigkeit (Lernphase)");
+                    // Merkfähigkeiten (Abrufphase) will be added later in correct position
+                } else if (!subcat.equals("Merkfähigkeiten")) {
+                    processOrder.add(subcat);
                 }
-
+            }
+            
+            // Add Abrufphase at the end if Merkfähigkeiten exists
+            if (hasGedaechtnisSubcat) {
+                processOrder.add("Gedächtnis und Merkfähigkeit (Abrufphase)");
+            }
+            
+            for (int i = 0; i < processOrder.size(); i++) {
+                String subcategory = processOrder.get(i);
+                
                 // Update progress based on current subcategory
-                int progress = 30 + (i * 30 / totalSubcategories);
+                int progress = 30 + (i * 30 / processOrder.size());
                 updateStatus("Processing " + subcategory + "...", progress);
 
-                // Insert introduction page for this specific subcategory (Untertest)
-                String introContent = getIntroContent(subcategory);
-                if (introContent != null) {
-                    java.lang.reflect.Method addIntroMethod = printer.getClass()
-                        .getMethod("addIntroductionPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), String.class);
-                    addIntroMethod.invoke(printer, pkg, introContent);
+                // Handle special Gedächtnis subcategories
+                if (subcategory.equals("Gedächtnis und Merkfähigkeit (Lernphase)")) {
+                    // Add introduction page for Lernphase
+                    String introContent = getIntroContent(subcategory);
+                    if (introContent != null) {
+                        java.lang.reflect.Method addIntroMethod = printer.getClass()
+                            .getMethod("addIntroductionPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), String.class);
+                        addIntroMethod.invoke(printer, pkg, introContent);
+                    }
+                    
+                    // Add allergy cards (2 per page, 8 total = 4 pages)
+                    java.lang.reflect.Method addAllergyMethod = printer.getClass()
+                        .getDeclaredMethod("addAllergyCards", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), java.sql.Connection.class, Integer.class);
+                    addAllergyMethod.setAccessible(true);
+                    addAllergyMethod.invoke(printer, pkg, conn, selectedSimulationId);
+                    
+                    // Add stop sign page
+                    java.lang.reflect.Method addStopSignMethod = printer.getClass()
+                        .getMethod("addStopSignPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
+                    addStopSignMethod.invoke(printer, pkg);
+                    
+                } else if (subcategory.equals("Gedächtnis und Merkfähigkeit (Abrufphase)")) {
+                    // Add introduction page for Abrufphase
+                    String introContent = getIntroContent(subcategory);
+                    if (introContent != null) {
+                        java.lang.reflect.Method addIntroMethod = printer.getClass()
+                            .getMethod("addIntroductionPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), String.class);
+                        addIntroMethod.invoke(printer, pkg, introContent);
+                    }
+                    
+                    // Add questions from original Merkfähigkeiten subcategory
+                    DefaultTableModel model = subcategories.get("Merkfähigkeiten");
+                    if (model != null && model.getRowCount() > 0) {
+                        java.lang.reflect.Method addQuestionsMethod = printer.getClass()
+                            .getMethod("addQuestions", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), DefaultTableModel.class);
+                        addQuestionsMethod.invoke(printer, pkg, model);
+                    }
+                    
+                    // Add stop sign page
+                    java.lang.reflect.Method addStopSignMethod = printer.getClass()
+                        .getMethod("addStopSignPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
+                    addStopSignMethod.invoke(printer, pkg);
+                    
+                } else {
+                    // Regular subcategory processing
+                    DefaultTableModel model = subcategories.get(subcategory);
+                    if (model == null || model.getRowCount() == 0) {
+                        continue; // Skip empty subcategories
+                    }
+
+                    // Insert introduction page for this specific subcategory (Untertest)
+                    String introContent = getIntroContent(subcategory);
+                    if (introContent != null) {
+                        java.lang.reflect.Method addIntroMethod = printer.getClass()
+                            .getMethod("addIntroductionPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), String.class);
+                        addIntroMethod.invoke(printer, pkg, introContent);
+                    }
+
+                    // Add questions using reflection to avoid import issues
+                    java.lang.reflect.Method addQuestionsMethod = printer.getClass()
+                        .getMethod("addQuestions", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), DefaultTableModel.class);
+                    addQuestionsMethod.invoke(printer, pkg, model);
+
+                    // Add stop sign page using reflection
+                    java.lang.reflect.Method addStopSignMethod = printer.getClass()
+                        .getMethod("addStopSignPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
+                    addStopSignMethod.invoke(printer, pkg);
                 }
-
-                // Add questions using reflection to avoid import issues
-                java.lang.reflect.Method addQuestionsMethod = printer.getClass()
-                    .getMethod("addQuestions", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), DefaultTableModel.class);
-                addQuestionsMethod.invoke(printer, pkg, model);
-
-                // Add stop sign page using reflection
-                java.lang.reflect.Method addStopSignMethod = printer.getClass()
-                    .getMethod("addStopSignPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
-                addStopSignMethod.invoke(printer, pkg);
 
                 // Remove potential trailing page break from questions
                 // (stop sign page will handle page separation)
@@ -3462,32 +3531,102 @@ public class MedatoninDB extends JFrame {
                 .getMethod("createPackage");
             Object pkg = createMethod.invoke(null);
             
-            // Process each subcategory
+            // Process each subcategory with special handling for Gedächtnis- und Merkfähigkeit
             java.util.List<String> subcatList = subcategoryOrder.get(category);
-            for (int i = 0; i < subcatList.size(); i++) {
-                String subcategory = subcatList.get(i);
-                DefaultTableModel model = subcategories.get(subcategory);
-                if (model == null || model.getRowCount() == 0) {
-                    continue; // Skip empty subcategories
+            
+            // Check if we need to handle Gedächtnis- und Merkfähigkeit special case
+            boolean hasGedaechtnisSubcat = subcatList.contains("Merkfähigkeiten");
+            java.util.List<String> processOrder = new java.util.ArrayList<>();
+            
+            // Build the processing order with proper Gedächtnis handling
+            for (String subcat : subcatList) {
+                if (subcat.equals("Figuren")) {
+                    processOrder.add(subcat);
+                } else if (subcat.equals("Merkfähigkeiten") && hasGedaechtnisSubcat) {
+                    // Add Lernphase first, right after Figuren
+                    processOrder.add("Gedächtnis und Merkfähigkeit (Lernphase)");
+                    // Merkfähigkeiten (Abrufphase) will be added later in correct position
+                } else if (!subcat.equals("Merkfähigkeiten")) {
+                    processOrder.add(subcat);
                 }
+            }
+            
+            // Add Abrufphase at the end if Merkfähigkeiten exists
+            if (hasGedaechtnisSubcat) {
+                processOrder.add("Gedächtnis und Merkfähigkeit (Abrufphase)");
+            }
+            
+            for (int i = 0; i < processOrder.size(); i++) {
+                String subcategory = processOrder.get(i);
 
-                // Insert introduction page for this specific subcategory (Untertest)
-                String introContent = getIntroContent(subcategory);
-                if (introContent != null) {
-                    java.lang.reflect.Method addIntroMethod = printer.getClass()
-                        .getMethod("addIntroductionPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), String.class);
-                    addIntroMethod.invoke(printer, pkg, introContent);
+                // Handle special Gedächtnis subcategories
+                if (subcategory.equals("Gedächtnis und Merkfähigkeit (Lernphase)")) {
+                    // Add introduction page for Lernphase
+                    String introContent = getIntroContent(subcategory);
+                    if (introContent != null) {
+                        java.lang.reflect.Method addIntroMethod = printer.getClass()
+                            .getMethod("addIntroductionPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), String.class);
+                        addIntroMethod.invoke(printer, pkg, introContent);
+                    }
+                    
+                    // Add allergy cards (2 per page, 8 total = 4 pages) - no solutions needed for cards
+                    java.lang.reflect.Method addAllergyMethod = printer.getClass()
+                        .getDeclaredMethod("addAllergyCards", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), java.sql.Connection.class, Integer.class);
+                    addAllergyMethod.setAccessible(true);
+                    addAllergyMethod.invoke(printer, pkg, conn, selectedSimulationId);
+                    
+                    // Add stop sign page
+                    java.lang.reflect.Method addStopSignMethod = printer.getClass()
+                        .getMethod("addStopSignPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
+                    addStopSignMethod.invoke(printer, pkg);
+                    
+                } else if (subcategory.equals("Gedächtnis und Merkfähigkeit (Abrufphase)")) {
+                    // Add introduction page for Abrufphase
+                    String introContent = getIntroContent(subcategory);
+                    if (introContent != null) {
+                        java.lang.reflect.Method addIntroMethod = printer.getClass()
+                            .getMethod("addIntroductionPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), String.class);
+                        addIntroMethod.invoke(printer, pkg, introContent);
+                    }
+                    
+                    // Add solutions from original Merkfähigkeiten subcategory
+                    DefaultTableModel model = subcategories.get("Merkfähigkeiten");
+                    if (model != null && model.getRowCount() > 0) {
+                        java.lang.reflect.Method addSolutionsMethod = printer.getClass()
+                            .getMethod("addQuestionsSolution", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), DefaultTableModel.class);
+                        addSolutionsMethod.invoke(printer, pkg, model);
+                    }
+                    
+                    // Add stop sign page
+                    java.lang.reflect.Method addStopSignMethod = printer.getClass()
+                        .getMethod("addStopSignPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
+                    addStopSignMethod.invoke(printer, pkg);
+                    
+                } else {
+                    // Regular subcategory processing
+                    DefaultTableModel model = subcategories.get(subcategory);
+                    if (model == null || model.getRowCount() == 0) {
+                        continue; // Skip empty subcategories
+                    }
+
+                    // Insert introduction page for this specific subcategory (Untertest)
+                    String introContent = getIntroContent(subcategory);
+                    if (introContent != null) {
+                        java.lang.reflect.Method addIntroMethod = printer.getClass()
+                            .getMethod("addIntroductionPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), String.class);
+                        addIntroMethod.invoke(printer, pkg, introContent);
+                    }
+
+                    // Add solutions using reflection to avoid import issues
+                    java.lang.reflect.Method addSolutionsMethod = printer.getClass()
+                        .getMethod("addQuestionsSolution", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), DefaultTableModel.class);
+                    addSolutionsMethod.invoke(printer, pkg, model);
+
+                    // Add stop sign page using reflection
+                    java.lang.reflect.Method addStopSignMethod = printer.getClass()
+                        .getMethod("addStopSignPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
+                    addStopSignMethod.invoke(printer, pkg);
                 }
-
-                // Add solutions using reflection to avoid import issues
-                java.lang.reflect.Method addSolutionsMethod = printer.getClass()
-                    .getMethod("addQuestionsSolution", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), DefaultTableModel.class);
-                addSolutionsMethod.invoke(printer, pkg, model);
-
-                // Add stop sign page using reflection
-                java.lang.reflect.Method addStopSignMethod = printer.getClass()
-                    .getMethod("addStopSignPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
-                addStopSignMethod.invoke(printer, pkg);
 
                 // Stop sign already starts a new page; no extra break needed
             }
@@ -3556,48 +3695,47 @@ public class MedatoninDB extends JFrame {
             
             docx.Docx4jPrinter printer = new docx.Docx4jPrinter();
             
-            // Create document manually to avoid import issues
-            java.lang.reflect.Method createMethod = Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage")
-                .getMethod("createPackage");
-            Object pkg = createMethod.invoke(null);
-
-            // Calculate total subcategories for progress tracking
-            int totalSubcategories = 0;
-            for (String category : categoryModels.keySet()) {
-                totalSubcategories += subcategoryOrder.get(category).size();
+            updateStatus("Loading introduction templates...", 10);
+            
+            // Load introduction templates using reflection (if available)
+            Object introPagesMap = null;
+            try {
+                java.lang.reflect.Method loadIntroMethod = printer.getClass()
+                    .getMethod("loadIntroductionPagesMap", java.io.File.class);
+                introPagesMap = loadIntroMethod.invoke(printer, new java.io.File("intro_templates.docx"));
+            } catch (Exception introEx) {
+                // If loading templates fails, create empty map and use template engine
+                introPagesMap = new java.util.HashMap<String, java.util.List<Object>>();
+                debugLog("Template", LogLevel.WARN, "Could not load intro_templates.docx, will use template engine: " + introEx.getMessage());
             }
             
-            int processedCount = 0;
+            updateStatus("Building complete document with memory test phases...", 20);
+            
+            // Collect all subcategories from all categories for proper ordering
+            java.util.List<String> allSubcategories = new java.util.ArrayList<>();
+            java.util.Map<String, javax.swing.table.DefaultTableModel> allSubcats = new java.util.HashMap<>();
+            
             for (String category : categoryModels.keySet()) {
                 Map<String, DefaultTableModel> subcats = categoryModels.get(category);
-                for (String subcat : subcategoryOrder.get(category)) {
-                    // Update progress
-                    int progress = 20 + (processedCount * 50 / totalSubcategories);
-                    updateStatus("Processing " + subcat + " (" + category + ")...", progress);
-                    processedCount++;
-                    
-                    String introContent = getIntroContent(subcat);
-                    if (introContent != null) {
-                        java.lang.reflect.Method addIntroMethod = printer.getClass()
-                            .getMethod("addIntroductionPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), String.class);
-                        addIntroMethod.invoke(printer, pkg, introContent);
-                    }
-
-                    DefaultTableModel model = subcats.get(subcat);
-                    if (model != null && model.getRowCount() > 0) {
-                        // Add questions using reflection
-                        java.lang.reflect.Method addQuestionsMethod = printer.getClass()
-                            .getMethod("addQuestions", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), DefaultTableModel.class);
-                        addQuestionsMethod.invoke(printer, pkg, model);
-                        
-                        // Add page break using reflection
-                        java.lang.reflect.Method addPageBreakMethod = printer.getClass()
-                            .getMethod("addPageBreak", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
-                        addPageBreakMethod.invoke(printer, pkg);
-                    }
+                java.util.List<String> orderList = subcategoryOrder.get(category);
+                for (String subcat : orderList) {
+                    allSubcategories.add(subcat);
+                    allSubcats.put(subcat, subcats.get(subcat));
                 }
             }
+            
+            // Use the new buildDocumentComplete method with proper memory test ordering
+            java.lang.reflect.Method buildCompleteMethod = printer.getClass()
+                .getMethod("buildDocumentComplete", 
+                    java.util.Map.class, 
+                    java.util.List.class, 
+                    java.util.Map.class,
+                    java.sql.Connection.class,
+                    Integer.class);
+            Object pkg = buildCompleteMethod.invoke(printer, allSubcats, allSubcategories, introPagesMap, conn, selectedSimulationId);
 
+            updateStatus("Saving document...", 80);
+            
             // Save the document using reflection with conflict resolution
             String baseFileName = "All_Categories.docx";
             File outputFile = new File(baseFileName);
@@ -3673,32 +3811,102 @@ public class MedatoninDB extends JFrame {
                 String category = categoryList.get(c);
                 Map<String, DefaultTableModel> subcategories = categoryModels.get(category);
 
-                // Iterate over subcategories without category/subcategory headings
+                // Iterate over subcategories with special handling for Gedächtnis- und Merkfähigkeit
                 java.util.List<String> subcatList = subcategoryOrder.get(category);
-                for (int i = 0; i < subcatList.size(); i++) {
-                    String subcategory = subcatList.get(i);
-                    DefaultTableModel model = subcategories.get(subcategory);
-                    if (model == null || model.getRowCount() == 0) {
-                        continue; // Skip empty subcategories
+                
+                // Check if we need to handle Gedächtnis- und Merkfähigkeit special case
+                boolean hasGedaechtnisSubcat = subcatList.contains("Merkfähigkeiten");
+                java.util.List<String> processOrder = new java.util.ArrayList<>();
+                
+                // Build the processing order with proper Gedächtnis handling
+                for (String subcat : subcatList) {
+                    if (subcat.equals("Figuren")) {
+                        processOrder.add(subcat);
+                    } else if (subcat.equals("Merkfähigkeiten") && hasGedaechtnisSubcat) {
+                        // Add Lernphase first, right after Figuren
+                        processOrder.add("Gedächtnis und Merkfähigkeit (Lernphase)");
+                        // Merkfähigkeiten (Abrufphase) will be added later in correct position
+                    } else if (!subcat.equals("Merkfähigkeiten")) {
+                        processOrder.add(subcat);
                     }
+                }
+                
+                // Add Abrufphase at the end if Merkfähigkeiten exists
+                if (hasGedaechtnisSubcat) {
+                    processOrder.add("Gedächtnis und Merkfähigkeit (Abrufphase)");
+                }
+                
+                for (int i = 0; i < processOrder.size(); i++) {
+                    String subcategory = processOrder.get(i);
 
-                    // Insert introduction page for this subcategory if available
-                    String introContent = getIntroContent(subcategory);
-                    if (introContent != null) {
-                        java.lang.reflect.Method addIntroMethod = printer.getClass()
-                            .getMethod("addIntroductionPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), String.class);
-                        addIntroMethod.invoke(printer, pkg, introContent);
+                    // Handle special Gedächtnis subcategories
+                    if (subcategory.equals("Gedächtnis und Merkfähigkeit (Lernphase)")) {
+                        // Add introduction page for Lernphase
+                        String introContent = getIntroContent(subcategory);
+                        if (introContent != null) {
+                            java.lang.reflect.Method addIntroMethod = printer.getClass()
+                                .getMethod("addIntroductionPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), String.class);
+                            addIntroMethod.invoke(printer, pkg, introContent);
+                        }
+                        
+                        // Add allergy cards (2 per page, 8 total = 4 pages) - no solutions needed for cards
+                        java.lang.reflect.Method addAllergyMethod = printer.getClass()
+                            .getDeclaredMethod("addAllergyCards", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), java.sql.Connection.class, Integer.class);
+                        addAllergyMethod.setAccessible(true);
+                        addAllergyMethod.invoke(printer, pkg, conn, selectedSimulationId);
+                        
+                        // Add stop sign page
+                        java.lang.reflect.Method addStopSignMethod = printer.getClass()
+                            .getMethod("addStopSignPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
+                        addStopSignMethod.invoke(printer, pkg);
+                        
+                    } else if (subcategory.equals("Gedächtnis und Merkfähigkeit (Abrufphase)")) {
+                        // Add introduction page for Abrufphase
+                        String introContent = getIntroContent(subcategory);
+                        if (introContent != null) {
+                            java.lang.reflect.Method addIntroMethod = printer.getClass()
+                                .getMethod("addIntroductionPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), String.class);
+                            addIntroMethod.invoke(printer, pkg, introContent);
+                        }
+                        
+                        // Add solutions from original Merkfähigkeiten subcategory
+                        DefaultTableModel model = subcategories.get("Merkfähigkeiten");
+                        if (model != null && model.getRowCount() > 0) {
+                            java.lang.reflect.Method addQuestionsSolutionMethod = printer.getClass()
+                                .getMethod("addQuestionsSolution", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), DefaultTableModel.class);
+                            addQuestionsSolutionMethod.invoke(printer, pkg, model);
+                        }
+                        
+                        // Add stop sign page
+                        java.lang.reflect.Method addStopSignMethod = printer.getClass()
+                            .getMethod("addStopSignPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
+                        addStopSignMethod.invoke(printer, pkg);
+                        
+                    } else {
+                        // Regular subcategory processing
+                        DefaultTableModel model = subcategories.get(subcategory);
+                        if (model == null || model.getRowCount() == 0) {
+                            continue; // Skip empty subcategories
+                        }
+
+                        // Insert introduction page for this subcategory if available
+                        String introContent = getIntroContent(subcategory);
+                        if (introContent != null) {
+                            java.lang.reflect.Method addIntroMethod = printer.getClass()
+                                .getMethod("addIntroductionPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), String.class);
+                            addIntroMethod.invoke(printer, pkg, introContent);
+                        }
+
+                        // Add questions with solutions using reflection
+                        java.lang.reflect.Method addQuestionsSolutionMethod = printer.getClass()
+                            .getMethod("addQuestionsSolution", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), DefaultTableModel.class);
+                        addQuestionsSolutionMethod.invoke(printer, pkg, model);
+
+                        // Add stop sign page using reflection
+                        java.lang.reflect.Method addStopSignMethod = printer.getClass()
+                            .getMethod("addStopSignPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
+                        addStopSignMethod.invoke(printer, pkg);
                     }
-
-                    // Add questions with solutions using reflection
-                    java.lang.reflect.Method addQuestionsSolutionMethod = printer.getClass()
-                        .getMethod("addQuestionsSolution", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), DefaultTableModel.class);
-                    addQuestionsSolutionMethod.invoke(printer, pkg, model);
-
-                    // Add stop sign page using reflection
-                    java.lang.reflect.Method addStopSignMethod = printer.getClass()
-                        .getMethod("addStopSignPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
-                    addStopSignMethod.invoke(printer, pkg);
 
                     // Next introduction page already begins on a new page
                 }

@@ -1,3 +1,4 @@
+TemplateEngineTest.class
 merk\MerkQuestionEngine$1.class
 docx\Docx4jPrinter.class
 TestMain.class
@@ -6,6 +7,7 @@ MedatoninDB$12.class
 util\Pair.class
 ui\merkfaehigkeit\AllergyCardPanel$DigitFilter.class
 MedatoninDB$ToastNotification.class
+QuickTemplateTest.class
 ZahlenfolgenGenerator$Zahlenfolge.class
 TestAllergyCardUI.class
 MedatoninDB$2.class

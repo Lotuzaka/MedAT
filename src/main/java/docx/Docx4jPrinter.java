@@ -143,6 +143,152 @@ public WordprocessingMLPackage buildDocument(
     return pkg;
 }
 
+/**
+ * Build a complete document with proper ordering including memory test phases:
+ * 1. Figuren
+ * 2. Gedächtnis- und Merkfähigkeit (Lernphase) - displays allergy cards
+ * 3. Zahlenfolgen
+ * 4. Wortflüssigkeit
+ * 5. Gedächtnis- und Merkfähigkeit (Abrufphase) - questions about the cards
+ * 6. Other subcategories...
+ */
+public WordprocessingMLPackage buildDocumentComplete(
+        Map<String, DefaultTableModel> subcats,
+        List<String> order,
+        Map<String,List<Object>> introPagesMap,
+        java.sql.Connection conn,
+        Integer sessionId
+    ) throws Docx4JException {
+
+    WordprocessingMLPackage pkg = WordprocessingMLPackage.createPackage();
+    
+    // Define the proper order for memory test
+    List<String> reorderedSubcats = new ArrayList<>();
+    
+    // 1. First add Figuren if it exists
+    if (order.contains("Figuren")) {
+        reorderedSubcats.add("Figuren");
+    }
+    
+    // 2. Add Gedächtnis- und Merkfähigkeit (Lernphase)
+    reorderedSubcats.add("Gedächtnis und Merkfähigkeit (Lernphase)");
+    
+    // 3. Add Zahlenfolgen if it exists
+    if (order.contains("Zahlenfolgen")) {
+        reorderedSubcats.add("Zahlenfolgen");
+    }
+    
+    // 4. Add Wortflüssigkeit if it exists  
+    if (order.contains("Wortflüssigkeit") || order.contains("Wortfluessigkeit")) {
+        reorderedSubcats.add(order.contains("Wortflüssigkeit") ? "Wortflüssigkeit" : "Wortfluessigkeit");
+    }
+    
+    // 5. Add other subcategories (except Merkfähigkeiten which becomes Abrufphase)
+    for (String subcat : order) {
+        if (!subcat.equals("Figuren") && !subcat.equals("Zahlenfolgen") && 
+            !subcat.equals("Wortflüssigkeit") && !subcat.equals("Wortfluessigkeit") && 
+            !subcat.equals("Merkfähigkeiten")) {
+            reorderedSubcats.add(subcat);
+        }
+    }
+    
+    // 6. Add Gedächtnis- und Merkfähigkeit (Abrufphase) at the end
+    if (order.contains("Merkfähigkeiten")) {
+        reorderedSubcats.add("Gedächtnis und Merkfähigkeit (Abrufphase)");
+    }
+
+    for (int i = 0; i < reorderedSubcats.size(); i++) {
+        String rawSubcat = reorderedSubcats.get(i);
+        String key = rawSubcat.toLowerCase().trim();
+
+        // Handle Lernphase
+        if (rawSubcat.equals("Gedächtnis und Merkfähigkeit (Lernphase)")) {
+            // Add introduction page for Lernphase
+            List<Object> intro = introPagesMap.get(key);
+            if (intro == null) {
+                // Fallback search
+                for (String cand : introPagesMap.keySet()) {
+                    if (cand.contains("lernphase")) {
+                        intro = introPagesMap.get(cand);
+                        break;
+                    }
+                }
+            }
+            
+            if (intro != null) {
+                for (Object o : intro) {
+                    pkg.getMainDocumentPart().addObject(o);
+                }
+                addPageBreak(pkg);
+            }
+            
+            // Add allergy cards (2 per page, total 8 cards = 4 pages)
+            addAllergyCards(pkg, conn, sessionId);
+            
+        } else if (rawSubcat.equals("Gedächtnis und Merkfähigkeit (Abrufphase)")) {
+            // Handle Abrufphase - use Merkfähigkeiten data but different intro
+            List<Object> intro = introPagesMap.get(key);
+            if (intro == null) {
+                // Fallback search
+                for (String cand : introPagesMap.keySet()) {
+                    if (cand.contains("abrufphase")) {
+                        intro = introPagesMap.get(cand);
+                        break;
+                    }
+                }
+            }
+            
+            if (intro != null) {
+                for (Object o : intro) {
+                    pkg.getMainDocumentPart().addObject(o);
+                }
+                addPageBreak(pkg);
+            }
+            
+            // Add questions from Merkfähigkeiten
+            DefaultTableModel model = subcats.get("Merkfähigkeiten");
+            if (model != null) {
+                addQuestions(pkg, model);
+            }
+            
+        } else {
+            // Regular subcategory processing
+            // 1) find matching intro page
+            List<Object> intro = introPagesMap.get(key);
+            if (intro == null) {
+                // fallback: any map-key that contains our subcat name
+                for (String cand : introPagesMap.keySet()) {
+                    if (cand.contains(key)) {
+                        intro = introPagesMap.get(cand);
+                        break;
+                    }
+                }
+            }
+
+            // 2) insert intro + break
+            if (intro != null) {
+                for (Object o : intro) {
+                    pkg.getMainDocumentPart().addObject(o);
+                }
+                addPageBreak(pkg);
+            }
+
+            // 3) render questions for this subcategory
+            DefaultTableModel model = subcats.get(rawSubcat);
+            if (model != null) {
+                addQuestions(pkg, model);
+            }
+        }
+
+        // 4) break *between* subsections, but not after the last one
+        if (i < reorderedSubcats.size() - 1) {
+            addPageBreak(pkg);
+        }
+    }
+
+    return pkg;
+}
+
     /**
      * Append the given question table to the document with proper handling for
      * different question types.
@@ -172,7 +318,8 @@ public WordprocessingMLPackage buildDocument(
                 if (!isFigurenQuestion) {
                     nonFigCounter++;
                     if (nonFigCounter > 5 && (nonFigCounter - 1) % 5 == 0) {
-                        // Remove any existing trailing breaks to avoid blank page
+                        // Add page break before starting the 6th, 11th, 16th... question
+                        // This ensures the break happens at the end of the previous page
                         removeTrailingPageBreak(pkg);
                         addPageBreak(pkg);
                         isFirstQuestionOnPage = true; // Reset for new page
@@ -559,27 +706,427 @@ public WordprocessingMLPackage buildDocument(
         }
         
         // 4. Add example section with "Beispielaufgabe:" bold
-        for (String exampleLine : exampleLines) {
+        for (int idx = 0; idx < exampleLines.size(); idx++) {
+            String exampleLine = exampleLines.get(idx);
+
+            // Combine the two premise lines for Implikationen examples
+            if (headerLine.contains("Implikationen") && exampleLine.startsWith("\"")
+                    && idx + 1 < exampleLines.size() && exampleLines.get(idx + 1).startsWith("\"")) {
+                String combined = exampleLine + "\n" + exampleLines.get(idx + 1);
+                addFormattedParagraph(pkg, combined, false, 22, 200, 200, true, JcEnumeration.LEFT, "Aptos");
+                idx++; // skip the next line as it's merged
+                continue;
+            }
+
             if (exampleLine.startsWith("Beispielaufgabe:") || exampleLine.startsWith("Beispieltext:") || exampleLine.startsWith("Beispielausweis:")) {
                 // Example question header: Bold, Aptos 11pt, Vor 0pt, Nach 10pt, Mehrfach 1.15
                 addFormattedParagraph(pkg, exampleLine, true, 22, 0, 200, true, JcEnumeration.LEFT, "Aptos");
-            } else if (exampleLine.equals("Welche Figur lässt sich aus den folgenden Bausteinen zusammensetzen?") && 
-                      headerLine.contains("Figuren")) {
-                // Add the question text
+            } else if (exampleLine.equals("Welche Figur lässt sich aus den folgenden Bausteinen zusammensetzen?")
+                    && headerLine.contains("Figuren")) {
+                // Add the question text for Figuren example
                 addFormattedParagraph(pkg, exampleLine, false, 22, 0, 200, true, JcEnumeration.LEFT, "Aptos");
-                // Add the figure image for Figuren Zusammensetzen
                 addFigurenExampleImage(pkg);
             } else if (exampleLine.matches("^[A-E]\\).*")) {
-                // Answer options: Aptos 11pt, Vor 3pt, Nach 3pt, Mehrfach 1.15
+                // Answer options
                 addFormattedParagraph(pkg, exampleLine, false, 22, 60, 60, true, JcEnumeration.LEFT, "Aptos");
+            } else if (exampleLine.endsWith("?")) {
+                // Example question line: Vor 10pt, Nach 10pt, Mehrfach 1.15
+                addFormattedParagraph(pkg, exampleLine, false, 22, 200, 200, true, JcEnumeration.LEFT, "Aptos");
             } else {
-                // Other example content: Aptos 11pt, default spacing
+                // Other example content
                 addFormattedParagraph(pkg, exampleLine, false, 22, 120, 120, false, JcEnumeration.LEFT, "Aptos");
             }
         }
         
         // Add a page break after the introduction
         addPageBreak(pkg);
+    }
+    
+    /**
+     * Add allergy cards for the learning phase (2 cards per page, 4 pages total)
+     */
+    private void addAllergyCards(WordprocessingMLPackage pkg, java.sql.Connection conn, Integer sessionId) {
+        try {
+            // Import the DAO class
+            Class<?> allergyDAOClass = Class.forName("dao.AllergyCardDAO");
+            
+            // Create DAO instance
+            Object allergyDAO = allergyDAOClass.getConstructor(java.sql.Connection.class).newInstance(conn);
+            
+            // Get allergy cards for this session
+            java.lang.reflect.Method getBySessionMethod = allergyDAOClass.getMethod("getBySessionId", Integer.class);
+            @SuppressWarnings("unchecked")
+            java.util.List<Object> allergyCards = (java.util.List<Object>) getBySessionMethod.invoke(allergyDAO, sessionId);
+            
+            if (allergyCards.isEmpty()) {
+                // Add placeholder text if no cards found
+                P noCardsP = factory.createP();
+                R noCardsR = factory.createR();
+                Text noCardsT = factory.createText();
+                noCardsT.setValue("Keine Allergieausweise für diese Simulation gefunden.");
+                noCardsR.getContent().add(noCardsT);
+                noCardsP.getContent().add(noCardsR);
+                pkg.getMainDocumentPart().addObject(noCardsP);
+                return;
+            }
+            
+            // Add up to 8 cards, 2 per page
+            int cardsAdded = 0;
+            for (Object cardObj : allergyCards) {
+                if (cardsAdded >= 8) break; // Maximum 8 cards
+                
+                if (cardsAdded > 0 && cardsAdded % 2 == 0) {
+                    // Add page break after every 2 cards
+                    addPageBreak(pkg);
+                }
+                
+                addAllergyCard(pkg, cardObj);
+                cardsAdded++;
+            }
+            
+            // Add STOPP sign after all cards
+            addStoppSign(pkg);
+            
+        } catch (Exception e) {
+            // If loading fails, add error message
+            P errorP = factory.createP();
+            R errorR = factory.createR();
+            Text errorT = factory.createText();
+            errorT.setValue("Fehler beim Laden der Allergieausweise: " + e.getMessage());
+            errorR.getContent().add(errorT);
+            errorP.getContent().add(errorR);
+            pkg.getMainDocumentPart().addObject(errorP);
+        }
+    }
+    
+    /**
+     * Add a single allergy card to the document
+     */
+    private void addAllergyCard(WordprocessingMLPackage pkg, Object cardData) throws Exception {
+        // Use reflection to extract data from the AllergyCardData record
+        Class<?> cardClass = cardData.getClass();
+        
+        String name = (String) cardClass.getMethod("name").invoke(cardData);
+        Object geburtsdatum = cardClass.getMethod("geburtsdatum").invoke(cardData);
+        String medikamente = (String) cardClass.getMethod("medikamenteneinnahme").invoke(cardData);
+        String blutgruppe = (String) cardClass.getMethod("blutgruppe").invoke(cardData);
+        String allergien = (String) cardClass.getMethod("bekannteAllergien").invoke(cardData);
+        String ausweisnummer = (String) cardClass.getMethod("ausweisnummer").invoke(cardData);
+        String ausstellungsland = (String) cardClass.getMethod("ausstellungsland").invoke(cardData);
+        byte[] bildBytes = (byte[]) cardClass.getMethod("bildPng").invoke(cardData);
+        
+        // Create a table for the allergy card layout
+        Tbl cardTable = factory.createTbl();
+        
+        // Table properties
+        TblPr tblPr = factory.createTblPr();
+        TblWidth tblWidth = factory.createTblWidth();
+        tblWidth.setType("pct");
+        tblWidth.setW(BigInteger.valueOf(5000)); // 100% width
+        tblPr.setTblW(tblWidth);
+        
+        // Add borders
+        TblBorders tblBorders = factory.createTblBorders();
+        CTBorder border = factory.createCTBorder();
+        border.setVal(STBorder.SINGLE);
+        border.setSz(BigInteger.valueOf(4));
+        tblBorders.setTop(border);
+        tblBorders.setLeft(border);
+        tblBorders.setBottom(border);
+        tblBorders.setRight(border);
+        tblBorders.setInsideH(border);
+        tblBorders.setInsideV(border);
+        tblPr.setTblBorders(tblBorders);
+        
+        cardTable.setTblPr(tblPr);
+        
+        // Title row
+        Tr titleRow = factory.createTr();
+        Tc titleCell = factory.createTc();
+        
+        TcPr titleCellPr = factory.createTcPr();
+        TblWidth titleCellWidth = factory.createTblWidth();
+        titleCellWidth.setType("pct");
+        titleCellWidth.setW(BigInteger.valueOf(5000)); // 100% width
+        titleCellPr.setTcW(titleCellWidth);
+        titleCell.setTcPr(titleCellPr);
+        
+        P titleP = factory.createP();
+        PPr titlePPr = factory.createPPr();
+        Jc titleJc = factory.createJc();
+        titleJc.setVal(JcEnumeration.CENTER);
+        titlePPr.setJc(titleJc);
+        titleP.setPPr(titlePPr);
+        
+        R titleR = factory.createR();
+        RPr titleRPr = factory.createRPr();
+        BooleanDefaultTrue titleBold = factory.createBooleanDefaultTrue();
+        titleRPr.setB(titleBold);
+        
+        // Set font to Aptos
+        RFonts titleFonts = factory.createRFonts();
+        titleFonts.setAscii("Aptos");
+        titleFonts.setHAnsi("Aptos");
+        titleRPr.setRFonts(titleFonts);
+        
+        HpsMeasure titleSize = factory.createHpsMeasure();
+        titleSize.setVal(BigInteger.valueOf(28)); // 14pt for title
+        titleRPr.setSz(titleSize);
+        titleRPr.setSzCs(titleSize);
+        
+        titleR.setRPr(titleRPr);
+        
+        Text titleText = factory.createText();
+        titleText.setValue("ALLERGIEAUSWEIS");
+        titleR.getContent().add(titleText);
+        titleP.getContent().add(titleR);
+        titleCell.getContent().add(titleP);
+        titleRow.getContent().add(titleCell);
+        cardTable.getContent().add(titleRow);
+        
+        // Data rows
+        addCardDataRow(cardTable, "Name:", name);
+        addCardDataRow(cardTable, "Geburtsdatum:", geburtsdatum != null ? geburtsdatum.toString() : "");
+        addCardDataRow(cardTable, "Medikamenteneinnahme:", medikamente != null ? medikamente : "Keine");
+        addCardDataRow(cardTable, "Blutgruppe:", blutgruppe != null ? blutgruppe : "");
+        addCardDataRow(cardTable, "Bekannte Allergien:", allergien != null ? allergien : "Keine");
+        addCardDataRow(cardTable, "Ausweisnummer:", ausweisnummer != null ? ausweisnummer : "");
+        addCardDataRow(cardTable, "Ausstellungsland:", ausstellungsland != null ? ausstellungsland : "");
+        
+        // Add image if available
+        if (bildBytes != null && bildBytes.length > 0) {
+            addCardImageRow(cardTable, bildBytes, pkg);
+        }
+        
+        pkg.getMainDocumentPart().addObject(cardTable);
+        
+        // Add spacing after card
+        P spacingP = factory.createP();
+        PPr spacingPPr = factory.createPPr();
+        PPrBase.Spacing spacing = factory.createPPrBaseSpacing();
+        spacing.setAfter(BigInteger.valueOf(400)); // 20pt spacing
+        spacingPPr.setSpacing(spacing);
+        spacingP.setPPr(spacingPPr);
+        pkg.getMainDocumentPart().addObject(spacingP);
+    }
+    
+    /**
+     * Add a data row to the allergy card table
+     */
+    private void addCardDataRow(Tbl cardTable, String label, String value) {
+        Tr dataRow = factory.createTr();
+        
+        // Label cell
+        Tc labelCell = factory.createTc();
+        TcPr labelCellPr = factory.createTcPr();
+        TblWidth labelCellWidth = factory.createTblWidth();
+        labelCellWidth.setType("pct");
+        labelCellWidth.setW(BigInteger.valueOf(1500)); // 30% width
+        labelCellPr.setTcW(labelCellWidth);
+        labelCell.setTcPr(labelCellPr);
+        
+        P labelP = factory.createP();
+        R labelR = factory.createR();
+        RPr labelRPr = factory.createRPr();
+        BooleanDefaultTrue labelBold = factory.createBooleanDefaultTrue();
+        labelRPr.setB(labelBold);
+        
+        // Set font to Aptos
+        RFonts labelFonts = factory.createRFonts();
+        labelFonts.setAscii("Aptos");
+        labelFonts.setHAnsi("Aptos");
+        labelRPr.setRFonts(labelFonts);
+        
+        HpsMeasure labelSize = factory.createHpsMeasure();
+        labelSize.setVal(BigInteger.valueOf(22)); // 11pt
+        labelRPr.setSz(labelSize);
+        labelRPr.setSzCs(labelSize);
+        
+        labelR.setRPr(labelRPr);
+        
+        Text labelText = factory.createText();
+        labelText.setValue(label);
+        labelR.getContent().add(labelText);
+        labelP.getContent().add(labelR);
+        labelCell.getContent().add(labelP);
+        
+        // Value cell
+        Tc valueCell = factory.createTc();
+        TcPr valueCellPr = factory.createTcPr();
+        TblWidth valueCellWidth = factory.createTblWidth();
+        valueCellWidth.setType("pct");
+        valueCellWidth.setW(BigInteger.valueOf(3500)); // 70% width
+        valueCellPr.setTcW(valueCellWidth);
+        valueCell.setTcPr(valueCellPr);
+        
+        P valueP = factory.createP();
+        R valueR = factory.createR();
+        RPr valueRPr = factory.createRPr();
+        
+        // Set font to Aptos
+        RFonts valueFonts = factory.createRFonts();
+        valueFonts.setAscii("Aptos");
+        valueFonts.setHAnsi("Aptos");
+        valueRPr.setRFonts(valueFonts);
+        
+        HpsMeasure valueSize = factory.createHpsMeasure();
+        valueSize.setVal(BigInteger.valueOf(22)); // 11pt
+        valueRPr.setSz(valueSize);
+        valueRPr.setSzCs(valueSize);
+        
+        valueR.setRPr(valueRPr);
+        
+        Text valueText = factory.createText();
+        valueText.setValue(value != null ? value : "");
+        valueR.getContent().add(valueText);
+        valueP.getContent().add(valueR);
+        valueCell.getContent().add(valueP);
+        
+        dataRow.getContent().add(labelCell);
+        dataRow.getContent().add(valueCell);
+        cardTable.getContent().add(dataRow);
+    }
+    
+    /**
+     * Add an image row to the allergy card table
+     */
+    private void addCardImageRow(Tbl cardTable, byte[] imageBytes, WordprocessingMLPackage pkg) {
+        try {
+            BinaryPartAbstractImage imagePart = BinaryPartAbstractImage.createImagePart(pkg, imageBytes);
+            Inline inline = imagePart.createImageInline("Allergy Card Photo", "Photo", 0, 1, false);
+            
+            Tr imageRow = factory.createTr();
+            Tc imageCell = factory.createTc();
+            
+            TcPr imageCellPr = factory.createTcPr();
+            TblWidth imageCellWidth = factory.createTblWidth();
+            imageCellWidth.setType("pct");
+            imageCellWidth.setW(BigInteger.valueOf(5000)); // 100% width
+            imageCellPr.setTcW(imageCellWidth);
+            imageCell.setTcPr(imageCellPr);
+            
+            P imageP = factory.createP();
+            PPr imagePPr = factory.createPPr();
+            Jc imageJc = factory.createJc();
+            imageJc.setVal(JcEnumeration.CENTER);
+            imagePPr.setJc(imageJc);
+            imageP.setPPr(imagePPr);
+            
+            R imageR = factory.createR();
+            Drawing drawing = factory.createDrawing();
+            drawing.getAnchorOrInline().add(inline);
+            imageR.getContent().add(drawing);
+            imageP.getContent().add(imageR);
+            imageCell.getContent().add(imageP);
+            imageRow.getContent().add(imageCell);
+            cardTable.getContent().add(imageRow);
+            
+        } catch (Exception e) {
+            // If image fails to load, add placeholder text
+            Tr imageRow = factory.createTr();
+            Tc imageCell = factory.createTc();
+            
+            P placeholderP = factory.createP();
+            R placeholderR = factory.createR();
+            Text placeholderT = factory.createText();
+            placeholderT.setValue("[Foto nicht verfügbar]");
+            placeholderR.getContent().add(placeholderT);
+            placeholderP.getContent().add(placeholderR);
+            imageCell.getContent().add(placeholderP);
+            imageRow.getContent().add(imageCell);
+            cardTable.getContent().add(imageRow);
+        }
+    }
+    
+    /**
+     * Add a STOPP sign after the learning phase
+     */
+    private void addStoppSign(WordprocessingMLPackage pkg) {
+        // Add page break before STOPP sign
+        addPageBreak(pkg);
+        
+        // Add centered STOPP text
+        P stoppP = factory.createP();
+        PPr stoppPPr = factory.createPPr();
+        
+        // Center alignment
+        Jc stoppJc = factory.createJc();
+        stoppJc.setVal(JcEnumeration.CENTER);
+        stoppPPr.setJc(stoppJc);
+        
+        // Spacing
+        PPrBase.Spacing stoppSpacing = factory.createPPrBaseSpacing();
+        stoppSpacing.setBefore(BigInteger.valueOf(1440)); // 72pt = 1 inch from top
+        stoppPPr.setSpacing(stoppSpacing);
+        
+        stoppP.setPPr(stoppPPr);
+        
+        R stoppR = factory.createR();
+        RPr stoppRPr = factory.createRPr();
+        
+        // Bold text
+        BooleanDefaultTrue stoppBold = factory.createBooleanDefaultTrue();
+        stoppRPr.setB(stoppBold);
+        
+        // Large font size
+        HpsMeasure stoppSize = factory.createHpsMeasure();
+        stoppSize.setVal(BigInteger.valueOf(72)); // 36pt
+        stoppRPr.setSz(stoppSize);
+        stoppRPr.setSzCs(stoppSize);
+        
+        // Set font to Aptos
+        RFonts stoppFonts = factory.createRFonts();
+        stoppFonts.setAscii("Aptos");
+        stoppFonts.setHAnsi("Aptos");
+        stoppRPr.setRFonts(stoppFonts);
+        
+        stoppR.setRPr(stoppRPr);
+        
+        Text stoppText = factory.createText();
+        stoppText.setValue("STOPP");
+        stoppR.getContent().add(stoppText);
+        stoppP.getContent().add(stoppR);
+        
+        pkg.getMainDocumentPart().addObject(stoppP);
+        
+        // Add instruction text below
+        P instructionP = factory.createP();
+        PPr instructionPPr = factory.createPPr();
+        
+        // Center alignment
+        Jc instructionJc = factory.createJc();
+        instructionJc.setVal(JcEnumeration.CENTER);
+        instructionPPr.setJc(instructionJc);
+        
+        // Spacing
+        PPrBase.Spacing instructionSpacing = factory.createPPrBaseSpacing();
+        instructionSpacing.setBefore(BigInteger.valueOf(240)); // 12pt spacing
+        instructionPPr.setSpacing(instructionSpacing);
+        
+        instructionP.setPPr(instructionPPr);
+        
+        R instructionR = factory.createR();
+        RPr instructionRPr = factory.createRPr();
+        
+        // Set font to Aptos
+        RFonts instructionFonts = factory.createRFonts();
+        instructionFonts.setAscii("Aptos");
+        instructionFonts.setHAnsi("Aptos");
+        instructionRPr.setRFonts(instructionFonts);
+        
+        HpsMeasure instructionSize = factory.createHpsMeasure();
+        instructionSize.setVal(BigInteger.valueOf(24)); // 12pt
+        instructionRPr.setSz(instructionSize);
+        instructionRPr.setSzCs(instructionSize);
+        
+        instructionR.setRPr(instructionRPr);
+        
+        Text instructionText = factory.createText();
+        instructionText.setValue("Bitte warten Sie auf weitere Anweisungen.");
+        instructionR.getContent().add(instructionText);
+        instructionP.getContent().add(instructionR);
+        
+        pkg.getMainDocumentPart().addObject(instructionP);
     }
 
     /**
@@ -643,11 +1190,19 @@ public WordprocessingMLPackage buildDocument(
         }
         
         run.setRPr(rPr);
-        
-        // Add text
-        Text textElement = factory.createText();
-        textElement.setValue(text);
-        run.getContent().add(textElement);
+
+        // Add text, supporting manual line breaks within the string
+        String[] parts = text.split("\\n", -1);
+        for (int i = 0; i < parts.length; i++) {
+            if (i > 0) {
+                Br br = factory.createBr();
+                br.setType(STBrType.TEXT_WRAPPING);
+                run.getContent().add(br);
+            }
+            Text textElement = factory.createText();
+            textElement.setValue(parts[i]);
+            run.getContent().add(textElement);
+        }
         paragraph.getContent().add(run);
         
         pkg.getMainDocumentPart().addObject(paragraph);
@@ -1472,12 +2027,9 @@ public WordprocessingMLPackage buildDocument(
                 pkg.getMainDocumentPart().addObject(optionP);
             }
 
-            // Add spacing after all options only if this is NOT the first question on the
-            // page
-            if (!isFirstQuestionOnPage) {
-                P spacingP = factory.createP();
-                pkg.getMainDocumentPart().addObject(spacingP);
-            }
+            // Add spacing after all options
+            P spacingP = factory.createP();
+            pkg.getMainDocumentPart().addObject(spacingP);
         }
 
         return currentRow - 1;
