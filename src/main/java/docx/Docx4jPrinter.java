@@ -23,6 +23,8 @@ import java.awt.Shape;
 import java.awt.Color;
 import org.locationtech.jts.io.WKTReader;
 
+import jakarta.xml.bind.JAXBElement;
+
 // Import geometry classes for Figuren questions
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.Envelope;
@@ -38,24 +40,42 @@ public class Docx4jPrinter {
     private final ObjectFactory factory = new ObjectFactory();
 
     /**
-     * Load the introduction pages and split them by page breaks.
+     * Read the .docx, split on <w:br w:type="page"/>,
+     * then for each page extract the first paragraph’s text
+     * (e.g. "Basiskenntnistest - Biologie") and use it as the key.
      */
-    public java.util.List<java.util.List<Object>> loadIntroductionPages(File docx) throws Docx4JException {
+    public Map<String, List<Object>> loadIntroductionPagesMap(File docx) throws Docx4JException {
         WordprocessingMLPackage pkg = WordprocessingMLPackage.load(docx);
-        java.util.List<Object> content = pkg.getMainDocumentPart().getContent();
-        java.util.List<java.util.List<Object>> pages = new ArrayList<>();
-        java.util.List<Object> current = new ArrayList<>();
+        List<Object> content = pkg.getMainDocumentPart().getContent();
+        Map<String, List<Object>> map = new LinkedHashMap<>();
+        List<Object> current = new ArrayList<>();
         for (Object o : content) {
             current.add(o);
             if (containsPageBreak(o)) {
-                pages.add(new ArrayList<>(current));
+                String title = extractFirstParagraphText(current).toLowerCase().trim();
+                map.put(title, new ArrayList<>(current));
                 current.clear();
             }
         }
         if (!current.isEmpty()) {
-            pages.add(new ArrayList<>(current));
+            String title = extractFirstParagraphText(current).toLowerCase().trim();
+            map.put(title, current);
         }
-        return pages;
+        return map;
+    }
+
+    private String extractFirstParagraphText(List<Object> page) {
+        for (Object o : page) {
+            if (o instanceof P p) {
+                for (Object x : p.getContent()) {
+                    Object val = x instanceof JAXBElement<?> je ? je.getValue() : x;
+                    if (val instanceof Text t) {
+                        return t.getValue();
+                    }
+                }
+            }
+        }
+        return "";
     }
 
     private boolean containsPageBreak(Object o) {
@@ -70,29 +90,58 @@ public class Docx4jPrinter {
     }
 
     /**
-     * Create a document containing the introduction pages followed by question
-     * text. Images and advanced formatting are not handled here.
-     */
-    public WordprocessingMLPackage buildDocument(Map<String, DefaultTableModel> subcats,
-            java.util.List<String> order,
-            java.util.List<java.util.List<Object>> introPages) throws Docx4JException {
-        WordprocessingMLPackage pkg = WordprocessingMLPackage.createPackage();
-        int pageIndex = 0;
-        for (String subcat : order) {
-            if (pageIndex < introPages.size()) {
-                for (Object o : introPages.get(pageIndex)) {
-                    pkg.getMainDocumentPart().addObject(o);
+ * Build a document by, for each subcategory in `order`:
+ *  1. looking up its intro-page in `introPagesMap` (by exact or contains key),
+ *  2. inserting that intro page + a page break,
+ *  3. adding the questions,
+ *  4. adding a page break between sections (but not after the last one).
+ */
+public WordprocessingMLPackage buildDocument(
+        Map<String, DefaultTableModel> subcats,
+        List<String> order,
+        Map<String,List<Object>> introPagesMap
+    ) throws Docx4JException {
+
+    WordprocessingMLPackage pkg = WordprocessingMLPackage.createPackage();
+
+    for (int i = 0; i < order.size(); i++) {
+        String rawSubcat = order.get(i);
+        String key = rawSubcat.toLowerCase().trim();
+
+        // 1) find matching intro page
+        List<Object> intro = introPagesMap.get(key);
+        if (intro == null) {
+            // fallback: any map-key that contains our subcat name
+            for (String cand : introPagesMap.keySet()) {
+                if (cand.contains(key)) {
+                    intro = introPagesMap.get(cand);
+                    break;
                 }
-                pageIndex++;
             }
-            DefaultTableModel model = subcats.get(subcat);
-            if (model != null) {
-                addQuestions(pkg, model);
+        }
+
+        // 2) insert intro + break
+        if (intro != null) {
+            for (Object o : intro) {
+                pkg.getMainDocumentPart().addObject(o);
             }
             addPageBreak(pkg);
         }
-        return pkg;
+
+        // 3) render questions for this subcategory
+        DefaultTableModel model = subcats.get(rawSubcat);
+        if (model != null) {
+            addQuestions(pkg, model);
+        }
+
+        // 4) break *between* subsections, but not after the last one
+        if (i < order.size() - 1) {
+            addPageBreak(pkg);
+        }
     }
+
+    return pkg;
+}
 
     /**
      * Append the given question table to the document with proper handling for
@@ -133,7 +182,7 @@ public class Docx4jPrinter {
                 // For Figuren questions: existing page break logic
                 if (isFigurenQuestion) {
                     figurenCounter++;
-                if (figurenCounter > 3 && (figurenCounter - 1) % 3 == 0) {
+                    if (figurenCounter > 3 && (figurenCounter - 1) % 3 == 0) {
                         // Clean any trailing breaks to avoid blank page before new section
                         removeTrailingPageBreak(pkg);
                         addPageBreak(pkg);
@@ -143,13 +192,13 @@ public class Docx4jPrinter {
 
                 // Add question text with special formatting for Figuren questions
                 P questionP = factory.createP();
-                // For non-Figuren first question on a page, reset default spacing
+                // For non-Figuren first question on a page, only reset spacing before (not after)
                 if (!isFigurenQuestion && isFirstQuestionOnPage) {
                     PPr noSpacingPr = factory.createPPr();
-                    PPrBase.Spacing noSpacing = factory.createPPrBaseSpacing();
-                    noSpacing.setBefore(BigInteger.ZERO);
-                    noSpacing.setAfter(BigInteger.ZERO);
-                    noSpacingPr.setSpacing(noSpacing);
+                    PPrBase.Spacing firstQuestionSpacing = factory.createPPrBaseSpacing();
+                    firstQuestionSpacing.setBefore(BigInteger.ZERO); // No space before first question
+                    firstQuestionSpacing.setAfter(BigInteger.valueOf(120)); // But keep space after for next question
+                    noSpacingPr.setSpacing(firstQuestionSpacing);
                     questionP.setPPr(noSpacingPr);
                 }
 
@@ -194,8 +243,8 @@ public class Docx4jPrinter {
      * different question types.
      */
     public void addQuestionsSolution(WordprocessingMLPackage pkg, DefaultTableModel model) {
-        int figurenCounter = 0;           // Counter for Figuren questions
-        int nonFigCounter = 0;            // Counter for non-Figuren questions
+        int figurenCounter = 0; // Counter for Figuren questions
+        int nonFigCounter = 0; // Counter for non-Figuren questions
         boolean isFirstQuestionOnPage = true; // Track if first question on a new page
 
         for (int r = 0; r < model.getRowCount(); r++) {
@@ -215,7 +264,8 @@ public class Docx4jPrinter {
                     questionText = questionObj.toString();
                 }
 
-                // Page break for non-Figuren questions every 5 questions (before 6th, 11th, etc.)
+                // Page break for non-Figuren questions every 5 questions (before 6th, 11th,
+                // etc.)
                 if (!isFigurenQuestion) {
                     nonFigCounter++;
                     if (nonFigCounter > 5 && (nonFigCounter - 1) % 5 == 0) {
@@ -388,7 +438,9 @@ public class Docx4jPrinter {
         return obj instanceof P p && p.getContent().isEmpty();
     }
 
-    /** Check if the given object is a paragraph consisting solely of a page break. */
+    /**
+     * Check if the given object is a paragraph consisting solely of a page break.
+     */
     private boolean isPageBreakParagraph(Object obj) {
         if (obj instanceof P p) {
             for (Object c : p.getContent()) {
@@ -435,6 +487,416 @@ public class Docx4jPrinter {
     private void addSpacing(WordprocessingMLPackage pkg) {
         P spacingP = factory.createP();
         pkg.getMainDocumentPart().addObject(spacingP);
+    }
+
+    /**
+     * Add an introduction page with the given text content.
+     * This creates a formatted introduction page with the provided text.
+     */
+    public void addIntroductionPage(WordprocessingMLPackage pkg, String introText) {
+        if (introText == null || introText.trim().isEmpty()) {
+            return; // Don't add empty intro pages
+        }
+
+        // Split the intro text by newlines
+        String[] lines = introText.split("\\n");
+        
+        // Find key sections
+        String headerLine = "";
+        String timingLine = "";
+        List<String> instructionLines = new ArrayList<>();
+        List<String> exampleLines = new ArrayList<>();
+        
+        boolean inInstructions = false;
+        boolean inExample = false;
+        
+        for (String line : lines) {
+            line = line.trim();
+            if (line.isEmpty()) continue;
+            
+            if (headerLine.isEmpty() && (line.contains("Basiskenntnistest") || 
+                line.contains("Figuren") || line.contains("Gedächtnis") || 
+                line.contains("Zahlenfolgen") || line.contains("Wortflüssigkeit") ||
+                line.contains("Implikationen") || line.contains("Emotionen") || 
+                line.contains("Soziales") || line.contains("Textverständnis"))) {
+                headerLine = line;
+            } else if (line.startsWith("Bearbeitungszeit") || line.startsWith("Lernzeit")) {
+                timingLine = line;
+            } else if (line.startsWith("Beispielaufgabe:") || line.startsWith("Beispieltext:") || line.startsWith("Beispielausweis:")) {
+                inExample = true;
+                inInstructions = false;
+                exampleLines.add(line);
+            } else if (inExample) {
+                exampleLines.add(line);
+            } else if (line.startsWith("Die folgenden Aufgaben") || 
+                       line.startsWith("In diesem Untertest") ||
+                       line.startsWith("Die Aufgaben sind im Single-Choice") ||
+                       line.startsWith("Bitte markieren Sie") ||
+                       line.startsWith("Das Zurückblättern") ||
+                       line.startsWith("Sie dürfen mit der Bearbeitung") ||
+                       inInstructions) {
+                inInstructions = true;
+                instructionLines.add(line);
+                if (line.contains("freigegeben hat")) {
+                    inInstructions = false;
+                }
+            }
+        }
+        
+        // 1. Add header - Bold, Montserrat 18pt, Vor 0pt, Nach 0pt, Einfach
+        if (!headerLine.isEmpty()) {
+            addFormattedParagraph(pkg, headerLine, true, 36, 0, 0, false, JcEnumeration.LEFT, "Montserrat");
+        }
+        
+        // 2. Add timing line - Bold, Montserrat, 11pt, Vor 6pt, Nach 18pt, Mehrfach 1.15
+        if (!timingLine.isEmpty()) {
+            addFormattedParagraph(pkg, timingLine, true, 22, 120, 360, true, JcEnumeration.LEFT, "Montserrat");
+        }
+        
+        // 3. Add instructions in a 1x1 table
+        if (!instructionLines.isEmpty()) {
+            addInstructionsTable(pkg, instructionLines);
+        }
+        
+        // 4. Add example section with "Beispielaufgabe:" bold
+        for (String exampleLine : exampleLines) {
+            if (exampleLine.startsWith("Beispielaufgabe:") || exampleLine.startsWith("Beispieltext:") || exampleLine.startsWith("Beispielausweis:")) {
+                // Example question header: Bold, Aptos 11pt, Vor 0pt, Nach 10pt, Mehrfach 1.15
+                addFormattedParagraph(pkg, exampleLine, true, 22, 0, 200, true, JcEnumeration.LEFT, "Aptos");
+            } else if (exampleLine.equals("Welche Figur lässt sich aus den folgenden Bausteinen zusammensetzen?") && 
+                      headerLine.contains("Figuren")) {
+                // Add the question text
+                addFormattedParagraph(pkg, exampleLine, false, 22, 0, 200, true, JcEnumeration.LEFT, "Aptos");
+                // Add the figure image for Figuren Zusammensetzen
+                addFigurenExampleImage(pkg);
+            } else if (exampleLine.matches("^[A-E]\\).*")) {
+                // Answer options: Aptos 11pt, Vor 3pt, Nach 3pt, Mehrfach 1.15
+                addFormattedParagraph(pkg, exampleLine, false, 22, 60, 60, true, JcEnumeration.LEFT, "Aptos");
+            } else {
+                // Other example content: Aptos 11pt, default spacing
+                addFormattedParagraph(pkg, exampleLine, false, 22, 120, 120, false, JcEnumeration.LEFT, "Aptos");
+            }
+        }
+        
+        // Add a page break after the introduction
+        addPageBreak(pkg);
+    }
+
+    /**
+     * Helper method to add a formatted paragraph with specific styling
+     */
+    private void addFormattedParagraph(WordprocessingMLPackage pkg, String text, boolean bold, 
+                                     int fontSize, int spaceBefore, int spaceAfter, 
+                                     boolean multipleSpacing, JcEnumeration alignment, String fontName) {
+        P paragraph = factory.createP();
+        PPr pPr = factory.createPPr();
+        
+        // Set alignment
+        if (alignment != null) {
+            Jc jc = factory.createJc();
+            jc.setVal(alignment);
+            pPr.setJc(jc);
+        }
+        
+        // Set spacing
+        PPrBase.Spacing spacing = factory.createPPrBaseSpacing();
+        if (spaceBefore > 0) {
+            spacing.setBefore(BigInteger.valueOf(spaceBefore));
+        }
+        if (spaceAfter > 0) {
+            spacing.setAfter(BigInteger.valueOf(spaceAfter));
+        }
+        if (multipleSpacing) {
+            spacing.setLine(BigInteger.valueOf(276)); // 1.15 line spacing (240 * 1.15)
+            spacing.setLineRule(STLineSpacingRule.AUTO);
+        }
+        pPr.setSpacing(spacing);
+        
+        paragraph.setPPr(pPr);
+        
+        // Create run with text formatting
+        R run = factory.createR();
+        RPr rPr = factory.createRPr();
+        
+        // Set font
+        if (fontName != null && !fontName.isEmpty()) {
+            RFonts fonts = factory.createRFonts();
+            fonts.setAscii(fontName);
+            fonts.setHAnsi(fontName);
+            rPr.setRFonts(fonts);
+        }
+        
+        // Set font size
+        if (fontSize > 0) {
+            HpsMeasure size = factory.createHpsMeasure();
+            size.setVal(BigInteger.valueOf(fontSize));
+            rPr.setSz(size);
+            rPr.setSzCs(size); // For complex scripts
+        }
+        
+        // Set bold
+        if (bold) {
+            BooleanDefaultTrue boldProp = factory.createBooleanDefaultTrue();
+            boldProp.setVal(true);
+            rPr.setB(boldProp);
+            rPr.setBCs(boldProp); // For complex scripts
+        }
+        
+        run.setRPr(rPr);
+        
+        // Add text
+        Text textElement = factory.createText();
+        textElement.setValue(text);
+        run.getContent().add(textElement);
+        paragraph.getContent().add(run);
+        
+        pkg.getMainDocumentPart().addObject(paragraph);
+    }
+    
+    /**
+     * Helper method to add instructions in a 1x1 table
+     */
+    private void addInstructionsTable(WordprocessingMLPackage pkg, List<String> instructionLines) {
+        // Create table
+        Tbl table = factory.createTbl();
+        
+        // Table properties
+        TblPr tblPr = factory.createTblPr();
+        
+        // Table width - full page width
+        TblWidth tblWidth = factory.createTblWidth();
+        tblWidth.setType("pct");
+        tblWidth.setW(BigInteger.valueOf(5000)); // 100% width
+        tblPr.setTblW(tblWidth);
+        
+        // Table borders - 1/2 pt black border
+        TblBorders tblBorders = factory.createTblBorders();
+        CTBorder border = factory.createCTBorder();
+        border.setVal(STBorder.SINGLE);
+        border.setSz(BigInteger.valueOf(4)); // 1/2 pt = 4 eighths of a point
+        border.setColor("000000"); // Black color
+        tblBorders.setTop(border);
+        tblBorders.setLeft(border);
+        tblBorders.setBottom(border);
+        tblBorders.setRight(border);
+        tblBorders.setInsideH(border);
+        tblBorders.setInsideV(border);
+        tblPr.setTblBorders(tblBorders);
+        
+        table.setTblPr(tblPr);
+        
+        // Create single row
+        Tr row = factory.createTr();
+        
+        // Create single cell
+        Tc cell = factory.createTc();
+        
+        // Cell properties
+        TcPr tcPr = factory.createTcPr();
+        
+        // Cell width
+        TblWidth cellWidth = factory.createTblWidth();
+        cellWidth.setType("pct");
+        cellWidth.setW(BigInteger.valueOf(5000)); // 100% of table width
+        tcPr.setTcW(cellWidth);
+        
+        cell.setTcPr(tcPr);
+        
+        // Add instruction text to cell
+        for (String line : instructionLines) {
+            P paragraph = factory.createP();
+            PPr pPr = factory.createPPr();
+            
+            // Standard paragraph spacing
+            PPrBase.Spacing spacing = factory.createPPrBaseSpacing();
+            spacing.setAfter(BigInteger.valueOf(120)); // 6pt spacing after
+            pPr.setSpacing(spacing);
+            
+            paragraph.setPPr(pPr);
+            
+            // Create run
+            R run = factory.createR();
+            RPr rPr = factory.createRPr();
+            
+            // Set font to Aptos 11pt
+            RFonts fonts = factory.createRFonts();
+            fonts.setAscii("Aptos");
+            fonts.setHAnsi("Aptos");
+            rPr.setRFonts(fonts);
+            
+            // Standard font size
+            HpsMeasure size = factory.createHpsMeasure();
+            size.setVal(BigInteger.valueOf(22)); // 11pt
+            rPr.setSz(size);
+            rPr.setSzCs(size);
+            
+            run.setRPr(rPr);
+            
+            // Add text
+            Text text = factory.createText();
+            text.setValue(line);
+            run.getContent().add(text);
+            paragraph.getContent().add(run);
+            
+            cell.getContent().add(paragraph);
+        }
+        
+        row.getContent().add(cell);
+        table.getContent().add(row);
+        
+        pkg.getMainDocumentPart().addObject(table);
+    }
+    
+    /**
+     * Add the Figuren example image
+     */
+    private void addFigurenExampleImage(WordprocessingMLPackage pkg) {
+        try {
+            // Create a simple geometric figure example programmatically
+            BufferedImage image = createFigurenExampleImage();
+            
+            // Convert to byte array
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(image, "PNG", baos);
+            byte[] imageBytes = baos.toByteArray();
+            
+            // Add image to document
+            BinaryPartAbstractImage imagePart = BinaryPartAbstractImage.createImagePart(pkg, imageBytes);
+            
+            // Create inline image
+            Inline inline = imagePart.createImageInline("Figuren Example", "Figuren pieces example", 0, 1, false);
+            
+            // Create paragraph with image
+            P paragraph = factory.createP();
+            PPr pPr = factory.createPPr();
+            
+            // Center the image
+            Jc jc = factory.createJc();
+            jc.setVal(JcEnumeration.CENTER);
+            pPr.setJc(jc);
+            
+            // Add spacing
+            PPrBase.Spacing spacing = factory.createPPrBaseSpacing();
+            spacing.setBefore(BigInteger.valueOf(120));
+            spacing.setAfter(BigInteger.valueOf(120));
+            pPr.setSpacing(spacing);
+            
+            paragraph.setPPr(pPr);
+            
+            // Create run and add image
+            R run = factory.createR();
+            Drawing drawing = factory.createDrawing();
+            drawing.getAnchorOrInline().add(inline);
+            run.getContent().add(drawing);
+            paragraph.getContent().add(run);
+            
+            pkg.getMainDocumentPart().addObject(paragraph);
+            
+        } catch (Exception e) {
+            System.err.println("Error adding Figuren example image: " + e.getMessage());
+            // Add text fallback
+            addFormattedParagraph(pkg, "[Hier würden die Bausteine als Bild angezeigt werden]", 
+                                false, 22, 120, 120, false, JcEnumeration.CENTER, "Calibri");
+        }
+    }
+    
+    /**
+     * Create the exact Figuren example image as shown in the "Pasted Image"
+     */
+    private BufferedImage createFigurenExampleImage() {
+        int width = 500;
+        int height = 250;
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = image.createGraphics();
+        
+        // Set rendering hints for better quality
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        
+        // Fill background with white
+        g2d.setColor(Color.WHITE);
+        g2d.fillRect(0, 0, width, height);
+        
+        // Set drawing color to dark gray
+        g2d.setColor(new Color(96, 96, 96));
+        g2d.setStroke(new BasicStroke(1.5f));
+        
+        // TOP ROW: The pieces to be assembled
+        
+        // Piece 1: Diamond/Rhombus
+        int[] x1 = {50, 80, 50, 20};
+        int[] y1 = {20, 50, 80, 50};
+        g2d.fillPolygon(x1, y1, 4);
+        
+        // Piece 2: Triangle
+        int[] x2 = {130, 160, 145};
+        int[] y2 = {20, 50, 80};
+        g2d.fillPolygon(x2, y2, 3);
+        
+        // Piece 3: Parallelogram
+        int[] x3 = {200, 250, 230, 180};
+        int[] y3 = {20, 20, 80, 80};
+        g2d.fillPolygon(x3, y3, 4);
+        
+        // Piece 4: Pentagon
+        int[] x4 = {330, 360, 370, 340, 310};
+        int[] y4 = {20, 30, 70, 90, 60};
+        g2d.fillPolygon(x4, y4, 5);
+        
+        // BOTTOM ROW: Answer choices
+        
+        // A: Pentagon
+        int[] xa = {30, 60, 70, 45, 15};
+        int[] ya = {110, 120, 160, 180, 150};
+        g2d.fillPolygon(xa, ya, 5);
+        
+        // B: Hexagon
+        int[] xb = {110, 140, 150, 140, 110, 100};
+        int[] yb = {120, 120, 150, 180, 180, 150};
+        g2d.fillPolygon(xb, yb, 6);
+        
+        // C: Heptagon (7-sided)
+        int[] xc = new int[7];
+        int[] yc = new int[7];
+        int centerX = 220, centerY = 150, radius = 35;
+        for (int i = 0; i < 7; i++) {
+            double angle = 2 * Math.PI * i / 7 - Math.PI/2;
+            xc[i] = centerX + (int)(radius * Math.cos(angle));
+            yc[i] = centerY + (int)(radius * Math.sin(angle));
+        }
+        g2d.fillPolygon(xc, yc, 7);
+        
+        // D: Octagon (8-sided)
+        int[] xd = new int[8];
+        int[] yd = new int[8];
+        centerX = 320; centerY = 150; radius = 35;
+        for (int i = 0; i < 8; i++) {
+            double angle = 2 * Math.PI * i / 8 - Math.PI/2;
+            xd[i] = centerX + (int)(radius * Math.cos(angle));
+            yd[i] = centerY + (int)(radius * Math.sin(angle));
+        }
+        g2d.fillPolygon(xd, yd, 8);
+        
+        // Add labels
+        g2d.setColor(Color.BLACK);
+        java.awt.Font labelFont = new java.awt.Font("Arial", java.awt.Font.PLAIN, 14);
+        g2d.setFont(labelFont);
+        
+        // Labels below each answer choice
+        g2d.drawString("A", 45, 200);
+        g2d.drawString("B", 125, 200);
+        g2d.drawString("C", 205, 200);
+        g2d.drawString("D", 305, 200);
+        g2d.drawString("E", 420, 200);
+        
+        // "Keine der figuren ist richtig" text for option E
+        java.awt.Font smallFont = new java.awt.Font("Arial", java.awt.Font.PLAIN, 10);
+        g2d.setFont(smallFont);
+        g2d.drawString("Keine der figuren", 395, 150);
+        g2d.drawString("ist richtig", 410, 165);
+        
+        g2d.dispose();
+        return image;
     }
 
     /**
@@ -934,7 +1396,8 @@ public class Docx4jPrinter {
      * and proper A-E labels. Returns the last row index that was processed so the
      * caller can skip option rows.
      */
-    private int addQuestionOptions(WordprocessingMLPackage pkg, DefaultTableModel model, int startRow, boolean isFirstQuestionOnPage) {
+    private int addQuestionOptions(WordprocessingMLPackage pkg, DefaultTableModel model, int startRow,
+            boolean isFirstQuestionOnPage) {
         // Look for options in subsequent rows
         int currentRow = startRow + 1;
 
@@ -1009,7 +1472,8 @@ public class Docx4jPrinter {
                 pkg.getMainDocumentPart().addObject(optionP);
             }
 
-            // Add spacing after all options only if this is NOT the first question on the page
+            // Add spacing after all options only if this is NOT the first question on the
+            // page
             if (!isFirstQuestionOnPage) {
                 P spacingP = factory.createP();
                 pkg.getMainDocumentPart().addObject(spacingP);

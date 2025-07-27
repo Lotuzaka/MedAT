@@ -1,0 +1,314 @@
+{
+    "Biologie": {
+        "template": "basic_knowledge",
+        "subject": "Biologie",
+        "task_count": "40 Aufgaben",
+        "time_limit": "30 Minuten",
+        "description": "Die folgenden Aufgaben überprüfen Ihre Kenntnisse im Themenbereich Biologie.\nDie Fragen sind im Single-Choice Format gestellt und es ist jeweils nur eine der gegebenen Antwortmöglichkeiten A) bis E) korrekt.",
+        "example_question": "Wie viele Kammern hat das Herz?",
+        "answer_options": [
+            "4",
+            "1",
+            "2",
+            "3",
+            "Keine der Antworten ist richtig"
+        ],
+        "correct_answer": "C",
+        "correct_answer_text": "2"
+    },
+    "Chemie": {
+        "template": "basic_knowledge",
+        "subject": "Chemie",
+        "task_count": "24 Aufgaben",
+        "time_limit": "18 Minuten",
+        "description": "Die folgenden Aufgaben überprüfen Ihre Kenntnisse im Themenbereich Chemie.\nDie Aufgaben sind im Single-Choice Format gestellt und jeweils nur eine der gegebenen Antwortmöglichkeiten A) bis E) ist korrekt.",
+        "example_question": "Welches Element ist ein Edelgas?",
+        "answer_options": [
+            "Kupfer",
+            "Neon",
+            "Zink",
+            "Wasserstoff",
+            "Keine der Antworten ist richtig"
+        ],
+        "correct_answer": "B",
+        "correct_answer_text": "Neon"
+    },
+    "Physik": {
+        "template": "basic_knowledge",
+        "subject": "Physik",
+        "task_count": "18 Aufgaben",
+        "time_limit": "16 Minuten",
+        "description": "Die folgenden Aufgaben überprüfen Ihre Kenntnisse im Themenbereich Physik.\nDie Aufgaben sind im Single-Choice Format gestellt und jeweils nur eine der gegebenen Antwortmöglichkeiten A) bis E) ist korrekt.",
+        "example_question": "Welche Einheit hat die Kraft?",
+        "answer_options": [
+            "Kilogramm",
+            "Meter",
+            "Sekunde",
+            "Newton",
+            "Keine der Antworten ist richtig"
+        ],
+        "correct_answer": "D",
+        "correct_answer_text": "Newton"
+    },
+    "Mathematik": {
+        "template": "basic_knowledge",
+        "subject": "Mathematik",
+        "task_count": "12 Aufgaben",
+        "time_limit": "11 Minuten",
+        "description": "Die folgenden Aufgaben überprüfen Ihre Kenntnisse im Themenbereich Mathematik.\nDie Aufgaben sind im Single-Choice Format gestellt und jeweils nur eine der gegebenen Antwortmöglichkeiten A) bis E) ist korrekt.",
+        "example_question": "Welchen Wert hat x in der folgenden Gleichung x² = 4?",
+        "answer_options": [
+            "4",
+            "-4",
+            "2",
+            "0",
+            "Keine der Antworten ist richtig"
+        ],
+        "correct_answer": "C",
+        "correct_answer_text": "2"
+    },
+    "Textverständnis": {
+        "template": "textverstaendnis",
+        "header": "Textverständnis",
+        "task_count": "12 Aufgaben",
+        "time_limit": "35 Minuten",
+        "description": "Die folgenden Aufgaben überprüfen Ihre Kenntnisse im Themenbereich Textverständnis.\nDie Aufgaben sind im Single-Choice Format gestellt und jeweils nur eine der gegebenen Antwortmöglichkeiten A) bis E) ist korrekt.",
+        "example_text": "Das Auslassventil zwischen der rechten Kammer und der Lungenstrombahn heißt Pulmonalklappe (Valva trunci pulmonalis). Sie ist als Taschenklappe mit normalerweise drei halbmondförmigen Klappentaschen (Valvulae semilunares) angelegt, die den Rückfluss von Blut in die rechte Herzkammer während der Diastole verhindern. Während der Systole öffnet sich die Klappe, sobald der Druck in der rechten Kammer den in der Pulmonalarterie übersteigt.1",
+        "example_question": "Welche der genannten Aussagen lässt sich aus dem Text ableiten?",
+        "answer_options": [
+            "Die Pulmonalklappe besitzt zwei halbmondförmige Klappentaschen",
+            "Während der Diastole öffnet sich die Klappe, wenn der Druck in der rechten Kammer ansteigt",
+            "Das Herz hat zwei Taschen und zwei Segelklappen",
+            "Die Mitralklappe teil den rechten Vorhof mit der rechten Kammer",
+            "Die Pulmonalklappe ist eine Taschenklappe"
+        ],
+        "correct_answer": "E",
+        "correct_answer_text": "Die Pulmonalklappe ist eine Taschenklappe"
+    },
+    "Figuren Zusammensetzen": {
+        "template": "figuren",
+        "header": "Figuren Zusammensetzen",
+        "task_count": "15 Aufgaben",
+        "time_limit": "20 Minuten",
+        "spatial_description": "Die folgenden Aufgaben überprüfen Ihr räumliches Vorstellungsvermögen.",
+        "task_explanation": "Ihnen werden mehrere Einzelteile einer zerstückelten Figur vorgestellt. Ihre Aufgabe ist es herauszufinden, Welche Figur [Antwortmöglichkeiten A) bis D)] sich durch das Zusammensetzen der Teile bilden lässt. Sollten die zusammengesetzten Teile keiner dieser Figuren entsprechen, so ist Antwortmöglichkeit E) zu wählen.",
+        "visual_example": "Welche Figur lässt sich aus den folgenden Bausteinen zusammensetzen?",
+        "correct_answer": "A"
+    },
+    "Figuren": {
+        "template": "figuren",
+        "header": "Figuren Zusammensetzen",
+        "task_count": "15 Aufgaben",
+        "time_limit": "20 Minuten",
+        "spatial_description": "Die folgenden Aufgaben überprüfen Ihr räumliches Vorstellungsvermögen.",
+        "task_explanation": "Ihnen werden mehrere Einzelteile einer zerstückelten Figur vorgestellt. Ihre Aufgabe ist es herauszufinden, Welche Figur [Antwortmöglichkeiten A) bis D)] sich durch das Zusammensetzen der Teile bilden lässt. Sollten die zusammengesetzten Teile keiner dieser Figuren entsprechen, so ist Antwortmöglichkeit E) zu wählen.",
+        "visual_example": "Welche Figur lässt sich aus den folgenden Bausteinen zusammensetzen?",
+        "correct_answer": "A"
+    },
+    "Gedächtnis und Merkfähigkeit (Lernphase)": {
+        "template": "memory_learning",
+        "header": "Gedächtnis und Merkfähigkeit",
+        "subheader": "Lernphase",
+        "learning_time": "Lernzeit für 8 Ausweise: 8 Minuten",
+        "description": "Die folgenden Aufgaben überprüfen Ihre Fähigkeit Bilder und Fakten zu merken und später Fragen diesbezüglich zu beantworten.\nIhnen werden insgesamt 8 Allergieausweise mit je 8 Merkmalen angezeigt. Bitte prägen Sie sich alle Fakten in der zu Ihnen zur Verfügung stehenden Zeit gut ein. Anschließend werden Sie zwei weitere Untertests absolvieren und danach Fragen zu den Ausweisen beantworten.",
+        "learning_rules": "Bitte beachten Sie, dass während der Lernphase keinerlei Hilfsmaterialien erlaubt sind! Bitte legen Sie Ihr Schreibgerät auf den Tisch vor Ihnen. Sie dürfen ebenso in den folgenden zwei Untertests keine Notizen zu den Ausweisen zu machen. Ihr Testheft wird bei der Auswertung stichprobenartig auf Regelverstoß überprüft.",
+        "example_question": "Die Person mit der Blutgruppe B hat welche Allergie?",
+        "answer_options": [
+            "Pollen",
+            "Staub",
+            "Penicillin",
+            "Keine",
+            "Milben"
+        ],
+        "correct_answer": "D",
+        "correct_answer_text": "Keine"
+    },
+    "Merkfähigkeiten": {
+        "template": "memory_learning",
+        "header": "Gedächtnis und Merkfähigkeit",
+        "subheader": "Lernphase",
+        "learning_time": "Lernzeit für 8 Ausweise: 8 Minuten",
+        "description": "Die folgenden Aufgaben überprüfen Ihre Fähigkeit Bilder und Fakten zu merken und später Fragen diesbezüglich zu beantworten.\nIhnen werden insgesamt 8 Allergieausweise mit je 8 Merkmalen angezeigt. Bitte prägen Sie sich alle Fakten in der zu Ihnen zur Verfügung stehenden Zeit gut ein. Anschließend werden Sie zwei weitere Untertests absolvieren und danach Fragen zu den Ausweisen beantworten.",
+        "learning_rules": "Bitte beachten Sie, dass während der Lernphase keinerlei Hilfsmaterialien erlaubt sind! Bitte legen Sie Ihr Schreibgerät auf den Tisch vor Ihnen. Sie dürfen ebenso in den folgenden zwei Untertests keine Notizen zu den Ausweisen zu machen. Ihr Testheft wird bei der Auswertung stichprobenartig auf Regelverstoß überprüft.",
+        "example_question": "Die Person mit der Blutgruppe B hat welche Allergie?",
+        "answer_options": [
+            "Pollen",
+            "Staub",
+            "Penicillin",
+            "Keine",
+            "Milben"
+        ],
+        "correct_answer": "D",
+        "correct_answer_text": "Keine"
+    },
+    "Zahlenfolgen": {
+        "template": "default",
+        "header": "Zahlenfolgen",
+        "task_count": "10 Aufgaben",
+        "time_limit": "15 Minuten",
+        "description": "In diesem Untertest werden Ihre Fähigkeit eine Zahlenreihe logisch fortzusetzen überprüft.\nIhnen wird pro Aufgabe eine Zahlenreihe präsentiert. Ihre Aufgabe ist es die Regel hinter jeder\nZahlenreihe zu erkennen und anhand dieser die zwei folgenden Zahlen der Reihe zu berechnen. Sollten\ndie errechneten Zahlen nicht unter den Antwortmöglichkeiten A) bis D) zu finden sein, so ist Antwort E) zu wählen.\n\n**ZUSÄTZLICHER TEXT:** Hier können Sie beliebigen zusätzlichen Text hinzufügen!",
+        "example_question": "2\t4\t3\t6\t5\t10\t9\t?\t?",
+        "answer_options": [
+            "18/17",
+            "19/18",
+            "20/21",
+            "17/18",
+            "16/17"
+        ],
+        "correct_answer": "A"
+    },
+    "Neue_Kategorie": {
+        "template": "default",
+        "header": "Neue Test Kategorie",
+        "task_count": "20 Aufgaben",
+        "time_limit": "25 Minuten",
+        "description": "Dies ist eine neue Testkategorie mit spezifischen Anweisungen.\nHier können Sie detaillierte Beschreibungen hinzufügen.",
+        "additional_text": "Zusätzliche wichtige Hinweise für diese Kategorie!",
+        "example_question": "Was ist 2 + 2?",
+        "answer_options": [
+            "3",
+            "4",
+            "5",
+            "6",
+            "Keine der Antworten ist richtig"
+        ],
+        "correct_answer": "B",
+        "correct_answer_text": "4"
+    },
+    "Wortflüssigkeit": {
+        "template": "default",
+        "header": "Wortflüssigkeit",
+        "task_count": "15 Aufgaben",
+        "time_limit": "20 Minuten",
+        "description": "In diesem Untertest wird Ihnen pro Aufgabe ein Wort präsentiert, bei welchem die Anordnung\nder Buchstaben vertauscht wurde. Ihre Aufgabe ist es, die Buchstaben in die korrekte Reihenfolge zu bringen und den Anfangsbuchstaben des gesuchten Wortes zu finden.",
+        "example_question": "U \t N \t A \t H \t M \t E \t F \t A",
+        "answer_options": [
+            "Anfangsbuchtabe: U",
+            "Anfangsbuchtabe: F",
+            "Anfangsbuchtabe: H",
+            "Anfangsbuchtabe: A",
+            "Keine der Antworten ist richtig"
+        ],
+        "correct_answer": "D",
+        "correct_answeKeine Antwortr_text": "A"
+    },
+    "Wortfluessigkeit": {
+        "template": "default",
+        "header": "Wortflüssigkeit",
+        "task_count": "15 Aufgaben",
+        "time_limit": "20 Minuten",
+        "description": "In diesem Untertest wird Ihnen pro Aufgabe ein Wort präsentiert, bei welchem die Anordnung\nder Buchstaben vertauscht wurde. Ihre Aufgabe ist es, die Buchstaben in die korrekte Reihenfolge zu bringen und den Anfangsbuchstaben des gesuchten Wortes zu finden.",
+        "example_question": "U \t N \t A \t H \t M \t E \t F \t A",
+        "answer_options": [
+            "Anfangsbuchtabe: U",
+            "Anfangsbuchtabe: F",
+            "Anfangsbuchtabe: H",
+            "Anfangsbuchtabe: A",
+            "Keine der Antworten ist richtig"
+        ],
+        "correct_answer": "D",
+        "correct_answeKeine Antwortr_text": "A"
+    },
+    "Gedächtnis und Merkfähigkeit (Abrufphase)": {
+        "template": "memory_recall",
+        "header": "Gedächtnis und Merkfähigkeit",
+        "subheader": "Abrufphase",
+        "task_count": "40 Aufgaben",
+        "time_limit": "25 Minuten",
+        "description": "In diesem Aufgabenteil werden Sie nun Fragen zu den Allergieausweisen aus der Lernphase beantworten.\nBitte beachten Sie erneut, dass keinerlei Hilfsmaterialien erlaubt sind!"
+    },
+    "Implikationen erkennen": {
+        "template": "implikationen",
+        "header": "Implikationen erkennen",
+        "task_count": "10 Aufgaben",
+        "time_limit": "10 Minuten",
+        "description": "Die folgenden Aufgaben überprüfen Ihre Fähigkeit Annahmen in Aussagen zu erkennen.\nIn jeder Aufgabe wird Ihnen eine Ausgangsaussage gezeigt. Bitte beurteilen Sie, welche der gegebenen Antwortmöglichkeiten eine notwendige Annahme dieser Ausgangsaussage ist. Die gesuchte Annahme muss erfüllt werden, damit die Ausgangsaussage wahr ist.",
+        "example_premises": [
+            "\"Alle Hunde sind Katzen.\"",
+            "\"Alle Katzen sind Pferde.\""
+        ],
+        "answer_options": [
+            "Alle Hunde sind Pferde",
+            "Keine Hunde sind Pferde",
+            "Einige Hunde sind keine Pferde",
+            "Alle Pferde sind Hunde",
+            "Keine der Antworten ist richtig"
+        ],
+        "correct_answer": "A",
+        "correct_answer_text": "Alle Hunde sind Pferde"
+    },
+    "Implikationen": {
+        "template": "implikationen",
+        "header": "Implikationen erkennen",
+        "task_count": "10 Aufgaben",
+        "time_limit": "15 Minuten",
+        "description": "Die folgenden Aufgaben überprüfen Ihre Fähigkeit Annahmen in Aussagen zu erkennen.\nIn jeder Aufgabe wird Ihnen eine Ausgangsaussage gezeigt. Bitte beurteilen Sie, welche der gegebenen Antwortmöglichkeiten eine notwendige Annahme dieser Ausgangsaussage ist. Die gesuchte Annahme muss erfüllt werden, damit die Ausgangsaussage wahr ist.",
+        "example_premises": [
+            "\"Alle Hunde sind Katzen.\"",
+            "\"Alle Katzen sind Pferde.\""
+        ],
+        "answer_options": [
+            "Alle Hunde sind Pferde",
+            "Keine Hunde sind Pferde",
+            "Einige Hunde sind keine Pferde",
+            "Alle Pferde sind Hunde",
+            "Keine der Antworten ist richtig"
+        ],
+        "correct_answer": "A",
+        "correct_answer_text": "Alle Hunde sind Pferde"
+    },
+    "Emotionen regulieren": {
+        "template": "emotions",
+        "header": "Emotionen regulieren",
+        "task_count": "10 Aufgaben",
+        "time_limit": "10 Minuten",
+        "description": "Die folgenden Aufgaben überprüfen Ihre Fähigkeit Emotionen anderer zu verstehen und darauf angemessen zu reagieren.\nIhnen werden Situationen beschrieben. Bitte wählen Sie aus den gegebenen Antwortmöglichkeiten jene Reaktion aus, mit der Sie am besten mit der jeweiligen Situation umgehen können.",
+        "example_situation": "Ein Freund von Ihnen kommt aufgebracht zu Ihnen und erzählt Ihnen, dass er von seinem Chef ungerechtfertigt kritisiert wurde.",
+        "example_question": "Wie können Sie am besten reagieren?",
+        "answer_options": [
+            "Sie sagen ihm, dass er überreagiert",
+            "Sie fragen ihn, was genau sein Chef gesagt hat",
+            "Sie erzählen ihm von einer ähnlichen Situation, die Sie erlebt haben",
+            "Sie raten ihm, sofort zu kündigen",
+            "Sie ignorieren das Thema und wechseln das Gespräch"
+        ],
+        "correct_answer": "B",
+        "correct_answer_text": "Sie fragen ihn, was genau sein Chef gesagt hat"
+    },
+    "Emotionen erkennen": {
+        "template": "emotions",
+        "header": "Emotionen erkennen",
+        "task_count": "10 Aufgaben",
+        "time_limit": "10 Minuten",
+        "description": "Die folgenden Aufgaben überprüfen Ihre Fähigkeit Emotionen zu erkennen.\nIhnen werden Bilder von Gesichtern gezeigt, die verschiedene Emotionen ausdrücken. Bitte wählen Sie aus den gegebenen Antwortmöglichkeiten jene Emotion aus, die am besten zu dem gezeigten Gesichtsausdruck passt.",
+        "example_visual": "[Hier würde ein Gesichtsbild gezeigt werden]",
+        "example_question": "Welche Emotion drückt das Gesicht aus?",
+        "answer_options": [
+            "Freude",
+            "Trauer",
+            "Wut",
+            "Überraschung",
+            "Angst"
+        ],
+        "correct_answer": "A",
+        "correct_answer_text": "Freude"
+    },
+    "Soziales entscheiden": {
+        "template": "emotions",
+        "header": "Soziales entscheiden",
+        "task_count": "10 Aufgaben",
+        "time_limit": "10 Minuten",
+        "description": "Die folgenden Aufgaben überprüfen Ihre Fähigkeit in sozialen Situationen angemessen zu handeln.\nIhnen werden verschiedene soziale Situationen beschrieben. Bitte wählen Sie aus den gegebenen Antwortmöglichkeiten jene Handlung aus, die in der jeweiligen Situation am angemessensten ist.",
+        "example_situation": "Sie sind in einem Restaurant und stellen fest, dass Ihre Bestellung falsch ist.",
+        "example_question": "Wie verhalten Sie sich am besten?",
+        "answer_options": [
+            "Sie verlassen das Restaurant ohne zu bezahlen",
+            "Sie essen das falsche Gericht trotzdem",
+            "Sie sprechen höflich mit dem Kellner über den Fehler",
+            "Sie beschweren sich lautstark beim Manager",
+            "Sie verlangen eine kostenlose Rechnung"
+        ],
+        "correct_answer": "C",
+        "correct_answer_text": "Sie sprechen höflich mit dem Kellner über den Fehler"
+    }
+}

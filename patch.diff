@@ -1,11 +1,216 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
 diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
-index fa892e5d2c07b7e64c8d52308b03c9d94a473bc9..ddc0d7c06f86bd9504434761691566ad2a7d1d18 100644
+index ddc0d7c06f86bd9504434761691566ad2a7d1d18..5776dc4ac80c8682cddfedf9d4aa6d897348f837 100644
 --- a/src/main/java/MedatoninDB.java
 +++ b/src/main/java/MedatoninDB.java
-@@ -3291,57 +3291,50 @@ public class MedatoninDB extends JFrame {
-             JOptionPane.showMessageDialog(this, "Error saving solution document: " + e.getMessage(), "Error",
-                     JOptionPane.ERROR_MESSAGE);
+@@ -132,50 +132,88 @@ public class MedatoninDB extends JFrame {
+     private static final Map<String, Integer> INTRO_PAGE_INDEX = Map.ofEntries(
+             // Science categories
+             Map.entry("Biologie", 0),
+             Map.entry("Chemie", 1),
+             Map.entry("Physik", 2),
+             Map.entry("Mathematik", 3),
+ 
+             // Additional categories that may not be present in the DB
+             Map.entry("Textverständnis", 4),
+ 
+             // KFF subtests – map both the official and database names
+             Map.entry("Figuren Zusammensetzen", 5),
+             Map.entry("Figuren", 5),
+             Map.entry("Gedächtnis und Merkfähigkeit (Lernphase)", 6),
+             Map.entry("Merkfähigkeiten", 6),
+             Map.entry("Zahlenfolgen", 7),
+             Map.entry("Wortflüssigkeit", 8),
+             Map.entry("Gedächtnis und Merkfähigkeit (Abrufphase)", 9),
+             Map.entry("Implikationen erkennen", 10),
+             Map.entry("Implikationen", 10),
+             Map.entry("Emotionen regulieren", 11),
+             Map.entry("Emotionen erkennen", 12),
+             Map.entry("Soziales entscheiden", 13)
+     );
+ 
++    // Helper method to locate the introduction page index even if the
++    // subcategory name differs slightly. The lookup is case-insensitive and
++    // ignores diacritics and non-alphanumeric characters.
++    private static Integer getIntroPageIndex(String name) {
++        if (name == null) {
++            return null;
++        }
++
++        Integer idx = INTRO_PAGE_INDEX.get(name);
++        if (idx != null) {
++            return idx;
++        }
++
++        String normalized = normalizeIntroKey(name);
++        for (Map.Entry<String, Integer> e : INTRO_PAGE_INDEX.entrySet()) {
++            if (normalizeIntroKey(e.getKey()).equals(normalized)) {
++                return e.getValue();
++            }
++        }
++        for (Map.Entry<String, Integer> e : INTRO_PAGE_INDEX.entrySet()) {
++            String nk = normalizeIntroKey(e.getKey());
++            if (nk.contains(normalized) || normalized.contains(nk)) {
++                return e.getValue();
++            }
++        }
++        return null;
++    }
++
++    // Normalize a string by removing accents, whitespace and special characters
++    // and converting to lower case. This helps matching slightly different
++    // spellings of subcategory names.
++    private static String normalizeIntroKey(String s) {
++        String n = java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFD);
++        n = n.replaceAll("\\p{M}", "");
++        n = n.replaceAll("[^a-zA-Z0-9]", "");
++        return n.toLowerCase();
++    }
++
+     private JTable questionTable; // Table to hold questions and checkboxes
+     private DefaultTableModel tableModel; // Table model for adding rows
+     private JLabel userTextField; // Haupt-Textfeld for real-time editing
+ 
+     private String currentCategory = "Biologie", currentSubcategory = ""; // Track the current subcategory
+     private JButton printCategoryButton; // Button that will dynamically change label
+     private JButton bioButton, chemButton, physButton, mathButton, kffButton; // Category buttons
+     private JPanel subcategoryPanel; // Panel to hold subcategory buttons
+     private JButton selectedSubcategoryButton = null; // Class-level variable to keep track of the currently selected
+                                                       // subcategory button
+ 
+     private Map<JTable, Integer> tablePendingDeleteRowMap = new HashMap<>(); // Track pending delete row per table
+     private ImageIcon gearIcon; // Load the gear icon
+     private ImageIcon penIcon; // Load the pen icon
+     private ImageIcon penEditIcon; // Load the pen edit icon
+ 
+     private boolean isEditMode = false; // Variable to check if edit mode is enabled
+     private Point initialClickPoint; // Initial click point for the drag
+     private JButton draggedButton; // Reference to the button being dragged
+     private JPanel draggedContainer; // Panel that contains the dragged button
+     private int originalIndex = -1; // Original index of the dragged button
+     private int dragThreshold = 5; // Threshold in pixels to start dragging
+     private boolean isDragging = false; // Indicates if a drag operation is in progress
+     private int lastTargetIndex = -1; // **Declaration of lastTargetIndex**
+     private Set<QuestionIdentifier> pendingDeleteQuestions = new HashSet<>();
+diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
+index ddc0d7c06f86bd9504434761691566ad2a7d1d18..5776dc4ac80c8682cddfedf9d4aa6d897348f837 100644
+--- a/src/main/java/MedatoninDB.java
++++ b/src/main/java/MedatoninDB.java
+@@ -3071,51 +3109,51 @@ public class MedatoninDB extends JFrame {
+             // Check if docx4j is available at runtime
+             Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage");
+             
+             docx.Docx4jPrinter printer = new docx.Docx4jPrinter();
+ 
+             // Load introduction pages from the static DOCX file
+             java.lang.reflect.Method loadMethod = printer.getClass()
+                 .getMethod("loadIntroductionPages", java.io.File.class);
+             Object introPages = loadMethod.invoke(printer, new File("untertest_introductionPage.docx"));
+ 
+             // Create document manually to avoid import issues
+             java.lang.reflect.Method createMethod = Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage")
+                 .getMethod("createPackage");
+             Object pkg = createMethod.invoke(null);
+             
+             // Process each subcategory
+             java.util.List<String> subcatList = subcategoryOrder.get(category);
+             for (int i = 0; i < subcatList.size(); i++) {
+                 String subcategory = subcatList.get(i);
+                 DefaultTableModel model = subcategories.get(subcategory);
+                 if (model == null || model.getRowCount() == 0) {
+                     continue; // Skip empty subcategories
+                 }
+ 
+                 // Insert introduction page for this specific subcategory (Untertest)
+-                Integer pageIdx = INTRO_PAGE_INDEX.get(subcategory);
++                Integer pageIdx = getIntroPageIndex(subcategory);
+                 if (pageIdx != null && introPages instanceof java.util.List && pageIdx < ((java.util.List<?>) introPages).size()) {
+                     java.lang.reflect.Method appendMethod = printer.getClass()
+                         .getMethod("appendPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), java.util.List.class);
+                     appendMethod.invoke(printer, pkg, ((java.util.List<?>) introPages).get(pageIdx));
+                 }
+ 
+                 // Add questions using reflection to avoid import issues
+                 java.lang.reflect.Method addQuestionsMethod = printer.getClass()
+                     .getMethod("addQuestions", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), DefaultTableModel.class);
+                 addQuestionsMethod.invoke(printer, pkg, model);
+ 
+                 // Add stop sign page using reflection
+                 java.lang.reflect.Method addStopSignMethod = printer.getClass()
+                     .getMethod("addStopSignPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
+                 addStopSignMethod.invoke(printer, pkg);
+ 
+                 // Remove potential trailing page break from questions
+                 // (stop sign page will handle page separation)
+             }
+ 
+             // Save the document using reflection with conflict resolution
+             String baseFileName = category + ".docx";
+             File outputFile = new File(baseFileName);
+             
+             // If file is in use, try alternative names
+diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
+index ddc0d7c06f86bd9504434761691566ad2a7d1d18..5776dc4ac80c8682cddfedf9d4aa6d897348f837 100644
+--- a/src/main/java/MedatoninDB.java
++++ b/src/main/java/MedatoninDB.java
+@@ -3187,51 +3225,51 @@ public class MedatoninDB extends JFrame {
+             // Check if docx4j is available at runtime
+             Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage");
+             
+             docx.Docx4jPrinter printer = new docx.Docx4jPrinter();
+ 
+             // Load introduction pages
+             java.lang.reflect.Method loadMethod = printer.getClass()
+                 .getMethod("loadIntroductionPages", java.io.File.class);
+             Object introPages = loadMethod.invoke(printer, new File("untertest_introductionPage.docx"));
+ 
+             // Create document manually to avoid import issues
+             java.lang.reflect.Method createMethod = Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage")
+                 .getMethod("createPackage");
+             Object pkg = createMethod.invoke(null);
+             
+             // Process each subcategory
+             java.util.List<String> subcatList = subcategoryOrder.get(category);
+             for (int i = 0; i < subcatList.size(); i++) {
+                 String subcategory = subcatList.get(i);
+                 DefaultTableModel model = subcategories.get(subcategory);
+                 if (model == null || model.getRowCount() == 0) {
+                     continue; // Skip empty subcategories
+                 }
+ 
+                 // Insert introduction page for this specific subcategory (Untertest)
+-                Integer pageIdx = INTRO_PAGE_INDEX.get(subcategory);
++                Integer pageIdx = getIntroPageIndex(subcategory);
+                 if (pageIdx != null && introPages instanceof java.util.List && pageIdx < ((java.util.List<?>) introPages).size()) {
+                     java.lang.reflect.Method appendMethod = printer.getClass()
+                         .getMethod("appendPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), java.util.List.class);
+                     appendMethod.invoke(printer, pkg, ((java.util.List<?>) introPages).get(pageIdx));
+                 }
+ 
+                 // Add solutions using reflection to avoid import issues
+                 java.lang.reflect.Method addSolutionsMethod = printer.getClass()
+                     .getMethod("addQuestionsSolution", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), DefaultTableModel.class);
+                 addSolutionsMethod.invoke(printer, pkg, model);
+ 
+                 // Add stop sign page using reflection
+                 java.lang.reflect.Method addStopSignMethod = printer.getClass()
+                     .getMethod("addStopSignPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
+                 addStopSignMethod.invoke(printer, pkg);
+ 
+                 // Stop sign already starts a new page; no extra break needed
+             }
+ 
+             // Save the document using reflection with conflict resolution
+             String baseFileName = category + "_Solutions.docx";
+             File outputFile = new File(baseFileName);
+             
+             // If file is in use, try alternative names
+             int counter = 1;
+diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
+index ddc0d7c06f86bd9504434761691566ad2a7d1d18..5776dc4ac80c8682cddfedf9d4aa6d897348f837 100644
+--- a/src/main/java/MedatoninDB.java
++++ b/src/main/java/MedatoninDB.java
+@@ -3293,51 +3331,51 @@ public class MedatoninDB extends JFrame {
          }
      }
  
@@ -29,16 +234,10 @@ index fa892e5d2c07b7e64c8d52308b03c9d94a473bc9..ddc0d7c06f86bd9504434761691566ad
              Object pkg = createMethod.invoke(null);
  
              for (String category : categoryModels.keySet()) {
--                Integer catIndex = INTRO_PAGE_INDEX.get(category);
--                if (catIndex != null && introPages instanceof List && catIndex < ((List<?>) introPages).size()) {
--                    java.lang.reflect.Method appendMethod = printer.getClass()
--                        .getMethod("appendPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), List.class);
--                    appendMethod.invoke(printer, pkg, ((List<?>) introPages).get(catIndex));
--                }
--
                  Map<String, DefaultTableModel> subcats = categoryModels.get(category);
                  for (String subcat : subcategoryOrder.get(category)) {
-                     Integer pageIdx = INTRO_PAGE_INDEX.get(subcat);
+-                    Integer pageIdx = INTRO_PAGE_INDEX.get(subcat);
++                    Integer pageIdx = getIntroPageIndex(subcat);
                      if (pageIdx != null && introPages instanceof List && pageIdx < ((List<?>) introPages).size()) {
                          java.lang.reflect.Method appendMethod = printer.getClass()
                              .getMethod("appendPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), List.class);
@@ -61,6 +260,66 @@ index fa892e5d2c07b7e64c8d52308b03c9d94a473bc9..ddc0d7c06f86bd9504434761691566ad
              }
  
              // Save the document using reflection with conflict resolution
+             String baseFileName = "All_Categories.docx";
+             File outputFile = new File(baseFileName);
+             
+diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
+index ddc0d7c06f86bd9504434761691566ad2a7d1d18..5776dc4ac80c8682cddfedf9d4aa6d897348f837 100644
+--- a/src/main/java/MedatoninDB.java
++++ b/src/main/java/MedatoninDB.java
+@@ -3414,51 +3452,51 @@ public class MedatoninDB extends JFrame {
+             java.lang.reflect.Method loadMethod = printer.getClass()
+                 .getMethod("loadIntroductionPages", java.io.File.class);
+             Object introPages = loadMethod.invoke(printer, new File("untertest_introductionPage.docx"));
+ 
+             // Create document manually to avoid import issues
+             java.lang.reflect.Method createMethod = Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage")
+                 .getMethod("createPackage");
+             Object pkg = createMethod.invoke(null);
+ 
+             // Iterate over all categories
+             java.util.List<String> categoryList = new java.util.ArrayList<>(categoryModels.keySet());
+             for (int c = 0; c < categoryList.size(); c++) {
+                 String category = categoryList.get(c);
+                 Map<String, DefaultTableModel> subcategories = categoryModels.get(category);
+ 
+                 // Iterate over subcategories without category/subcategory headings
+                 java.util.List<String> subcatList = subcategoryOrder.get(category);
+                 for (int i = 0; i < subcatList.size(); i++) {
+                     String subcategory = subcatList.get(i);
+                     DefaultTableModel model = subcategories.get(subcategory);
+                     if (model == null || model.getRowCount() == 0) {
+                         continue; // Skip empty subcategories
+                     }
+ 
+                     // Insert introduction page for this subcategory if available
+-                    Integer pageIdx = INTRO_PAGE_INDEX.get(subcategory);
++                    Integer pageIdx = getIntroPageIndex(subcategory);
+                     if (pageIdx != null && introPages instanceof java.util.List && pageIdx < ((java.util.List<?>) introPages).size()) {
+                         java.lang.reflect.Method appendMethod = printer.getClass()
+                             .getMethod("appendPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), java.util.List.class);
+                         appendMethod.invoke(printer, pkg, ((java.util.List<?>) introPages).get(pageIdx));
+                     }
+ 
+                     // Add questions with solutions using reflection
+                     java.lang.reflect.Method addQuestionsSolutionMethod = printer.getClass()
+                         .getMethod("addQuestionsSolution", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), DefaultTableModel.class);
+                     addQuestionsSolutionMethod.invoke(printer, pkg, model);
+ 
+                     // Add stop sign page using reflection
+                     java.lang.reflect.Method addStopSignMethod = printer.getClass()
+                         .getMethod("addStopSignPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
+                     addStopSignMethod.invoke(printer, pkg);
+ 
+                     // Next introduction page already begins on a new page
+                 }
+             }
+ 
+             // Save the document using reflection with conflict resolution
+             String baseFileName = "All_Categories_Solutions.docx";
+             File outputFile = new File(baseFileName);
+             
+             // If file is in use, try alternative names
  
 EOF
 )

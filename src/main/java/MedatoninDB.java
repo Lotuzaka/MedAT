@@ -18,6 +18,7 @@ import javax.swing.*;
 import javax.swing.event.*;
 import javax.swing.plaf.basic.*;
 import javax.swing.table.*;
+import javax.swing.Timer;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.AffineTransform;
@@ -128,31 +129,31 @@ public class MedatoninDB extends JFrame {
     private Map<String, Map<String, DefaultTableModel>> categoryModels = new HashMap<>();
     private Map<String, List<String>> subcategoryOrder = new HashMap<>();
 
-    // Mapping of category or subcategory names to introduction page index
-    private static final Map<String, Integer> INTRO_PAGE_INDEX = Map.ofEntries(
-            // Science categories
-            Map.entry("Biologie", 0),
-            Map.entry("Chemie", 1),
-            Map.entry("Physik", 2),
-            Map.entry("Mathematik", 3),
-
-            // Additional categories that may not be present in the DB
-            Map.entry("Textverständnis", 4),
-
-            // KFF subtests – map both the official and database names
-            Map.entry("Figuren Zusammensetzen", 5),
-            Map.entry("Figuren", 5),
-            Map.entry("Gedächtnis und Merkfähigkeit (Lernphase)", 6),
-            Map.entry("Merkfähigkeiten", 6),
-            Map.entry("Zahlenfolgen", 7),
-            Map.entry("Wortflüssigkeit", 8),
-            Map.entry("Gedächtnis und Merkfähigkeit (Abrufphase)", 9),
-            Map.entry("Implikationen erkennen", 10),
-            Map.entry("Implikationen", 10),
-            Map.entry("Emotionen regulieren", 11),
-            Map.entry("Emotionen erkennen", 12),
-            Map.entry("Soziales entscheiden", 13)
-    );
+    // Template-based introduction content system
+    private static IntroTemplateEngine templateEngine;
+    
+    static {
+        try {
+            templateEngine = new IntroTemplateEngine();
+        } catch (Exception e) {
+            System.err.println("Error initializing template engine: " + e.getMessage());
+            templateEngine = null;
+        }
+    }
+    // Helper method to get introduction content for a subcategory using template engine
+    private static String getIntroContent(String name) {
+        if (templateEngine == null) {
+            debugLog("Template", LogLevel.ERROR, "Template engine not initialized");
+            return null;
+        }
+        
+        try {
+            return templateEngine.generateIntroContent(name);
+        } catch (Exception e) {
+            debugLog("Template", LogLevel.ERROR, "Error generating intro content for " + name + ": " + e.getMessage());
+            return null;
+        }
+    }
 
     private JTable questionTable; // Table to hold questions and checkboxes
     private DefaultTableModel tableModel; // Table model for adding rows
@@ -194,6 +195,13 @@ public class MedatoninDB extends JFrame {
     private Map<String, Integer> simulationMap; // Maps simulation names to their IDs
 
     private Integer selectedSimulationId = null; // ID der ausgewählten Simulation
+
+    // Notification system components
+    private JPanel statusBar;
+    private JLabel statusLabel;
+    private JProgressBar statusProgressBar;
+    private JPanel toastContainer;
+    private Timer toastTimer;
 
     /**
      * Utility to create a horizontal container for a subcategory button (with optional delete button).
@@ -257,6 +265,232 @@ public class MedatoninDB extends JFrame {
         }
         return buttonContainer;
     }
+
+    // ================================ NOTIFICATION SYSTEM ================================
+    
+    /**
+     * Modern toast notification class with slide-in animation
+     */
+    private class ToastNotification extends JPanel {
+        private static final int TOAST_WIDTH = 320;
+        private static final int TOAST_HEIGHT = 60;
+        private Timer slideTimer;
+        private int targetY;
+        private int currentY;
+        private boolean isSliding = false;
+        
+        public ToastNotification(String message, Color backgroundColor, Color textColor) {
+            setLayout(new BorderLayout());
+            setBackground(backgroundColor);
+            setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(0, 0, 0, 30), 1),
+                BorderFactory.createEmptyBorder(12, 16, 12, 16)
+            ));
+            setPreferredSize(new Dimension(TOAST_WIDTH, TOAST_HEIGHT));
+            setOpaque(true);
+            
+            // Create rounded corners effect
+            setComponentOrientation(ComponentOrientation.LEFT_TO_RIGHT);
+            
+            JLabel messageLabel = new JLabel(message);
+            messageLabel.setForeground(textColor);
+            messageLabel.setFont(FONT_BASE);
+            add(messageLabel, BorderLayout.CENTER);
+            
+            // Add close button
+            JButton closeBtn = new JButton("×");
+            closeBtn.setForeground(textColor);
+            closeBtn.setBackground(backgroundColor);
+            closeBtn.setBorder(null);
+            closeBtn.setFocusPainted(false);
+            closeBtn.setFont(new Font(FONT_FAMILY, Font.BOLD, 16));
+            closeBtn.setPreferredSize(new Dimension(20, 20));
+            closeBtn.addActionListener(e -> hideToast());
+            add(closeBtn, BorderLayout.EAST);
+        }
+        
+        public void showToast() {
+            if (toastContainer == null) return;
+            
+            // Position toast initially off-screen (to the right)
+            currentY = 10;
+            targetY = 10;
+            setBounds(toastContainer.getWidth(), currentY, TOAST_WIDTH, TOAST_HEIGHT);
+            
+            toastContainer.add(this);
+            toastContainer.revalidate();
+            toastContainer.repaint();
+            
+            // Animate slide in from right
+            isSliding = true;
+            slideTimer = new Timer(16, e -> {
+                int targetX = toastContainer.getWidth() - TOAST_WIDTH - 20;
+                int currentX = getX();
+                
+                if (currentX > targetX) {
+                    int newX = Math.max(targetX, currentX - 15);
+                    setBounds(newX, currentY, TOAST_WIDTH, TOAST_HEIGHT);
+                    toastContainer.repaint();
+                } else {
+                    isSliding = false;
+                    slideTimer.stop();
+                    
+                    // Auto-hide after 4 seconds
+                    Timer hideTimer = new Timer(4000, hideEvent -> hideToast());
+                    hideTimer.setRepeats(false);
+                    hideTimer.start();
+                }
+            });
+            slideTimer.start();
+        }
+        
+        public void hideToast() {
+            if (slideTimer != null && slideTimer.isRunning()) {
+                slideTimer.stop();
+            }
+            
+            // Animate slide out to the right
+            Timer hideAnimation = new Timer(16, e -> {
+                int currentX = getX();
+                int targetX = toastContainer.getWidth();
+                
+                if (currentX < targetX) {
+                    int newX = Math.min(targetX, currentX + 15);
+                    setBounds(newX, currentY, TOAST_WIDTH, TOAST_HEIGHT);
+                    toastContainer.repaint();
+                } else {
+                    toastContainer.remove(this);
+                    toastContainer.revalidate();
+                    toastContainer.repaint();
+                    ((Timer) e.getSource()).stop();
+                }
+            });
+            hideAnimation.start();
+        }
+    }
+    
+    /**
+     * Initialize the notification system components
+     */
+    private void initializeNotificationSystem() {
+        // Create status bar
+        statusBar = new JPanel(new BorderLayout());
+        statusBar.setBackground(CLR_CARD);
+        statusBar.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(1, 0, 0, 0, CLR_BORDER),
+            BorderFactory.createEmptyBorder(8, 16, 8, 16)
+        ));
+        statusBar.setPreferredSize(new Dimension(0, 40));
+        
+        // Status label
+        statusLabel = new JLabel("Ready");
+        statusLabel.setForeground(CLR_PRIMARY);
+        statusLabel.setFont(FONT_BASE);
+        statusBar.add(statusLabel, BorderLayout.WEST);
+        
+        // Progress bar
+        statusProgressBar = new JProgressBar();
+        statusProgressBar.setVisible(false);
+        statusProgressBar.setPreferredSize(new Dimension(200, 20));
+        statusProgressBar.setBackground(CLR_SURFACE);
+        statusProgressBar.setForeground(CLR_ACCENT);
+        statusProgressBar.setBorder(BorderFactory.createEmptyBorder());
+        statusBar.add(statusProgressBar, BorderLayout.EAST);
+        
+        // Toast container (overlay)
+        toastContainer = new JPanel();
+        toastContainer.setLayout(null);
+        toastContainer.setOpaque(false);
+        
+        // Add status bar to the main frame
+        JPanel southPanel = (JPanel) ((BorderLayout) getContentPane().getLayout()).getLayoutComponent(BorderLayout.SOUTH);
+        if (southPanel != null) {
+            southPanel.add(statusBar, BorderLayout.SOUTH);
+        } else {
+            add(statusBar, BorderLayout.SOUTH);
+        }
+        
+        // Add toast container as glass pane overlay
+        JPanel glassPane = new JPanel();
+        glassPane.setLayout(new BorderLayout());
+        glassPane.setOpaque(false);
+        glassPane.add(toastContainer, BorderLayout.CENTER);
+        setGlassPane(glassPane);
+        glassPane.setVisible(true);
+    }
+    
+    /**
+     * Show a toast notification
+     */
+    private void showToast(String message, NotificationType type) {
+        Color bgColor, textColor;
+        
+        switch (type) {
+            case SUCCESS:
+                bgColor = new Color(34, 197, 94);
+                textColor = Color.WHITE;
+                break;
+            case ERROR:
+                bgColor = new Color(239, 68, 68);
+                textColor = Color.WHITE;
+                break;
+            case INFO:
+                bgColor = CLR_ACCENT;
+                textColor = Color.WHITE;
+                break;
+            case WARNING:
+                bgColor = new Color(245, 158, 11);
+                textColor = Color.WHITE;
+                break;
+            default:
+                bgColor = CLR_PRIMARY;
+                textColor = Color.WHITE;
+        }
+        
+        SwingUtilities.invokeLater(() -> {
+            ToastNotification toast = new ToastNotification(message, bgColor, textColor);
+            toast.showToast();
+        });
+    }
+    
+    /**
+     * Update status bar with progress
+     */
+    private void updateStatus(String message, int progress) {
+        SwingUtilities.invokeLater(() -> {
+            statusLabel.setText(message);
+            if (progress >= 0) {
+                statusProgressBar.setValue(progress);
+                statusProgressBar.setVisible(true);
+            } else {
+                statusProgressBar.setVisible(false);
+            }
+            statusBar.revalidate();
+            statusBar.repaint();
+        });
+    }
+    
+    /**
+     * Clear status and hide progress bar
+     */
+    private void clearStatus() {
+        SwingUtilities.invokeLater(() -> {
+            statusLabel.setText("Ready");
+            statusProgressBar.setVisible(false);
+            statusProgressBar.setValue(0);
+            statusBar.revalidate();
+            statusBar.repaint();
+        });
+    }
+    
+    /**
+     * Notification types for different toast styles
+     */
+    private enum NotificationType {
+        SUCCESS, ERROR, INFO, WARNING
+    }
+    
+    // ================================ END NOTIFICATION SYSTEM ================================
 
     public MedatoninDB() throws SQLException {
         // Debug: Print default charset at startup
@@ -344,8 +578,14 @@ public class MedatoninDB extends JFrame {
                                 loginFrame.dispose();
                                 SwingUtilities.invokeLater(() -> createMainWindow()); // Create main window on EDT
                             } else {
-                                JOptionPane.showMessageDialog(loginFrame, "Invalid username or password.",
-                                        "Login Failed", JOptionPane.ERROR_MESSAGE);
+                                // Instead of showing a blocking dialog, change the password field background to indicate error
+                                passwordField.setBackground(new Color(255, 230, 230)); // Light red background
+                                passwordField.setText(""); // Clear the password field
+                                SwingUtilities.invokeLater(() -> {
+                                    Timer timer = new Timer(2000, e -> passwordField.setBackground(Color.WHITE));
+                                    timer.setRepeats(false);
+                                    timer.start();
+                                });
                             }
                         } catch (Exception e) {
                             e.printStackTrace();
@@ -468,7 +708,7 @@ public class MedatoninDB extends JFrame {
                                 debugLog("Simulation", "Selected simulation: " + selectedItem + " (ID: " + simulationId + ")");
                             } else {
                                 debugLog("Simulation", LogLevel.ERROR, "Simulation does not exist in database: " + selectedItem + " (ID: " + simulationId + ")");
-                                JOptionPane.showMessageDialog(MedatoninDB.this, "Selected simulation no longer exists in database.", "Error", JOptionPane.ERROR_MESSAGE);
+                                showToast("Selected simulation no longer exists in database", NotificationType.ERROR);
                                 // Reload simulation options to refresh the list
                                 loadSimulationOptions();
                                 return;
@@ -492,8 +732,7 @@ public class MedatoninDB extends JFrame {
                             selectedSimulationId = newSimulation.getId();
                         } catch (SQLException ex) {
                             ex.printStackTrace();
-                            JOptionPane.showMessageDialog(MedatoninDB.this, "Error creating new simulation", "Error",
-                                    JOptionPane.ERROR_MESSAGE);
+                            showToast("Error creating new simulation", NotificationType.ERROR);
                         }
                     }
                 }
@@ -705,20 +944,74 @@ public class MedatoninDB extends JFrame {
 
         // Add ActionListener for printing the current category
         printCategoryButton.addActionListener(e -> {
-            printCategory(currentCategory);
-            printCategorySolution(currentCategory);
+            SwingUtilities.invokeLater(() -> {
+                showToast("Starting document generation for " + currentCategory, NotificationType.INFO);
+                updateStatus("Generating " + currentCategory + " document...", 10);
+                
+                // Run print operations in background thread
+                new Thread(() -> {
+                    try {
+                        updateStatus("Processing questions...", 30);
+                        printCategory(currentCategory);
+                        
+                        updateStatus("Generating solutions...", 60);
+                        printCategorySolution(currentCategory);
+                        
+                        updateStatus("Document completed!", 100);
+                        SwingUtilities.invokeLater(() -> {
+                            showToast("Document created successfully for " + currentCategory, NotificationType.SUCCESS);
+                            clearStatus();
+                        });
+                    } catch (Exception ex) {
+                        SwingUtilities.invokeLater(() -> {
+                            showToast("Error creating document: " + ex.getMessage(), NotificationType.ERROR);
+                            clearStatus();
+                        });
+                    }
+                }).start();
+            });
         });
 
         // Add ActionListener for printing all categories
         printAllButton.addActionListener(e -> {
-            printAllCategories();
-            printAllCategoriesSolution();
+            SwingUtilities.invokeLater(() -> {
+                showToast("Starting complete document generation for all categories", NotificationType.INFO);
+                updateStatus("Generating complete document...", 5);
+                
+                // Run print operations in background thread
+                new Thread(() -> {
+                    try {
+                        updateStatus("Processing all categories...", 20);
+                        printAllCategories();
+                        
+                        updateStatus("Generating all solutions...", 70);
+                        printAllCategoriesSolution();
+                        
+                        updateStatus("Complete document ready!", 100);
+                        SwingUtilities.invokeLater(() -> {
+                            showToast("Complete document created successfully", NotificationType.SUCCESS);
+                            clearStatus();
+                        });
+                    } catch (Exception ex) {
+                        SwingUtilities.invokeLater(() -> {
+                            showToast("Error creating complete document: " + ex.getMessage(), NotificationType.ERROR);
+                            clearStatus();
+                        });
+                    }
+                }).start();
+            });
         });
 
         // Add buttons to the panel and frame (bottom panel)
         buttonPanel.add(printCategoryButton);
         buttonPanel.add(printAllButton);
-        add(buttonPanel, BorderLayout.SOUTH);
+        
+        // Create combined south panel for buttons and status bar
+        JPanel southPanel = new JPanel(new BorderLayout());
+        southPanel.add(buttonPanel, BorderLayout.NORTH);
+        // Status bar will be added later in initializeNotificationSystem()
+        
+        add(southPanel, BorderLayout.SOUTH);
         // Setze die Ränder von allen relevanten Panels und ScrollPane auf leer
         mainContentPanel.setBorder(BorderFactory.createEmptyBorder()); // Kein Rand für das Hauptinhalt-Panel
         scrollPane.setBorder(BorderFactory.createEmptyBorder()); // Kein Rand für das ScrollPane
@@ -726,6 +1019,9 @@ public class MedatoninDB extends JFrame {
         mainCategoryPanel.setBorder(BorderFactory.createEmptyBorder()); // Kein Rand für das Kategoriemenü-Panel
         westPanel.setBorder(BorderFactory.createEmptyBorder()); // Kein Rand für das westliche Panel
         buttonPanel.setBorder(BorderFactory.createEmptyBorder()); // Kein Rand für das Button-Panel
+
+        // Initialize notification system
+        initializeNotificationSystem();
 
         // Set frame visibility
         setVisible(true);
@@ -980,18 +1276,15 @@ public class MedatoninDB extends JFrame {
                 // Remove from database
                 if (deleteSubcategoryFromDatabase(category, subcategoryName)) {
                     loadSubcategories(category); // Reload subcategories after deletion
-                    JOptionPane.showMessageDialog(this, "Subcategory deleted successfully.",
-                            "Success", JOptionPane.INFORMATION_MESSAGE);
+                    showToast("Subcategory deleted successfully", NotificationType.SUCCESS);
                 } else {
                     debugLog("Subcategory", "Failed to delete subcategory from database: " + subcategoryName);
-                    JOptionPane.showMessageDialog(this, "Failed to delete subcategory from database.",
-                            "Error", JOptionPane.ERROR_MESSAGE);
+                    showToast("Failed to delete subcategory from database", NotificationType.ERROR);
                 }
             }
         } else {
             debugLog("Subcategory", "Attempted to delete last subcategory: " + subcategoryName);
-            JOptionPane.showMessageDialog(this, "At least one subcategory must exist.",
-                    "Error", JOptionPane.ERROR_MESSAGE);
+            showToast("At least one subcategory must exist", NotificationType.WARNING);
         }
     }
 
@@ -1366,7 +1659,7 @@ public class MedatoninDB extends JFrame {
                 loadSubcategories(category); // Reload subcategories to reflect changes
             } else {
                 debugLog("Subcategory", "Attempted to add duplicate subcategory: " + subcategoryName + " to category: " + category);
-                JOptionPane.showMessageDialog(this, "Subcategory already exists.", "Error", JOptionPane.ERROR_MESSAGE);
+                showToast("Subcategory already exists", NotificationType.WARNING);
             }
         }
     }
@@ -1399,16 +1692,13 @@ public class MedatoninDB extends JFrame {
                     // Remove from database
                     if (deleteSubcategoryFromDatabase(category, subcategoryName)) {
                         loadSubcategories(category); // Reload subcategories after deletion
-                        JOptionPane.showMessageDialog(this, "Subcategory deleted successfully.", "Success",
-                                JOptionPane.INFORMATION_MESSAGE);
+                        showToast("Subcategory deleted successfully", NotificationType.SUCCESS);
                     } else {
-                        JOptionPane.showMessageDialog(this, "Failed to delete subcategory from database.", "Error",
-                                JOptionPane.ERROR_MESSAGE);
+                        showToast("Failed to delete subcategory from database", NotificationType.ERROR);
                     }
                 }
             } else {
-                JOptionPane.showMessageDialog(this, "At least one subcategory must exist.", "Error",
-                        JOptionPane.ERROR_MESSAGE);
+                showToast("At least one subcategory must exist", NotificationType.WARNING);
             }
         });
 
@@ -1510,29 +1800,25 @@ public class MedatoninDB extends JFrame {
     // Method to add a new question to the current subcategory
     private void addNewQuestionToSubcategory() {
         if (currentCategory == null || currentSubcategory == null || currentSubcategory.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Please select a category and subcategory first.", "Error",
-                    JOptionPane.ERROR_MESSAGE);
+            showToast("Please select a category and subcategory first", NotificationType.WARNING);
             return;
         }
 
         // Validate simulation ID
         if (selectedSimulationId == null) {
-            JOptionPane.showMessageDialog(this, "Please select a test simulation first.", "Error",
-                    JOptionPane.ERROR_MESSAGE);
+            showToast("Please select a test simulation first", NotificationType.WARNING);
             return;
         }
 
         // Verify simulation exists in database
         try {
             if (!simulationDAO.simulationExists(selectedSimulationId)) {
-                JOptionPane.showMessageDialog(this, "Selected simulation does not exist. Please select a valid simulation.", "Error",
-                        JOptionPane.ERROR_MESSAGE);
+                showToast("Selected simulation does not exist. Please select a valid simulation", NotificationType.ERROR);
                 return;
             }
         } catch (SQLException e) {
             debugLog("DB", LogLevel.ERROR, "addNewQuestionToSubcategory", "Error validating simulation: " + e.getMessage());
-            JOptionPane.showMessageDialog(this, "Error validating simulation: " + e.getMessage(), "Database Error",
-                    JOptionPane.ERROR_MESSAGE);
+            showToast("Error validating simulation: " + e.getMessage(), NotificationType.ERROR);
             return;
         }
 
@@ -1580,8 +1866,7 @@ public class MedatoninDB extends JFrame {
             } catch (SQLException ex) {
                 ex.printStackTrace();
             }
-            JOptionPane.showMessageDialog(this, "Error adding question and options: " + e.getMessage(), "Error",
-                    JOptionPane.ERROR_MESSAGE);
+            showToast("Error adding question and options: " + e.getMessage(), NotificationType.ERROR);
             e.printStackTrace();
         } finally {
             try {
@@ -2145,7 +2430,7 @@ public class MedatoninDB extends JFrame {
                     try {
                         questionCount = Integer.parseInt(input);
                     } catch (NumberFormatException ex) {
-                        JOptionPane.showMessageDialog(null, "Please enter a valid number.", "Invalid Input", JOptionPane.ERROR_MESSAGE);
+                        showToast("Please enter a valid number", NotificationType.ERROR);
                         return;
                     }
                     if ("Implikationen".equals(currentSubcategory)) {
@@ -2200,8 +2485,7 @@ public class MedatoninDB extends JFrame {
                         try {
                             questionCount = Integer.parseInt(input);
                         } catch (NumberFormatException ex) {
-                            JOptionPane.showMessageDialog(null, "Bitte eine gültige Zahl eingeben.", "Ungültige Eingabe",
-                                    JOptionPane.ERROR_MESSAGE);
+                            showToast("Bitte eine gültige Zahl eingeben", NotificationType.ERROR);
                             return;
                         }
                         debugLog("QuestionGen", "Starting Merkfähigkeiten generation for " + questionCount + " questions");
@@ -2216,7 +2500,7 @@ public class MedatoninDB extends JFrame {
                         try {
                             gen.execute(questionCount);
                         } catch (Exception genEx) {
-                            JOptionPane.showMessageDialog(null, "Fehler bei der Generierung: " + genEx.getMessage(), "Fehler", JOptionPane.ERROR_MESSAGE);
+                            showToast("Fehler bei der Generierung: " + genEx.getMessage(), NotificationType.ERROR);
                             debugLog("QuestionGen", "Merkfähigkeiten generation failed: " + genEx.getMessage());
                             return;
                         }
@@ -2234,7 +2518,7 @@ public class MedatoninDB extends JFrame {
                         questionTable.revalidate();
                         questionTable.repaint();
                     } catch (Exception ex) {
-                        JOptionPane.showMessageDialog(null, "Fehler: " + ex.getMessage(), "Fehler", JOptionPane.ERROR_MESSAGE);
+                        showToast("Fehler: " + ex.getMessage(), NotificationType.ERROR);
                         debugLog("QuestionGen", "Merkfähigkeiten generation failed: " + ex.getMessage());
                     }
                 });
@@ -2261,7 +2545,7 @@ public class MedatoninDB extends JFrame {
                         debugLog("QuestionGen", "Retrieved " + cards.size() + " allergy cards for test");
                         
                         if (cards.isEmpty() || cards.stream().anyMatch(card -> card.name() == null || card.name().trim().isEmpty())) {
-                            JOptionPane.showMessageDialog(null, "Bitte zuerst Allergiekarten generieren (Generate ID drücken).", "Keine Daten", JOptionPane.WARNING_MESSAGE);
+                            showToast("Bitte zuerst Allergiekarten generieren (Generate ID drücken)", NotificationType.WARNING);
                             return;
                         }
                         
@@ -2271,7 +2555,7 @@ public class MedatoninDB extends JFrame {
                         try {
                             gen.executeAllTypes(); // Generate comprehensive test set with all variations
                         } catch (Exception genEx) {
-                            JOptionPane.showMessageDialog(null, "Fehler bei der Test-Generierung: " + genEx.getMessage(), "Fehler", JOptionPane.ERROR_MESSAGE);
+                            showToast("Fehler bei der Test-Generierung: " + genEx.getMessage(), NotificationType.ERROR);
                             debugLog("QuestionGen", "Merkfähigkeiten test generation failed: " + genEx.getMessage());
                             return;
                         }
@@ -2290,9 +2574,9 @@ public class MedatoninDB extends JFrame {
                         questionTable.revalidate();
                         questionTable.repaint();
                         
-                        JOptionPane.showMessageDialog(null, "Test abgeschlossen! Alle Fragetypen und Varianten wurden generiert (" + actualGenerated + " Fragen total).", "Test erfolgreich", JOptionPane.INFORMATION_MESSAGE);
+                        showToast("Test abgeschlossen! Alle Fragetypen und Varianten wurden generiert (" + actualGenerated + " Fragen total)", NotificationType.SUCCESS);
                     } catch (Exception ex) {
-                        JOptionPane.showMessageDialog(null, "Fehler: " + ex.getMessage(), "Fehler", JOptionPane.ERROR_MESSAGE);
+                        showToast("Fehler: " + ex.getMessage(), NotificationType.ERROR);
                         debugLog("QuestionGen", "Merkfähigkeiten test generation failed: " + ex.getMessage());
                     }
                 });
@@ -2323,7 +2607,7 @@ public class MedatoninDB extends JFrame {
                     try {
                         questionCount = Integer.parseInt(input);
                     } catch (NumberFormatException ex) {
-                        JOptionPane.showMessageDialog(null, "Please enter a valid number.", "Invalid Input", JOptionPane.ERROR_MESSAGE);
+                        showToast("Please enter a valid number", NotificationType.ERROR);
                         return;
                     }
                     for (int i = 0; i < questionCount; i++) {
@@ -2331,7 +2615,7 @@ public class MedatoninDB extends JFrame {
                     }
                 } catch (Exception ex) {
                     ex.printStackTrace();
-                    JOptionPane.showMessageDialog(null, "Fehler bei der Generierung: " + ex.getMessage(), "Fehler", JOptionPane.ERROR_MESSAGE);
+                    showToast("Fehler bei der Generierung: " + ex.getMessage(), NotificationType.ERROR);
                 }
             });
 
@@ -2358,7 +2642,7 @@ public class MedatoninDB extends JFrame {
                     try {
                         questionCount = Integer.parseInt(input);
                     } catch (NumberFormatException ex) {
-                        JOptionPane.showMessageDialog(null, "Please enter a valid number.", "Invalid Input", JOptionPane.ERROR_MESSAGE);
+                        showToast("Please enter a valid number", NotificationType.ERROR);
                         return;
                     }
                     WortfluessigkeitGenerator generator = new WortfluessigkeitGenerator(conn, currentCategory, currentSubcategory, selectedSimulationId);
@@ -2367,7 +2651,7 @@ public class MedatoninDB extends JFrame {
                     switchSubcategory(currentCategory, currentSubcategory);
                 } catch (SQLException | IOException ex) {
                     ex.printStackTrace();
-                    JOptionPane.showMessageDialog(null, "Fehler bei der Generierung: " + ex.getMessage(), "Fehler", JOptionPane.ERROR_MESSAGE);
+                    showToast("Fehler bei der Generierung: " + ex.getMessage(), NotificationType.ERROR);
                 }
             });
 
@@ -2715,16 +2999,13 @@ public class MedatoninDB extends JFrame {
             // Rollback transaction on error
             try {
                 conn.rollback();
-                JOptionPane.showMessageDialog(this, "Transaction rolled back due to an error.", "Error",
-                        JOptionPane.ERROR_MESSAGE);
+                showToast("Transaction rolled back due to an error", NotificationType.ERROR);
             } catch (SQLException rollbackEx) {
                 rollbackEx.printStackTrace();
-                JOptionPane.showMessageDialog(this, "Error during rollback: " + rollbackEx.getMessage(), "Error",
-                        JOptionPane.ERROR_MESSAGE);
+                showToast("Error during rollback: " + rollbackEx.getMessage(), NotificationType.ERROR);
             }
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error saving Figuren question: " + e.getMessage(), "Error",
-                    JOptionPane.ERROR_MESSAGE);
+            showToast("Error saving Figuren question: " + e.getMessage(), NotificationType.ERROR);
         } finally {
             // Reset auto-commit to true
             try {
@@ -2787,8 +3068,7 @@ public class MedatoninDB extends JFrame {
                     renumberQuestionsInDatabaseAndUI(num);
                 } else {
                     conn.rollback();
-                    JOptionPane.showMessageDialog(this, "Failed to delete question", "Error",
-                            JOptionPane.ERROR_MESSAGE);
+                    showToast("Failed to delete question", NotificationType.ERROR);
                     return;
                 }
             }
@@ -2799,8 +3079,7 @@ public class MedatoninDB extends JFrame {
             } catch (SQLException ex) {
                 ex.printStackTrace();
             }
-            JOptionPane.showMessageDialog(this, "Error deleting questions: " + e.getMessage(), "Error",
-                    JOptionPane.ERROR_MESSAGE);
+            showToast("Error deleting questions: " + e.getMessage(), NotificationType.ERROR);
         } finally {
             try {
                 conn.setAutoCommit(true);
@@ -2838,8 +3117,7 @@ public class MedatoninDB extends JFrame {
             } catch (SQLException ex) {
                 ex.printStackTrace();
             }
-            JOptionPane.showMessageDialog(this, "Error deleting all questions: " + e.getMessage(), "Error",
-                    JOptionPane.ERROR_MESSAGE);
+            showToast("Error deleting all questions: " + e.getMessage(), NotificationType.ERROR);
         } finally {
             try {
                 conn.setAutoCommit(true);
@@ -3062,8 +3340,7 @@ public class MedatoninDB extends JFrame {
     private void printCategory(String category) {
         Map<String, DefaultTableModel> subcategories = categoryModels.get(category);
         if (subcategories == null) {
-            JOptionPane.showMessageDialog(this, "No data available for category: " + category, "Error",
-                    JOptionPane.ERROR_MESSAGE);
+            showToast("No data available for category: " + category, NotificationType.ERROR);
             return;
         }
 
@@ -3073,11 +3350,6 @@ public class MedatoninDB extends JFrame {
             
             docx.Docx4jPrinter printer = new docx.Docx4jPrinter();
 
-            // Load introduction pages from the static DOCX file
-            java.lang.reflect.Method loadMethod = printer.getClass()
-                .getMethod("loadIntroductionPages", java.io.File.class);
-            Object introPages = loadMethod.invoke(printer, new File("untertest_introductionPage.docx"));
-
             // Create document manually to avoid import issues
             java.lang.reflect.Method createMethod = Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage")
                 .getMethod("createPackage");
@@ -3085,6 +3357,8 @@ public class MedatoninDB extends JFrame {
             
             // Process each subcategory
             java.util.List<String> subcatList = subcategoryOrder.get(category);
+            int totalSubcategories = subcatList.size();
+            
             for (int i = 0; i < subcatList.size(); i++) {
                 String subcategory = subcatList.get(i);
                 DefaultTableModel model = subcategories.get(subcategory);
@@ -3092,12 +3366,16 @@ public class MedatoninDB extends JFrame {
                     continue; // Skip empty subcategories
                 }
 
+                // Update progress based on current subcategory
+                int progress = 30 + (i * 30 / totalSubcategories);
+                updateStatus("Processing " + subcategory + "...", progress);
+
                 // Insert introduction page for this specific subcategory (Untertest)
-                Integer pageIdx = INTRO_PAGE_INDEX.get(subcategory);
-                if (pageIdx != null && introPages instanceof java.util.List && pageIdx < ((java.util.List<?>) introPages).size()) {
-                    java.lang.reflect.Method appendMethod = printer.getClass()
-                        .getMethod("appendPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), java.util.List.class);
-                    appendMethod.invoke(printer, pkg, ((java.util.List<?>) introPages).get(pageIdx));
+                String introContent = getIntroContent(subcategory);
+                if (introContent != null) {
+                    java.lang.reflect.Method addIntroMethod = printer.getClass()
+                        .getMethod("addIntroductionPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), String.class);
+                    addIntroMethod.invoke(printer, pkg, introContent);
                 }
 
                 // Add questions using reflection to avoid import issues
@@ -3138,18 +3416,10 @@ public class MedatoninDB extends JFrame {
             if (!outputFile.getName().equals(baseFileName)) {
                 message += "\n\n(Original filename was in use, saved with alternative name)";
             }
-            JOptionPane.showMessageDialog(this, message);
+            showToast(message, NotificationType.SUCCESS);
         } catch (ClassNotFoundException e) {
             // docx4j is not available, show a helpful message
-            JOptionPane.showMessageDialog(this, 
-                "docx4j library is not available. Document printing functionality requires docx4j dependencies.\n\n" +
-                "To enable this feature:\n" +
-                "1. Add docx4j dependencies to pom.xml\n" +
-                "2. Run 'mvn clean install'\n" +
-                "3. Restart the application\n\n" +
-                "For now, question data has been logged to console.", 
-                "Print Feature Unavailable", 
-                JOptionPane.INFORMATION_MESSAGE);
+            showToast("docx4j library is not available. Document printing functionality requires docx4j dependencies", NotificationType.WARNING);
             
             // Fallback: log the data to console
             System.out.println("=== CATEGORY: " + category + " ===");
@@ -3169,8 +3439,7 @@ public class MedatoninDB extends JFrame {
             System.out.println("=== END CATEGORY ===");
         } catch (Exception e) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error saving document: " + e.getMessage(), "Error",
-                    JOptionPane.ERROR_MESSAGE);
+            showToast("Error saving document: " + e.getMessage(), NotificationType.ERROR);
         }
     }
 
@@ -3178,8 +3447,7 @@ public class MedatoninDB extends JFrame {
     private void printCategorySolution(String category) {
         Map<String, DefaultTableModel> subcategories = categoryModels.get(category);
         if (subcategories == null) {
-            JOptionPane.showMessageDialog(this, "No data available for category: " + category, "Error",
-                    JOptionPane.ERROR_MESSAGE);
+            showToast("No data available for category: " + category, NotificationType.ERROR);
             return;
         }
 
@@ -3188,11 +3456,6 @@ public class MedatoninDB extends JFrame {
             Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage");
             
             docx.Docx4jPrinter printer = new docx.Docx4jPrinter();
-
-            // Load introduction pages
-            java.lang.reflect.Method loadMethod = printer.getClass()
-                .getMethod("loadIntroductionPages", java.io.File.class);
-            Object introPages = loadMethod.invoke(printer, new File("untertest_introductionPage.docx"));
 
             // Create document manually to avoid import issues
             java.lang.reflect.Method createMethod = Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage")
@@ -3209,11 +3472,11 @@ public class MedatoninDB extends JFrame {
                 }
 
                 // Insert introduction page for this specific subcategory (Untertest)
-                Integer pageIdx = INTRO_PAGE_INDEX.get(subcategory);
-                if (pageIdx != null && introPages instanceof java.util.List && pageIdx < ((java.util.List<?>) introPages).size()) {
-                    java.lang.reflect.Method appendMethod = printer.getClass()
-                        .getMethod("appendPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), java.util.List.class);
-                    appendMethod.invoke(printer, pkg, ((java.util.List<?>) introPages).get(pageIdx));
+                String introContent = getIntroContent(subcategory);
+                if (introContent != null) {
+                    java.lang.reflect.Method addIntroMethod = printer.getClass()
+                        .getMethod("addIntroductionPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), String.class);
+                    addIntroMethod.invoke(printer, pkg, introContent);
                 }
 
                 // Add solutions using reflection to avoid import issues
@@ -3253,18 +3516,10 @@ public class MedatoninDB extends JFrame {
             if (!outputFile.getName().equals(baseFileName)) {
                 message += "\n\n(Original filename was in use, saved with alternative name)";
             }
-            JOptionPane.showMessageDialog(this, message);
+            showToast(message, NotificationType.SUCCESS);
         } catch (ClassNotFoundException e) {
             // docx4j is not available, show a helpful message
-            JOptionPane.showMessageDialog(this, 
-                "docx4j library is not available. Document printing functionality requires docx4j dependencies.\n\n" +
-                "To enable this feature:\n" +
-                "1. Add docx4j dependencies to pom.xml\n" +
-                "2. Run 'mvn clean install'\n" +
-                "3. Restart the application\n\n" +
-                "For now, solution data has been logged to console.", 
-                "Print Feature Unavailable", 
-                JOptionPane.INFORMATION_MESSAGE);
+            showToast("docx4j library is not available. Document printing functionality requires docx4j dependencies", NotificationType.WARNING);
             
             // Fallback: log the solution data to console
             System.out.println("=== SOLUTIONS FOR CATEGORY: " + category + " ===");
@@ -3288,8 +3543,7 @@ public class MedatoninDB extends JFrame {
             System.out.println("=== END SOLUTIONS ===");
         } catch (Exception e) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error saving solution document: " + e.getMessage(), "Error",
-                    JOptionPane.ERROR_MESSAGE);
+            showToast("Error saving solution document: " + e.getMessage(), NotificationType.ERROR);
         }
     }
 
@@ -3302,24 +3556,31 @@ public class MedatoninDB extends JFrame {
             
             docx.Docx4jPrinter printer = new docx.Docx4jPrinter();
             
-            // Load introduction pages using reflection
-            java.lang.reflect.Method loadMethod = printer.getClass()
-                .getMethod("loadIntroductionPages", java.io.File.class);
-            Object introPages = loadMethod.invoke(printer, new File("untertest_introductionPage.docx"));
-            
             // Create document manually to avoid import issues
             java.lang.reflect.Method createMethod = Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage")
                 .getMethod("createPackage");
             Object pkg = createMethod.invoke(null);
 
+            // Calculate total subcategories for progress tracking
+            int totalSubcategories = 0;
+            for (String category : categoryModels.keySet()) {
+                totalSubcategories += subcategoryOrder.get(category).size();
+            }
+            
+            int processedCount = 0;
             for (String category : categoryModels.keySet()) {
                 Map<String, DefaultTableModel> subcats = categoryModels.get(category);
                 for (String subcat : subcategoryOrder.get(category)) {
-                    Integer pageIdx = INTRO_PAGE_INDEX.get(subcat);
-                    if (pageIdx != null && introPages instanceof List && pageIdx < ((List<?>) introPages).size()) {
-                        java.lang.reflect.Method appendMethod = printer.getClass()
-                            .getMethod("appendPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), List.class);
-                        appendMethod.invoke(printer, pkg, ((List<?>) introPages).get(pageIdx));
+                    // Update progress
+                    int progress = 20 + (processedCount * 50 / totalSubcategories);
+                    updateStatus("Processing " + subcat + " (" + category + ")...", progress);
+                    processedCount++;
+                    
+                    String introContent = getIntroContent(subcat);
+                    if (introContent != null) {
+                        java.lang.reflect.Method addIntroMethod = printer.getClass()
+                            .getMethod("addIntroductionPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), String.class);
+                        addIntroMethod.invoke(printer, pkg, introContent);
                     }
 
                     DefaultTableModel model = subcats.get(subcat);
@@ -3361,18 +3622,10 @@ public class MedatoninDB extends JFrame {
             if (!outputFile.getName().equals(baseFileName)) {
                 message += "\n\n(Original filename was in use, saved with alternative name)";
             }
-            JOptionPane.showMessageDialog(this, message);
+            showToast(message, NotificationType.SUCCESS);
         } catch (ClassNotFoundException e) {
             // docx4j is not available, show a helpful message
-            JOptionPane.showMessageDialog(this, 
-                "docx4j library is not available. Document printing functionality requires docx4j dependencies.\n\n" +
-                "To enable this feature:\n" +
-                "1. Add docx4j dependencies to pom.xml\n" +
-                "2. Run 'mvn clean install'\n" +
-                "3. Restart the application\n\n" +
-                "For now, all category data has been logged to console.", 
-                "Print Feature Unavailable", 
-                JOptionPane.INFORMATION_MESSAGE);
+            showToast("docx4j library is not available. Document printing functionality requires docx4j dependencies", NotificationType.WARNING);
             
             // Fallback: log all categories to console
             System.out.println("=== ALL CATEGORIES ===");
@@ -3396,8 +3649,7 @@ public class MedatoninDB extends JFrame {
             System.out.println("=== END ALL CATEGORIES ===");
         } catch (Exception e) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error saving document: " + e.getMessage(), "Error",
-                    JOptionPane.ERROR_MESSAGE);
+            showToast("Error saving document: " + e.getMessage(), NotificationType.ERROR);
         }
     }
 
@@ -3409,11 +3661,6 @@ public class MedatoninDB extends JFrame {
             Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage");
             
             docx.Docx4jPrinter printer = new docx.Docx4jPrinter();
-
-            // Load introduction pages for all subcategories
-            java.lang.reflect.Method loadMethod = printer.getClass()
-                .getMethod("loadIntroductionPages", java.io.File.class);
-            Object introPages = loadMethod.invoke(printer, new File("untertest_introductionPage.docx"));
 
             // Create document manually to avoid import issues
             java.lang.reflect.Method createMethod = Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage")
@@ -3436,11 +3683,11 @@ public class MedatoninDB extends JFrame {
                     }
 
                     // Insert introduction page for this subcategory if available
-                    Integer pageIdx = INTRO_PAGE_INDEX.get(subcategory);
-                    if (pageIdx != null && introPages instanceof java.util.List && pageIdx < ((java.util.List<?>) introPages).size()) {
-                        java.lang.reflect.Method appendMethod = printer.getClass()
-                            .getMethod("appendPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), java.util.List.class);
-                        appendMethod.invoke(printer, pkg, ((java.util.List<?>) introPages).get(pageIdx));
+                    String introContent = getIntroContent(subcategory);
+                    if (introContent != null) {
+                        java.lang.reflect.Method addIntroMethod = printer.getClass()
+                            .getMethod("addIntroductionPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), String.class);
+                        addIntroMethod.invoke(printer, pkg, introContent);
                     }
 
                     // Add questions with solutions using reflection
@@ -3479,20 +3726,12 @@ public class MedatoninDB extends JFrame {
             
             String message = "Solution document saved: " + outputFile.getName();
             if (!outputFile.getName().equals(baseFileName)) {
-                message += "\n\n(Original filename was in use, saved with alternative name)";
+                message += " (Original filename was in use, saved with alternative name)";
             }
-            JOptionPane.showMessageDialog(this, message);
+            showToast(message, NotificationType.SUCCESS);
         } catch (ClassNotFoundException e) {
             // docx4j is not available, show a helpful message
-            JOptionPane.showMessageDialog(this, 
-                "docx4j library is not available. Document printing functionality requires docx4j dependencies.\n\n" +
-                "To enable this feature:\n" +
-                "1. Add docx4j dependencies to pom.xml\n" +
-                "2. Run 'mvn clean install'\n" +
-                "3. Restart the application\n\n" +
-                "For now, all solution data has been logged to console.", 
-                "Print Feature Unavailable", 
-                JOptionPane.INFORMATION_MESSAGE);
+            showToast("docx4j library is not available. Document printing functionality requires docx4j dependencies. To enable this feature: 1. Add docx4j dependencies to pom.xml 2. Run 'mvn clean install' 3. Restart the application. For now, all solution data has been logged to console.", NotificationType.WARNING);
             
             // Fallback: log all solutions to console
             System.out.println("=== ALL CATEGORY SOLUTIONS ===");
@@ -3520,8 +3759,7 @@ public class MedatoninDB extends JFrame {
             System.out.println("=== END ALL SOLUTIONS ===");
         } catch (Exception e) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error saving solution document: " + e.getMessage(), "Error",
-                    JOptionPane.ERROR_MESSAGE);
+            showToast("Error saving solution document: " + e.getMessage(), NotificationType.ERROR);
         }
     }
 
@@ -4643,9 +4881,7 @@ public class MedatoninDB extends JFrame {
 
                 // Defensive: check simulationId
                 if (selectedSimulationId == null) {
-                    JOptionPane.showMessageDialog(null,
-                        "Simulation ID is not set. Please select a simulation before changing the format.",
-                        "Simulation Error", JOptionPane.ERROR_MESSAGE);
+                    showToast("Simulation ID is not set. Please select a simulation before changing the format.", NotificationType.ERROR);
                     return;
                 }
 
@@ -4684,8 +4920,7 @@ public class MedatoninDB extends JFrame {
                     });
                 } catch (SQLException e) {
                     e.printStackTrace();
-                    JOptionPane.showMessageDialog(null, "Error updating question format in database: " + e.getMessage(),
-                            "Database Error", JOptionPane.ERROR_MESSAGE);
+                    showToast("Error updating question format in database: " + e.getMessage(), NotificationType.ERROR);
                 } finally {
                     MedatoninDB.this.isAdjustingFormat = false; // Re-enable listeners
                 }
@@ -4853,8 +5088,7 @@ public class MedatoninDB extends JFrame {
 
         private void deleteQuestionAtRow(JTable table, int row) {
             if (table == null || questionTable == null) {
-                JOptionPane.showMessageDialog(MedatoninDB.this, "Error: Table not initialized", "Error",
-                        JOptionPane.ERROR_MESSAGE);
+                showToast("Error: Table not initialized", NotificationType.ERROR);
                 return;
             }
             if (row < 0 || row >= table.getRowCount()) {
@@ -4878,8 +5112,7 @@ public class MedatoninDB extends JFrame {
 
                 } else {
                     conn.rollback(); // Rollback if deletion fails
-                    JOptionPane.showMessageDialog(MedatoninDB.this, "Failed to delete question", "Error",
-                            JOptionPane.ERROR_MESSAGE);
+                    showToast("Failed to delete question", NotificationType.ERROR);
                 }
             } catch (SQLException e) {
                 try {
@@ -4888,9 +5121,7 @@ public class MedatoninDB extends JFrame {
                     ex.printStackTrace();
                 }
                 e.printStackTrace();
-                JOptionPane.showMessageDialog(MedatoninDB.this, "Error deleting question: " + e.getMessage(),
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE);
+                showToast("Error deleting question: " + e.getMessage(), NotificationType.ERROR);
             } finally {
                 try {
                     conn.setAutoCommit(true); // Reset to auto-commit mode
@@ -4928,8 +5159,7 @@ public class MedatoninDB extends JFrame {
                                 newQuestionNumber);
                     } catch (SQLException e) {
                         e.printStackTrace();
-                        JOptionPane.showMessageDialog(this, "Error renumbering question: " + e.getMessage(), "Error",
-                                JOptionPane.ERROR_MESSAGE);
+                        showToast("Error renumbering question: " + e.getMessage(), NotificationType.ERROR);
                     }
 
                     newQuestionNumber++; // Increment the new question number
@@ -5260,8 +5490,7 @@ public class MedatoninDB extends JFrame {
             }
         } catch (SQLException e) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error updating question: " + e.getMessage(), "Error",
-                    JOptionPane.ERROR_MESSAGE);
+            showToast("Error updating question: " + e.getMessage(), NotificationType.ERROR);
         }
     }
 
