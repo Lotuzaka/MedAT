@@ -1,69 +1,14 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
 diff --git a/src/main/java/docx/Docx4jPrinter.java b/src/main/java/docx/Docx4jPrinter.java
-index dcaaec7d65322cd404f2a8e5107c95ff5da8a27f..0000a520238c1721234ac1d76757ad128858afe9 100644
+index f7c392f41c7f5f4279a3b60036a2cfeca8774f86..ede9319831770631eda0ea5f460c56f924134f13 100644
 --- a/src/main/java/docx/Docx4jPrinter.java
 +++ b/src/main/java/docx/Docx4jPrinter.java
-@@ -537,65 +537,78 @@ public WordprocessingMLPackage buildDocument(
-                        inInstructions) {
-                 inInstructions = true;
-                 instructionLines.add(line);
-                 if (line.contains("freigegeben hat")) {
-                     inInstructions = false;
-                 }
-             }
-         }
-         
-         // 1. Add header - Bold, Montserrat 18pt, Vor 0pt, Nach 0pt, Einfach
-         if (!headerLine.isEmpty()) {
-             addFormattedParagraph(pkg, headerLine, true, 36, 0, 0, false, JcEnumeration.LEFT, "Montserrat");
-         }
-         
-         // 2. Add timing line - Bold, Montserrat, 11pt, Vor 6pt, Nach 18pt, Mehrfach 1.15
-         if (!timingLine.isEmpty()) {
-             addFormattedParagraph(pkg, timingLine, true, 22, 120, 360, true, JcEnumeration.LEFT, "Montserrat");
-         }
-         
-         // 3. Add instructions in a 1x1 table
-         if (!instructionLines.isEmpty()) {
-             addInstructionsTable(pkg, instructionLines);
-         }
-         
-         // 4. Add example section with "Beispielaufgabe:" bold
--        for (String exampleLine : exampleLines) {
-+        for (int idx = 0; idx < exampleLines.size(); idx++) {
-+            String exampleLine = exampleLines.get(idx);
-+
-+            // Combine the two premise lines for Implikationen examples
-+            if (headerLine.contains("Implikationen") && exampleLine.startsWith("\"")
-+                    && idx + 1 < exampleLines.size() && exampleLines.get(idx + 1).startsWith("\"")) {
-+                String combined = exampleLine + "\n" + exampleLines.get(idx + 1);
-+                addFormattedParagraph(pkg, combined, false, 22, 200, 200, true, JcEnumeration.LEFT, "Aptos");
-+                idx++; // skip the next line as it's merged
-+                continue;
-+            }
-+
-             if (exampleLine.startsWith("Beispielaufgabe:") || exampleLine.startsWith("Beispieltext:") || exampleLine.startsWith("Beispielausweis:")) {
-                 // Example question header: Bold, Aptos 11pt, Vor 0pt, Nach 10pt, Mehrfach 1.15
-                 addFormattedParagraph(pkg, exampleLine, true, 22, 0, 200, true, JcEnumeration.LEFT, "Aptos");
--            } else if (exampleLine.equals("Welche Figur lässt sich aus den folgenden Bausteinen zusammensetzen?") && 
--                      headerLine.contains("Figuren")) {
--                // Add the question text
-+            } else if (exampleLine.equals("Welche Figur lässt sich aus den folgenden Bausteinen zusammensetzen?")
-+                    && headerLine.contains("Figuren")) {
-+                // Add the question text for Figuren example
-                 addFormattedParagraph(pkg, exampleLine, false, 22, 0, 200, true, JcEnumeration.LEFT, "Aptos");
--                // Add the figure image for Figuren Zusammensetzen
-                 addFigurenExampleImage(pkg);
-             } else if (exampleLine.matches("^[A-E]\\).*")) {
--                // Answer options: Aptos 11pt, Vor 3pt, Nach 3pt, Mehrfach 1.15
-+                // Answer options
-                 addFormattedParagraph(pkg, exampleLine, false, 22, 60, 60, true, JcEnumeration.LEFT, "Aptos");
-+            } else if (exampleLine.endsWith("?")) {
-+                // Example question line: Vor 10pt, Nach 10pt, Mehrfach 1.15
-+                addFormattedParagraph(pkg, exampleLine, false, 22, 200, 200, true, JcEnumeration.LEFT, "Aptos");
+@@ -732,51 +732,52 @@ public WordprocessingMLPackage buildDocumentComplete(
+             } else if (exampleLine.endsWith("?")) {
+                 // Example question line: Vor 10pt, Nach 10pt, Mehrfach 1.15
+                 addFormattedParagraph(pkg, exampleLine, false, 22, 200, 200, true, JcEnumeration.LEFT, "Aptos");
              } else {
--                // Other example content: Aptos 11pt, default spacing
-+                // Other example content
+                 // Other example content
                  addFormattedParagraph(pkg, exampleLine, false, 22, 120, 120, false, JcEnumeration.LEFT, "Aptos");
              }
          }
@@ -71,161 +16,47 @@ index dcaaec7d65322cd404f2a8e5107c95ff5da8a27f..0000a520238c1721234ac1d76757ad12
          // Add a page break after the introduction
          addPageBreak(pkg);
      }
- 
-     /**
-      * Helper method to add a formatted paragraph with specific styling
-      */
-     private void addFormattedParagraph(WordprocessingMLPackage pkg, String text, boolean bold, 
-                                      int fontSize, int spaceBefore, int spaceAfter, 
-                                      boolean multipleSpacing, JcEnumeration alignment, String fontName) {
-         P paragraph = factory.createP();
-         PPr pPr = factory.createPPr();
-         
-         // Set alignment
-         if (alignment != null) {
-             Jc jc = factory.createJc();
-             jc.setVal(alignment);
-             pPr.setJc(jc);
-         }
-         
-         // Set spacing
-diff --git a/src/main/java/docx/Docx4jPrinter.java b/src/main/java/docx/Docx4jPrinter.java
-index dcaaec7d65322cd404f2a8e5107c95ff5da8a27f..0000a520238c1721234ac1d76757ad128858afe9 100644
---- a/src/main/java/docx/Docx4jPrinter.java
-+++ b/src/main/java/docx/Docx4jPrinter.java
-@@ -621,55 +634,63 @@ public WordprocessingMLPackage buildDocument(
-         // Set font
-         if (fontName != null && !fontName.isEmpty()) {
-             RFonts fonts = factory.createRFonts();
-             fonts.setAscii(fontName);
-             fonts.setHAnsi(fontName);
-             rPr.setRFonts(fonts);
-         }
-         
-         // Set font size
-         if (fontSize > 0) {
-             HpsMeasure size = factory.createHpsMeasure();
-             size.setVal(BigInteger.valueOf(fontSize));
-             rPr.setSz(size);
-             rPr.setSzCs(size); // For complex scripts
-         }
-         
-         // Set bold
-         if (bold) {
-             BooleanDefaultTrue boldProp = factory.createBooleanDefaultTrue();
-             boldProp.setVal(true);
-             rPr.setB(boldProp);
-             rPr.setBCs(boldProp); // For complex scripts
-         }
-         
-         run.setRPr(rPr);
--        
--        // Add text
--        Text textElement = factory.createText();
--        textElement.setValue(text);
--        run.getContent().add(textElement);
-+
-+        // Add text, supporting manual line breaks within the string
-+        String[] parts = text.split("\\n", -1);
-+        for (int i = 0; i < parts.length; i++) {
-+            if (i > 0) {
-+                Br br = factory.createBr();
-+                br.setType(STBrType.TEXT_WRAPPING);
-+                run.getContent().add(br);
-+            }
-+            Text textElement = factory.createText();
-+            textElement.setValue(parts[i]);
-+            run.getContent().add(textElement);
-+        }
-         paragraph.getContent().add(run);
-         
-         pkg.getMainDocumentPart().addObject(paragraph);
-     }
      
      /**
-      * Helper method to add instructions in a 1x1 table
+      * Add allergy cards for the learning phase (2 cards per page, 4 pages total)
       */
-     private void addInstructionsTable(WordprocessingMLPackage pkg, List<String> instructionLines) {
-         // Create table
-         Tbl table = factory.createTbl();
-         
-         // Table properties
-         TblPr tblPr = factory.createTblPr();
-         
-         // Table width - full page width
-         TblWidth tblWidth = factory.createTblWidth();
-         tblWidth.setType("pct");
-         tblWidth.setW(BigInteger.valueOf(5000)); // 100% width
-         tblPr.setTblW(tblWidth);
-         
-         // Table borders - 1/2 pt black border
-         TblBorders tblBorders = factory.createTblBorders();
-         CTBorder border = factory.createCTBorder();
-         border.setVal(STBorder.SINGLE);
-diff --git a/src/main/java/docx/Docx4jPrinter.java b/src/main/java/docx/Docx4jPrinter.java
-index dcaaec7d65322cd404f2a8e5107c95ff5da8a27f..0000a520238c1721234ac1d76757ad128858afe9 100644
---- a/src/main/java/docx/Docx4jPrinter.java
-+++ b/src/main/java/docx/Docx4jPrinter.java
-@@ -1450,56 +1471,53 @@ public WordprocessingMLPackage buildDocument(
-                 PPrBase.Spacing spacing = factory.createPPrBaseSpacing();
-                 spacing.setBefore(BigInteger.valueOf(60)); // Reduced spacing before each option
-                 spacing.setAfter(BigInteger.valueOf(60)); // Reduced spacing after each option
-                 pPr.setSpacing(spacing);
-                 optionP.setPPr(pPr);
- 
-                 R optionR = factory.createR();
- 
-                 // Remove bold formatting for option labels (nicht bold)
-                 // No RPr settings for bold formatting
- 
-                 Text optionT = factory.createText();
- 
-                 // Create proper option label (A, B, C, D, E)
-                 char optionLabel = (char) ('A' + i);
- 
-                 // Format: "A) OptionText"
-                 String formattedOption = optionLabel + ") " + optionTexts.get(i);
-                 optionT.setValue(formattedOption);
-                 optionR.getContent().add(optionT);
-                 optionP.getContent().add(optionR);
- 
-                 pkg.getMainDocumentPart().addObject(optionP);
+     private void addAllergyCards(WordprocessingMLPackage pkg, java.sql.Connection conn, Integer sessionId) {
+         try {
+             // Import the DAO class
+             Class<?> allergyDAOClass = Class.forName("dao.AllergyCardDAO");
+             
+             // Create DAO instance
+             Object allergyDAO = allergyDAOClass.getConstructor(java.sql.Connection.class).newInstance(conn);
+             
+             // Get allergy cards for this session
+-            java.lang.reflect.Method getBySessionMethod = allergyDAOClass.getMethod("getBySessionId", Integer.class);
++            // getBySessionId uses primitive int parameter
++            java.lang.reflect.Method getBySessionMethod = allergyDAOClass.getMethod("getBySessionId", int.class);
+             @SuppressWarnings("unchecked")
+             java.util.List<Object> allergyCards = (java.util.List<Object>) getBySessionMethod.invoke(allergyDAO, sessionId);
+             
+             if (allergyCards.isEmpty()) {
+                 // Add placeholder text if no cards found
+                 P noCardsP = factory.createP();
+                 R noCardsR = factory.createR();
+                 Text noCardsT = factory.createText();
+                 noCardsT.setValue("Keine Allergieausweise für diese Simulation gefunden.");
+                 noCardsR.getContent().add(noCardsT);
+                 noCardsP.getContent().add(noCardsR);
+                 pkg.getMainDocumentPart().addObject(noCardsP);
+                 return;
              }
- 
--            // Add spacing after all options only if this is NOT the first question on the
--            // page
--            if (!isFirstQuestionOnPage) {
--                P spacingP = factory.createP();
--                pkg.getMainDocumentPart().addObject(spacingP);
--            }
-+            // Add spacing after all options
-+            P spacingP = factory.createP();
-+            pkg.getMainDocumentPart().addObject(spacingP);
-         }
- 
-         return currentRow - 1;
-     }
- 
-     /**
-      * Try to add stop sign image to the document.
-      */
-     private boolean addStopSignImage(WordprocessingMLPackage pkg, R run) {
-         String[] possiblePaths = {
-                 "stopp_sign.png",
-                 "src/main/resources/images/stopp_sign.png",
-                 "resources/images/stopp_sign.png",
-                 "images/stopp_sign.png"
-         };
- 
-         for (String path : possiblePaths) {
-             try {
-                 File imageFile = new File(path);
-                 if (imageFile.exists()) {
-                     FileInputStream fis = new FileInputStream(imageFile);
-                     byte[] imageBytes = fis.readAllBytes();
-                     fis.close();
- 
-                     int size = (int) (10 / 2.54 * 96); // ~10cm (increased from 4cm)
+             
+             // Add up to 8 cards, 2 per page
+             int cardsAdded = 0;
+             for (Object cardObj : allergyCards) {
+                 if (cardsAdded >= 8) break; // Maximum 8 cards
+                 
+                 if (cardsAdded > 0 && cardsAdded % 2 == 0) {
+                     // Add page break after every 2 cards
+                     addPageBreak(pkg);
+                 }
+                 
  
 EOF
 )

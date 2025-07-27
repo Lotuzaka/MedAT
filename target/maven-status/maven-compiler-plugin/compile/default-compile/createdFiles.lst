@@ -5,6 +5,7 @@ TestMain.class
 FigurenGenerator$PolygonDissector.class
 MedatoninDB$12.class
 util\Pair.class
+TestDocumentGeneration.class
 ui\merkfaehigkeit\AllergyCardPanel$DigitFilter.class
 MedatoninDB$ToastNotification.class
 QuickTemplateTest.class

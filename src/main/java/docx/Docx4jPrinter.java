@@ -90,11 +90,16 @@ public class Docx4jPrinter {
     }
 
     /**
- * Build a document by, for each subcategory in `order`:
- *  1. looking up its intro-page in `introPagesMap` (by exact or contains key),
- *  2. inserting that intro page + a page break,
- *  3. adding the questions,
- *  4. adding a page break between sections (but not after the last one).
+ * Build a document with proper ordering including memory test phases:
+ * 1. Figuren
+ * 2. Gedächtnis- und Merkfähigkeit (Lernphase) - displays allergy cards
+ * 3. Zahlenfolgen
+ * 4. Wortflüssigkeit
+ * 5. Gedächtnis- und Merkfähigkeit (Abrufphase) - questions about the cards
+ * 6. Other subcategories...
+ * 
+ * Note: This method redirects to buildDocumentComplete with null connection/sessionId
+ * to maintain the same ordering for both normal and complete document builds.
  */
 public WordprocessingMLPackage buildDocument(
         Map<String, DefaultTableModel> subcats,
@@ -102,45 +107,9 @@ public WordprocessingMLPackage buildDocument(
         Map<String,List<Object>> introPagesMap
     ) throws Docx4JException {
 
-    WordprocessingMLPackage pkg = WordprocessingMLPackage.createPackage();
-
-    for (int i = 0; i < order.size(); i++) {
-        String rawSubcat = order.get(i);
-        String key = rawSubcat.toLowerCase().trim();
-
-        // 1) find matching intro page
-        List<Object> intro = introPagesMap.get(key);
-        if (intro == null) {
-            // fallback: any map-key that contains our subcat name
-            for (String cand : introPagesMap.keySet()) {
-                if (cand.contains(key)) {
-                    intro = introPagesMap.get(cand);
-                    break;
-                }
-            }
-        }
-
-        // 2) insert intro + break
-        if (intro != null) {
-            for (Object o : intro) {
-                pkg.getMainDocumentPart().addObject(o);
-            }
-            addPageBreak(pkg);
-        }
-
-        // 3) render questions for this subcategory
-        DefaultTableModel model = subcats.get(rawSubcat);
-        if (model != null) {
-            addQuestions(pkg, model);
-        }
-
-        // 4) break *between* subsections, but not after the last one
-        if (i < order.size() - 1) {
-            addPageBreak(pkg);
-        }
-    }
-
-    return pkg;
+    // Redirect to buildDocumentComplete with null connection and sessionId
+    // This ensures the same ordering is used for both normal and complete builds
+    return buildDocumentComplete(subcats, order, introPagesMap, null, null);
 }
 
 /**
@@ -170,7 +139,7 @@ public WordprocessingMLPackage buildDocumentComplete(
         reorderedSubcats.add("Figuren");
     }
     
-    // 2. Add Gedächtnis- und Merkfähigkeit (Lernphase)
+    // 2. Add Gedächtnis- und Merkfähigkeit (Lernphase) - after Figuren, before Zahlenfolgen
     reorderedSubcats.add("Gedächtnis und Merkfähigkeit (Lernphase)");
     
     // 3. Add Zahlenfolgen if it exists
@@ -183,18 +152,18 @@ public WordprocessingMLPackage buildDocumentComplete(
         reorderedSubcats.add(order.contains("Wortflüssigkeit") ? "Wortflüssigkeit" : "Wortfluessigkeit");
     }
     
-    // 5. Add other subcategories (except Merkfähigkeiten which becomes Abrufphase)
+    // 5. Add Gedächtnis- und Merkfähigkeit (Abrufphase) - after Wortflüssigkeit, before other subcategories
+    if (order.contains("Merkfähigkeiten")) {
+        reorderedSubcats.add("Gedächtnis und Merkfähigkeit (Abrufphase)");
+    }
+    
+    // 6. Add other subcategories (except already processed ones)
     for (String subcat : order) {
         if (!subcat.equals("Figuren") && !subcat.equals("Zahlenfolgen") && 
             !subcat.equals("Wortflüssigkeit") && !subcat.equals("Wortfluessigkeit") && 
             !subcat.equals("Merkfähigkeiten")) {
             reorderedSubcats.add(subcat);
         }
-    }
-    
-    // 6. Add Gedächtnis- und Merkfähigkeit (Abrufphase) at the end
-    if (order.contains("Merkfähigkeiten")) {
-        reorderedSubcats.add("Gedächtnis und Merkfähigkeit (Abrufphase)");
     }
 
     for (int i = 0; i < reorderedSubcats.size(); i++) {
@@ -222,8 +191,10 @@ public WordprocessingMLPackage buildDocumentComplete(
                 addPageBreak(pkg);
             }
             
-            // Add allergy cards (2 per page, total 8 cards = 4 pages)
-            addAllergyCards(pkg, conn, sessionId);
+            // Add allergy cards only if connection and sessionId are provided (2 per page, total 8 cards = 4 pages)
+            if (conn != null && sessionId != null) {
+                addAllergyCards(pkg, conn, sessionId);
+            }
             
         } else if (rawSubcat.equals("Gedächtnis und Merkfähigkeit (Abrufphase)")) {
             // Handle Abrufphase - use Merkfähigkeiten data but different intro
@@ -317,13 +288,6 @@ public WordprocessingMLPackage buildDocumentComplete(
                 // Add page break for non-Figuren questions every 5 questions
                 if (!isFigurenQuestion) {
                     nonFigCounter++;
-                    if (nonFigCounter > 5 && (nonFigCounter - 1) % 5 == 0) {
-                        // Add page break before starting the 6th, 11th, 16th... question
-                        // This ensures the break happens at the end of the previous page
-                        removeTrailingPageBreak(pkg);
-                        addPageBreak(pkg);
-                        isFirstQuestionOnPage = true; // Reset for new page
-                    }
                 }
 
                 // For Figuren questions: existing page break logic
@@ -372,9 +336,13 @@ public WordprocessingMLPackage buildDocumentComplete(
                     }
                 }
 
-                // Add options/answers if they exist in the model
+                // Check if we need a page break BEFORE adding options (to prevent extra spacing before page break)
+                boolean needsPageBreak = !isFigurenQuestion && nonFigCounter % 5 == 0 && nonFigCounter > 0 && r < model.getRowCount() - 1;
+                
+                // Add options/answers if they exist in the model, but control spacing for page breaks
                 // Also skip option rows to avoid re-processing them
-                r = addQuestionOptions(pkg, model, r, isFirstQuestionOnPage);
+                r = addQuestionOptions(pkg, model, r, isFirstQuestionOnPage, needsPageBreak, isFigurenQuestion, nonFigCounter);
+
 
                 // Reset the first question flag after processing the first question
                 isFirstQuestionOnPage = false;
@@ -411,14 +379,9 @@ public WordprocessingMLPackage buildDocumentComplete(
                     questionText = questionObj.toString();
                 }
 
-                // Page break for non-Figuren questions every 5 questions (before 6th, 11th,
-                // etc.)
+                // Page break for non-Figuren questions every 5 questions
                 if (!isFigurenQuestion) {
                     nonFigCounter++;
-                    if (nonFigCounter > 5 && (nonFigCounter - 1) % 5 == 0) {
-                        addPageBreak(pkg);
-                        isFirstQuestionOnPage = true; // Start new page
-                    }
                 }
 
                 // For Figuren questions: existing page break logic
@@ -469,9 +432,12 @@ public WordprocessingMLPackage buildDocumentComplete(
                     }
                 }
 
-                // Add options/answers if they exist in the model
+                // Check if we need a page break BEFORE adding options (to prevent extra spacing before page break)
+                boolean needsPageBreak = !isFigurenQuestion && nonFigCounter % 5 == 0 && nonFigCounter > 0 && r < model.getRowCount() - 1;
+                
+                // Add options/answers if they exist in the model, but control spacing for page breaks
                 // Also skip option rows to avoid re-processing them
-                r = addQuestionOptions(pkg, model, r, isFirstQuestionOnPage);
+                r = addQuestionOptions(pkg, model, r, isFirstQuestionOnPage, needsPageBreak, isFigurenQuestion, nonFigCounter);
 
                 // Add solution if available
                 if (!solution.isEmpty()) {
@@ -482,6 +448,14 @@ public WordprocessingMLPackage buildDocumentComplete(
                     solutionR.getContent().add(solutionT);
                     solutionP.getContent().add(solutionR);
                     pkg.getMainDocumentPart().addObject(solutionP);
+                }
+
+                // Add page break for non-Figuren questions after processing every 5th question
+                if (needsPageBreak) {
+                    // Remove any existing trailing breaks to avoid blank page
+                    removeTrailingPageBreak(pkg);
+                    addPageBreak(pkg);
+                    isFirstQuestionOnPage = true; // Reset for new page
                 }
 
                 // Reset the first question flag after processing the first question
@@ -619,6 +593,26 @@ public WordprocessingMLPackage buildDocumentComplete(
         pkg.getMainDocumentPart().addObject(p);
     }
 
+    /** Add a line break followed by a page break - for non-Figuren questions */
+    public void addLineBreakThenPageBreak(WordprocessingMLPackage pkg) {
+        // Create a single paragraph with line break + page break
+        P p = factory.createP();
+        R r = factory.createR();
+        
+        // Add line break first (like shift+enter)
+        Br lineBreak = factory.createBr();
+        lineBreak.setType(STBrType.TEXT_WRAPPING);
+        r.getContent().add(lineBreak);
+        
+        // Then add page break
+        Br pageBreak = factory.createBr();
+        pageBreak.setType(STBrType.PAGE);
+        r.getContent().add(pageBreak);
+        
+        p.getContent().add(r);
+        pkg.getMainDocumentPart().addObject(p);
+    }
+
     /**
      * Append the provided introduction page objects to the document.
      */
@@ -719,8 +713,8 @@ public WordprocessingMLPackage buildDocumentComplete(
             }
 
             if (exampleLine.startsWith("Beispielaufgabe:") || exampleLine.startsWith("Beispieltext:") || exampleLine.startsWith("Beispielausweis:")) {
-                // Example question header: Bold, Aptos 11pt, Vor 0pt, Nach 10pt, Mehrfach 1.15
-                addFormattedParagraph(pkg, exampleLine, true, 22, 0, 200, true, JcEnumeration.LEFT, "Aptos");
+                // Example question header: Bold, Aptos 11pt, Vor 10pt, Nach 10pt, Mehrfach 1.15
+                addFormattedParagraph(pkg, exampleLine, true, 22, 200, 200, true, JcEnumeration.LEFT, "Aptos");
             } else if (exampleLine.equals("Welche Figur lässt sich aus den folgenden Bausteinen zusammensetzen?")
                     && headerLine.contains("Figuren")) {
                 // Add the question text for Figuren example
@@ -754,7 +748,8 @@ public WordprocessingMLPackage buildDocumentComplete(
             Object allergyDAO = allergyDAOClass.getConstructor(java.sql.Connection.class).newInstance(conn);
             
             // Get allergy cards for this session
-            java.lang.reflect.Method getBySessionMethod = allergyDAOClass.getMethod("getBySessionId", Integer.class);
+            // getBySessionId uses primitive int parameter
+            java.lang.reflect.Method getBySessionMethod = allergyDAOClass.getMethod("getBySessionId", int.class);
             @SuppressWarnings("unchecked")
             java.util.List<Object> allergyCards = (java.util.List<Object>) getBySessionMethod.invoke(allergyDAO, sessionId);
             
@@ -1952,7 +1947,7 @@ public WordprocessingMLPackage buildDocumentComplete(
      * caller can skip option rows.
      */
     private int addQuestionOptions(WordprocessingMLPackage pkg, DefaultTableModel model, int startRow,
-            boolean isFirstQuestionOnPage) {
+            boolean isFirstQuestionOnPage, boolean needsPageBreak, boolean isFigurenQuestion, int nonFigCounter) {
         // Look for options in subsequent rows
         int currentRow = startRow + 1;
 
@@ -2004,7 +1999,18 @@ public WordprocessingMLPackage buildDocumentComplete(
                 PPr pPr = factory.createPPr();
                 PPrBase.Spacing spacing = factory.createPPrBaseSpacing();
                 spacing.setBefore(BigInteger.valueOf(60)); // Reduced spacing before each option
-                spacing.setAfter(BigInteger.valueOf(60)); // Reduced spacing after each option
+                
+                // For option E (i==4) of 5th non-Figuren question, remove spacing after to prevent gap before page break
+                boolean isOptionE = (i == 4);
+                boolean willHavePageBreak = !isFigurenQuestion && (nonFigCounter % 5 == 0);
+                
+                if (isOptionE && willHavePageBreak) {
+                    // No spacing after option E when page break follows
+                    spacing.setAfter(BigInteger.valueOf(0));
+                } else {
+                    spacing.setAfter(BigInteger.valueOf(60)); // Normal spacing after each option
+                }
+                
                 pPr.setSpacing(spacing);
                 optionP.setPPr(pPr);
 
@@ -2022,14 +2028,23 @@ public WordprocessingMLPackage buildDocumentComplete(
                 String formattedOption = optionLabel + ") " + optionTexts.get(i);
                 optionT.setValue(formattedOption);
                 optionR.getContent().add(optionT);
+                
+                // For option E of 5th non-Figuren question, add page break directly after text
+                if (isOptionE && willHavePageBreak) {
+                    Br pageBreak = factory.createBr();
+                    pageBreak.setType(STBrType.PAGE);
+                    optionR.getContent().add(pageBreak);
+                }
                 optionP.getContent().add(optionR);
-
                 pkg.getMainDocumentPart().addObject(optionP);
             }
 
-            // Add spacing after all options
-            P spacingP = factory.createP();
-            pkg.getMainDocumentPart().addObject(spacingP);
+            // Add spacing after all options except for every 5th non-Figuren question (where a page break was just added after option E)
+            boolean shouldAddSpacing = isFigurenQuestion || (nonFigCounter % 5 != 0);
+            if (shouldAddSpacing) {
+                P spacingP = factory.createP();
+                pkg.getMainDocumentPart().addObject(spacingP);
+            }
         }
 
         return currentRow - 1;
