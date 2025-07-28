@@ -42,14 +42,15 @@ public class PassageService {
      * @param testSimulationId The test simulation ID
      * @param category The category name (e.g., "Basiskenntnistest")
      * @param subcategory The subcategory name (e.g., "Textverständnis")
+     * @param passageIndex The index of this passage (1, 2, 3, etc.)
      * @param text The passage text content
      * @param source Optional source information
      * @return The generated passage ID
      */
     public int createPassageForSimulation(int testSimulationId, String category, String subcategory, 
-                                        String text, String source) throws SQLException {
+                                        int passageIndex, String text, String source) throws SQLException {
         int subcategoryId = getSubcategoryId(category, subcategory);
-        return passageDAO.insert(subcategoryId, testSimulationId, text, source);
+        return passageDAO.insert(subcategoryId, testSimulationId, passageIndex, text, source);
     }
 
     /**
@@ -83,7 +84,7 @@ public class PassageService {
 
         for (int i = 0; i < sampleTexts.length; i++) {
             createPassageForSimulation(testSimulationId, "Basiskenntnistest", "Textverständnis", 
-                                     sampleTexts[i], "Sample passage " + (i + 1));
+                                     i + 1, sampleTexts[i], "Sample passage " + (i + 1));
         }
     }
 }

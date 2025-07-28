@@ -49,9 +49,11 @@ class TextverstaendnisGeneratorIT {
                     id INTEGER PRIMARY KEY AUTO_INCREMENT,
                     subcategory_id INTEGER NOT NULL,
                     test_simulation_id INTEGER,
+                    passage_index INTEGER NOT NULL DEFAULT 1,
                     text TEXT NOT NULL,
                     source VARCHAR(255),
-                    FOREIGN KEY (subcategory_id) REFERENCES subcategories(id)
+                    FOREIGN KEY (subcategory_id) REFERENCES subcategories(id),
+                    UNIQUE(test_simulation_id, passage_index)
                 )
             """);
             
@@ -93,7 +95,7 @@ class TextverstaendnisGeneratorIT {
         
         // Insert test passage
         PassageDAO passageDAO = new PassageDAO(conn);
-        testPassageId = passageDAO.insert(testSubcategoryId, testSimulationId, 
+        testPassageId = passageDAO.insert(testSubcategoryId, testSimulationId, 1,
             "Die Photosynthese ist ein biochemischer Prozess, bei dem Pflanzen Kohlendioxid und Wasser " +
             "mithilfe von Lichtenergie in Glucose und Sauerstoff umwandeln. Dieser Prozess findet in den " +
             "Chloroplasten statt und ist essentiell für das Leben auf der Erde. Die Reaktion kann durch " +

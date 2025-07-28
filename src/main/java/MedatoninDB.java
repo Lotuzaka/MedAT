@@ -744,6 +744,14 @@ public class MedatoninDB extends JFrame {
                 }
                 if (selectedSimulationId != null) {
                     loadQuestionsFromDatabase(currentCategory, categoryModels.get(currentCategory), selectedSimulationId);
+                    if (currentTextPassagePanel != null) {
+                        try {
+                            currentTextPassagePanel.getClass().getMethod("setSimulationId", Integer.class)
+                                    .invoke(currentTextPassagePanel, selectedSimulationId);
+                        } catch (Exception ex) {
+                            debugLog("UI", LogLevel.WARN, "Could not update TextPassagePanel simulation: " + ex.getMessage());
+                        }
+                    }
                 }
             }
         });
@@ -2460,8 +2468,10 @@ public class MedatoninDB extends JFrame {
                 Class<?> panelClass = Class.forName("ui.textverstaendnis.TextPassagePanel");
                 if (currentTextPassagePanel == null) {
                     int subId = getSubcategoryId(currentCategory, currentSubcategory);
-                    currentTextPassagePanel = (JPanel) panelClass.getDeclaredConstructor(PassageDAO.class, int.class)
-                            .newInstance(new PassageDAO(conn), subId);
+                    currentTextPassagePanel = (JPanel) panelClass.getDeclaredConstructor(PassageDAO.class, int.class, Integer.class)
+                            .newInstance(new PassageDAO(conn), subId, selectedSimulationId);
+                } else {
+                    panelClass.getMethod("setSimulationId", Integer.class).invoke(currentTextPassagePanel, selectedSimulationId);
                 }
                 JScrollPane passageScroll = new JScrollPane(currentTextPassagePanel);
                 passageScroll.setPreferredSize(new Dimension(500, 380));

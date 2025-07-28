@@ -44,6 +44,7 @@ class TextPassagePanelTest {
                     id INTEGER PRIMARY KEY AUTO_INCREMENT,
                     subcategory_id INTEGER NOT NULL,
                     test_simulation_id INTEGER,
+                    passage_index INTEGER NOT NULL,
                     text TEXT NOT NULL,
                     source VARCHAR(255),
                     FOREIGN KEY (subcategory_id) REFERENCES subcategories(id)
@@ -65,7 +66,7 @@ class TextPassagePanelTest {
         }
         
         // Create panel for each test
-        panel = new TextPassagePanel(passageDAO, testSubcategoryId);
+        panel = new TextPassagePanel(passageDAO, testSubcategoryId, null);
     }
     
     @AfterAll
