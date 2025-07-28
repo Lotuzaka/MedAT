@@ -1,3 +1,5 @@
+package generator;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.stanford.nlp.ie.util.RelationTriple;
@@ -23,8 +25,6 @@ import java.util.*;
 public class TextverstaendnisGenerator {
 
     private final Connection conn;
-    private final QuestionDAO questionDAO;
-    private final OptionDAO optionDAO;
     private final String category;
     private final String subcategory;
     private final Integer simulationId;
@@ -41,8 +41,6 @@ public class TextverstaendnisGenerator {
         this.category = category;
         this.subcategory = subcategory;
         this.simulationId = simulationId;
-        this.questionDAO = new QuestionDAO(conn);
-        this.optionDAO = new OptionDAO(conn);
 
         // Load question stems
         ObjectMapper mapper = new ObjectMapper();
@@ -57,6 +55,48 @@ public class TextverstaendnisGenerator {
         props.setProperty("annotators", "tokenize,ssplit,pos,lemma,depparse,coref,openie");
         props.setProperty("coref.algorithm", "neural");
         this.pipeline = new StanfordCoreNLP(props);
+    }
+
+    /** Helper method to get subcategory ID. */
+    private int getSubcategoryId(String category, String subcategory) throws SQLException {
+        String sql = "SELECT id FROM subcategories WHERE category = ? AND name = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, category);
+            stmt.setString(2, subcategory);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("id");
+                }
+            }
+        }
+        throw new SQLException("Subcategory not found: " + category + " - " + subcategory);
+    }
+
+    /** Helper method to get next question number. */
+    private int getNextQuestionNumber(Integer simulationId, int subcategoryId) throws SQLException {
+        String sql = "SELECT COALESCE(MAX(question_number), 0) + 1 FROM questions WHERE test_simulation_id = ? AND subcategory_id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, simulationId);
+            stmt.setInt(2, subcategoryId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        }
+        return 1;
+    }
+
+    /** Helper method to insert option. */
+    private void insertOption(int questionId, String label, String text, boolean isCorrect) throws SQLException {
+        String sql = "INSERT INTO options (question_id, label, text, is_correct) VALUES (?, ?, ?, ?)";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, questionId);
+            stmt.setString(2, label);
+            stmt.setString(3, text);
+            stmt.setBoolean(4, isCorrect);
+            stmt.executeUpdate();
+        }
     }
 
     /** Reads the passage text from the database. */
@@ -93,8 +133,8 @@ public class TextverstaendnisGenerator {
             }
         }
 
-        int subId = questionDAO.getSubcategoryId(category, subcategory);
-        int qNum = questionDAO.getNextQuestionNumber(simulationId, subId);
+        int subId = getSubcategoryId(category, subcategory);
+        int qNum = getNextQuestionNumber(simulationId, subId);
 
         for (int i = 0; i < count; i++) {
             String type = new ArrayList<>(templates.keySet()).get(random.nextInt(templates.size()));
@@ -105,7 +145,7 @@ public class TextverstaendnisGenerator {
             for (int j = 0; j < q.options.size(); j++) {
                 String label = String.valueOf((char)('A' + j));
                 boolean isCorrect = (j == q.correctIndex);
-                optionDAO.insertOption(qId, label, q.options.get(j), isCorrect);
+                insertOption(qId, label, q.options.get(j), isCorrect);
             }
             qNum++;
         }
@@ -169,7 +209,7 @@ public class TextverstaendnisGenerator {
 
     /** Inserts the question into the DB including the passage_id column. */
     private int insertQuestion(String text, int number, int passageId) throws SQLException {
-        int subId = questionDAO.getSubcategoryId(category, subcategory);
+        int subId = getSubcategoryId(category, subcategory);
         String sql = "INSERT INTO questions (subcategory_id, question_number, text, format, test_simulation_id, passage_id) " +
                 "VALUES (?, ?, ?, ?, ?, ?)";
         try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {

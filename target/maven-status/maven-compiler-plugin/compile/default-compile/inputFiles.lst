@@ -2,10 +2,13 @@ C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\CategoryDAO.j
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\categorySubcategoryOrder.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\CustomRenderer.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\dao\AllergyCardDAO.java
+C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\dao\PassageDAO.java
+C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\dao\PassageService.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\docx\Docx4jPrinter.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\FigurenGenerator.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\generator\MerkfaehigkeitGenerator.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\generator\MerkQuestionGenerator.java
+C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\generator\TextverstaendnisGenerator.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\IntroTemplateEngine.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\MedatoninDB.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\merk\MerkQuestionEngine.java
@@ -30,8 +33,10 @@ C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\TestDocumentG
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\TestMain.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\TestMerkQuestions.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\testSimulationDAO.java
+C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\textverstaendnis\TextverstaendnisText.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\ui\merkfaehigkeit\AllergyCardGridPanel.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\ui\merkfaehigkeit\AllergyCardPanel.java
+C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\ui\textverstaendnis\TextPassagePanel.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\util\Pair.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\util\Sentence.java
 C:\Users\mahmo\Desktop\medatonin\medatonin-datenbank\src\main\java\util\SyllogismUtils.java

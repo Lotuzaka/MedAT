@@ -1,4 +1,5 @@
 import dao.AllergyCardDAO;
+import dao.PassageDAO;
 import model.AllergyCardData;
 import org.apache.poi.xwpf.usermodel.*;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTSectPr;
@@ -181,6 +182,8 @@ public class MedatoninDB extends JFrame {
     
     // Allergy card panel persistence
     private JPanel currentAllergyCardGridPanel = null; // Keep reference to current allergy panel
+    // Text passage panel persistence
+    private JPanel currentTextPassagePanel = null;
     private int lastTargetIndex = -1; // **Declaration of lastTargetIndex**
     private Set<QuestionIdentifier> pendingDeleteQuestions = new HashSet<>();
     private boolean isAdjustingFormat = false;
@@ -2202,7 +2205,7 @@ public class MedatoninDB extends JFrame {
      * Save current allergy card data to database before switching subcategories
      */
     private void saveCurrentAllergyCardData() {
-        if (currentAllergyCardGridPanel != null && selectedSimulationId != null && 
+        if (currentAllergyCardGridPanel != null && selectedSimulationId != null &&
             "Merkfähigkeiten".equals(currentSubcategory)) {
             try {
                 @SuppressWarnings("unchecked")
@@ -2220,10 +2223,25 @@ public class MedatoninDB extends JFrame {
         }
     }
 
+    /**
+     * Save current text passage before switching subcategories.
+     */
+    private void saveCurrentTextPassage() {
+        if (currentTextPassagePanel != null && "Textverständnis".equals(currentSubcategory)) {
+            try {
+                currentTextPassagePanel.getClass().getMethod("savePassage").invoke(currentTextPassagePanel);
+                debugLog("UI", "Auto-saved text passage before switching subcategory");
+            } catch (Exception e) {
+                debugLog("UI", LogLevel.WARN, "Could not auto-save text passage: " + e.getMessage());
+            }
+        }
+    }
+
     private void switchSubcategory(String category, String subcategory) {
         
-        // Save allergy card data before switching if currently on Merkfähigkeiten
+        // Save any special UI data before switching subcategories
         saveCurrentAllergyCardData();
+        saveCurrentTextPassage();
 
         currentCategory = category;
         currentSubcategory = subcategory;
@@ -2431,6 +2449,33 @@ public class MedatoninDB extends JFrame {
             } catch (Exception e) {
                 debugLog("UI", LogLevel.ERROR, "Failed to load AllergyCardGridPanel: " + e.getMessage());
                 // Fallback to normal table view
+                subcategoryContentPanel.add(subScrollPane, BorderLayout.CENTER);
+            }
+        } else if ("Textverständnis".equals(currentSubcategory)) {
+            // Split pane with table on left and text passage editor on right
+            JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
+            splitPane.setLeftComponent(subScrollPane);
+
+            try {
+                Class<?> panelClass = Class.forName("ui.textverstaendnis.TextPassagePanel");
+                if (currentTextPassagePanel == null) {
+                    int subId = getSubcategoryId(currentCategory, currentSubcategory);
+                    currentTextPassagePanel = (JPanel) panelClass.getDeclaredConstructor(PassageDAO.class, int.class)
+                            .newInstance(new PassageDAO(conn), subId);
+                }
+                JScrollPane passageScroll = new JScrollPane(currentTextPassagePanel);
+                passageScroll.setPreferredSize(new Dimension(500, 380));
+                splitPane.setRightComponent(passageScroll);
+                splitPane.setResizeWeight(1.0);
+                splitPane.setDividerLocation(0.6);
+                splitPane.setOneTouchExpandable(true);
+
+                subcategoryContentPanel.add(splitPane, BorderLayout.CENTER);
+
+                // Load passage from DB each time we switch
+                currentTextPassagePanel.getClass().getMethod("loadPassage").invoke(currentTextPassagePanel);
+            } catch (Exception e) {
+                debugLog("UI", LogLevel.ERROR, "Failed to load TextPassagePanel: " + e.getMessage());
                 subcategoryContentPanel.add(subScrollPane, BorderLayout.CENTER);
             }
         } else {
