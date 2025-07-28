@@ -639,8 +639,8 @@ public class SyllogismGenerator {
     MedatoninDB.debugLog("Syllogism", "Question: " + questionData.questionText);
     MedatoninDB.debugLog("Syllogism", "Generated " + questionData.options.size() + " options");
     
-    int questionId = questionDAO.insertQuestion(category, subcategory, questionData.questionText, 
-                                               questionNumber, simulationId);
+    int questionId = questionDAO.insertQuestion(category, subcategory, questionData.questionText,
+                                               questionNumber, simulationId, null);
     
     for (int i = 0; i < questionData.options.size(); i++) {
       String optionLabel = getOptionLabel(i);

@@ -1,297 +1,527 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
-diff --git a/pom.xml b/pom.xml
-index 32aa085c6b69e84ad5e37c5638cde3126abe9903..ad844619d4fbf0dd2d48ddbc648d0638d041d645 100644
---- a/pom.xml
-+++ b/pom.xml
-@@ -123,50 +123,56 @@
-       <artifactId>jaxb-api</artifactId>
-       <version>2.3.1</version>
-     </dependency>
-     <dependency>
-       <groupId>org.glassfish.jaxb</groupId>
-       <artifactId>jaxb-core</artifactId>
-       <version>3.0.2</version>
-     </dependency>
-     <dependency>
-       <groupId>com.sun.xml.bind</groupId>
-       <artifactId>jaxb-impl</artifactId>
-       <version>2.3.8</version>
-     </dependency>
-     
-     <!-- Activation APIs -->
-     <dependency>
-       <groupId>jakarta.activation</groupId>
-       <artifactId>jakarta.activation-api</artifactId>
-       <version>2.1.2</version>
-     </dependency>
-     <dependency>
-       <groupId>com.sun.activation</groupId>
-       <artifactId>javax.activation</artifactId>
-       <version>1.2.0</version>
-     </dependency>
-+    <!-- Stanford CoreNLP for NLP operations in TextverstaendnisGenerator -->
-+    <dependency>
-+      <groupId>edu.stanford.nlp</groupId>
-+      <artifactId>stanford-corenlp</artifactId>
-+      <version>4.5.5</version>
-+    </dependency>
+diff --git a/Dump20250716.sql b/Dump20250716.sql
+index ef2b0d9359a98b09cd02e2544b9ce6a8a292f645..5582418bdbadeb6825b2fdf526a37c732dfe799c 100644
+--- a/Dump20250716.sql
++++ b/Dump20250716.sql
+@@ -42,81 +42,102 @@ CREATE TABLE `options` (
+   `question_id` int NOT NULL,
+   `label` varchar(5) NOT NULL,
+   `text` text NOT NULL,
+   `is_correct` tinyint(1) NOT NULL,
+   `shape_data` text,
+   PRIMARY KEY (`id`),
+   KEY `question_id` (`question_id`),
+   CONSTRAINT `options_ibfk_1` FOREIGN KEY (`question_id`) REFERENCES `questions` (`id`) ON DELETE CASCADE
+ ) ENGINE=InnoDB AUTO_INCREMENT=9806 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+ /*!40101 SET character_set_client = @saved_cs_client */;
  
-   </dependencies>
+ --
+ -- Table structure for table `questions`
+ --
  
+ DROP TABLE IF EXISTS `questions`;
+ /*!40101 SET @saved_cs_client     = @@character_set_client */;
+ /*!50503 SET character_set_client = utf8mb4 */;
+ CREATE TABLE `questions` (
+   `id` int NOT NULL AUTO_INCREMENT,
+   `subcategory_id` int NOT NULL,
+   `question_number` int NOT NULL,
+   `text` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+   `format` varchar(10) NOT NULL,
+   `test_simulation_id` int DEFAULT NULL,
++  `passage_id` int DEFAULT NULL,
+   `shape_data` text,
+   `shape_type` varchar(50) DEFAULT NULL,
+   `dissected_pieces_data` text,
+   `assembled_pieces_data` text,
+   `difficulty` varchar(10) DEFAULT 'MEDIUM',
+   PRIMARY KEY (`id`),
+   KEY `idx_test_simulation_id` (`test_simulation_id`),
++  KEY `idx_passage_id` (`passage_id`),
+   KEY `questions_ibfk_1` (`subcategory_id`),
+   CONSTRAINT `fk_simulation` FOREIGN KEY (`test_simulation_id`) REFERENCES `test_simulations` (`id`) ON DELETE SET NULL,
++  CONSTRAINT `fk_passage` FOREIGN KEY (`passage_id`) REFERENCES `passages` (`id`) ON DELETE SET NULL,
+   CONSTRAINT `questions_ibfk_1` FOREIGN KEY (`subcategory_id`) REFERENCES `subcategories` (`id`) ON DELETE CASCADE
+ ) ENGINE=InnoDB AUTO_INCREMENT=1793 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+ /*!40101 SET character_set_client = @saved_cs_client */;
  
-   <build>
-     <plugins>
-       <!-- Maven JAR Plugin -->
-       <plugin>
-         <groupId>org.apache.maven.plugins</groupId>
-         <artifactId>maven-jar-plugin</artifactId>
-         <version>3.1.2</version>
-         <configuration>
-           <archive>
-             <manifestEntries>
-               <Main-Class>MedatoninDB</Main-Class> <!-- Replace with the correct package name -->
-             </manifestEntries>
-           </archive>
-         </configuration>
-       </plugin>
+ --
+ -- Table structure for table `subcategories`
+ --
  
-       <!-- Maven Shade Plugin -->
-       <plugin>
-         <groupId>org.apache.maven.plugins</groupId>
-         <artifactId>maven-shade-plugin</artifactId>
-         <version>3.2.4</version>
-diff --git a/src/main/java/generator/TextverstaendnisGenerator.java b/src/main/java/generator/TextverstaendnisGenerator.java
+ DROP TABLE IF EXISTS `subcategories`;
+ /*!40101 SET @saved_cs_client     = @@character_set_client */;
+ /*!50503 SET character_set_client = utf8mb4 */;
+ CREATE TABLE `subcategories` (
+   `id` int NOT NULL AUTO_INCREMENT,
+   `category_id` int NOT NULL,
+   `name` varchar(50) NOT NULL,
+   `order_index` int NOT NULL,
+   PRIMARY KEY (`id`),
+   KEY `category_id` (`category_id`),
+   CONSTRAINT `subcategories_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE
+ ) ENGINE=InnoDB AUTO_INCREMENT=46 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+ /*!40101 SET character_set_client = @saved_cs_client */;
+ 
++--
++-- Table structure for table `passages`
++--
++
++DROP TABLE IF EXISTS `passages`;
++/*!40101 SET @saved_cs_client     = @@character_set_client */;
++/*!50503 SET character_set_client = utf8mb4 */;
++CREATE TABLE `passages` (
++  `id` int NOT NULL AUTO_INCREMENT,
++  `subcategory_id` int NOT NULL,
++  `text` text NOT NULL,
++  `source` varchar(255) DEFAULT NULL,
++  PRIMARY KEY (`id`),
++  KEY `idx_passages_subcategory_id` (`subcategory_id`),
++  CONSTRAINT `passages_ibfk_1` FOREIGN KEY (`subcategory_id`) REFERENCES `subcategories` (`id`) ON DELETE CASCADE
++) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
++/*!40101 SET character_set_client = @saved_cs_client */;
++
+ --
+ -- Table structure for table `test_simulations`
+ --
+ 
+ DROP TABLE IF EXISTS `test_simulations`;
+ /*!40101 SET @saved_cs_client     = @@character_set_client */;
+ /*!50503 SET character_set_client = utf8mb4 */;
+ CREATE TABLE `test_simulations` (
+   `id` int NOT NULL AUTO_INCREMENT,
+   `name` varchar(255) NOT NULL,
+   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+   PRIMARY KEY (`id`)
+ ) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+ /*!40101 SET character_set_client = @saved_cs_client */;
+ 
+ --
+ -- Table structure for table `users`
+ --
+ 
+ DROP TABLE IF EXISTS `users`;
+ /*!40101 SET @saved_cs_client     = @@character_set_client */;
+ /*!50503 SET character_set_client = utf8mb4 */;
+ CREATE TABLE `users` (
+   `id` int NOT NULL AUTO_INCREMENT,
+   `username` varchar(50) NOT NULL,
+diff --git a/create_passages_table.sql b/create_passages_table.sql
 new file mode 100644
-index 0000000000000000000000000000000000000000..a97ba5f4f9169518957c99520b413fa0b4565c79
+index 0000000000000000000000000000000000000000..cdc49bf07e7a6ec0d2428978ef2af8705e529279
 --- /dev/null
-+++ b/src/main/java/generator/TextverstaendnisGenerator.java
-@@ -0,0 +1,203 @@
-+import com.fasterxml.jackson.core.type.TypeReference;
-+import com.fasterxml.jackson.databind.ObjectMapper;
-+import edu.stanford.nlp.ie.util.RelationTriple;
-+import edu.stanford.nlp.ling.CoreAnnotations;
-+import edu.stanford.nlp.naturalli.NaturalLogicAnnotations;
-+import edu.stanford.nlp.pipeline.Annotation;
-+import edu.stanford.nlp.pipeline.StanfordCoreNLP;
-+import edu.stanford.nlp.util.CoreMap;
-+
-+import java.io.IOException;
-+import java.io.InputStream;
-+import java.sql.Connection;
-+import java.sql.PreparedStatement;
-+import java.sql.ResultSet;
-+import java.sql.SQLException;
-+import java.sql.Statement;
-+import java.util.*;
-+
-+/**
-+ * Generator for Textverständnis questions using a passage based approach.
-+ * The implementation mirrors the structure of {@link SyllogismGenerator}.
-+ */
-+public class TextverstaendnisGenerator {
-+
-+    private final Connection conn;
-+    private final QuestionDAO questionDAO;
-+    private final OptionDAO optionDAO;
-+    private final String category;
-+    private final String subcategory;
-+    private final Integer simulationId;
-+
-+    private final StanfordCoreNLP pipeline;
-+    private final Map<String, List<String>> templates;
-+    private final Random random = new Random();
-+
-+    /**
-+     * Constructs the generator with DB connection and context.
-+     */
-+    public TextverstaendnisGenerator(Connection conn, String category, String subcategory, Integer simulationId) throws IOException {
-+        this.conn = conn;
-+        this.category = category;
-+        this.subcategory = subcategory;
-+        this.simulationId = simulationId;
-+        this.questionDAO = new QuestionDAO(conn);
-+        this.optionDAO = new OptionDAO(conn);
-+
-+        // Load question stems
-+        ObjectMapper mapper = new ObjectMapper();
-+        try (InputStream is = getClass().getClassLoader().getResourceAsStream("textverstaendnis/templates.json")) {
-+            if (is == null) {
-+                throw new IOException("templates.json not found");
-+            }
-+            this.templates = mapper.readValue(is, new TypeReference<>() {});
-+        }
-+
-+        Properties props = new Properties();
-+        props.setProperty("annotators", "tokenize,ssplit,pos,lemma,depparse,coref,openie");
-+        props.setProperty("coref.algorithm", "neural");
-+        this.pipeline = new StanfordCoreNLP(props);
-+    }
-+
-+    /** Reads the passage text from the database. */
-+    private String loadPassage(int passageId) throws SQLException {
-+        String sql = "SELECT text FROM passages WHERE id = ?";
-+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-+            stmt.setInt(1, passageId);
-+            try (ResultSet rs = stmt.executeQuery()) {
-+                if (rs.next()) {
-+                    return rs.getString(1);
-+                }
-+            }
-+        }
-+        throw new SQLException("Passage not found: " + passageId);
-+    }
-+
-+    /**
-+     * Generate questions for the provided passage.
-+     * @param count number of questions
-+     * @param passageId passage identifier from passages table
-+     */
-+    public void execute(int count, int passageId) throws SQLException, IOException {
-+        String passage = loadPassage(passageId);
-+
-+        Annotation doc = new Annotation(passage);
-+        pipeline.annotate(doc);
-+
-+        List<CoreMap> sentences = doc.get(CoreAnnotations.SentencesAnnotation.class);
-+        List<RelationTriple> triples = new ArrayList<>();
-+        for (CoreMap s : sentences) {
-+            Collection<RelationTriple> rels = s.get(NaturalLogicAnnotations.RelationTriplesAnnotation.class);
-+            if (rels != null) {
-+                triples.addAll(rels);
-+            }
-+        }
-+
-+        int subId = questionDAO.getSubcategoryId(category, subcategory);
-+        int qNum = questionDAO.getNextQuestionNumber(simulationId, subId);
-+
-+        for (int i = 0; i < count; i++) {
-+            String type = new ArrayList<>(templates.keySet()).get(random.nextInt(templates.size()));
-+            String stem = templates.get(type).get(random.nextInt(templates.get(type).size()));
-+            QuestionData q = buildQuestion(stem, type, sentences, triples);
-+
-+            int qId = insertQuestion(q.text, qNum, passageId);
-+            for (int j = 0; j < q.options.size(); j++) {
-+                String label = String.valueOf((char)('A' + j));
-+                boolean isCorrect = (j == q.correctIndex);
-+                optionDAO.insertOption(qId, label, q.options.get(j), isCorrect);
-+            }
-+            qNum++;
-+        }
-+    }
-+
-+    /**
-+     * Creates a single question using simple heuristics.
-+     */
-+    private QuestionData buildQuestion(String stem, String type, List<CoreMap> sentences, List<RelationTriple> triples) {
-+        String question;
-+        String correct;
-+        List<String> distractors = new ArrayList<>();
-+
-+        if ("Nicht erwähnt".equals(type)) {
-+            question = stem;
-+            correct = "Keine der anderen Aussagen";
-+            for (int i = 0; i < Math.min(4, sentences.size()); i++) {
-+                distractors.add(sentences.get(i).toString());
-+            }
-+        } else if ("Kernaussage".equals(type)) {
-+            question = stem;
-+            correct = sentences.isEmpty() ? "" : sentences.get(0).toString();
-+            for (int i = 1; i < sentences.size() && distractors.size() < 4; i++) {
-+                distractors.add(sentences.get(i).toString());
-+            }
-+        } else if ("Ursache-Wirkung".equals(type) && !triples.isEmpty()) {
-+            RelationTriple t = triples.get(random.nextInt(triples.size()));
-+            String sent = t.toString();
-+            question = stem.replace("{SENTENCE}", sent);
-+            correct = t.subjectGloss() + " " + t.relationGloss() + " " + t.objectGloss();
-+            for (RelationTriple other : triples) {
-+                String cand = other.subjectGloss() + " " + other.relationGloss() + " " + other.objectGloss();
-+                if (!cand.equals(correct) && distractors.size() < 4) {
-+                    distractors.add(cand);
-+                }
-+            }
-+        } else {
-+            String sent = sentences.isEmpty() ? "" : sentences.get(random.nextInt(sentences.size())).toString();
-+            question = stem.replace("{SENTENCE}", sent);
-+            correct = sent;
-+            for (CoreMap s : sentences) {
-+                String txt = s.toString();
-+                if (!txt.equals(correct) && distractors.size() < 4) {
-+                    distractors.add(txt);
-+                }
-+            }
-+        }
-+
-+        while (distractors.size() < 4) {
-+            distractors.add("...");
-+        }
-+
-+        List<String> options = new ArrayList<>();
-+        options.add(correct);
-+        options.addAll(distractors.subList(0, 4));
-+        Collections.shuffle(options);
-+
-+        int correctIndex = options.indexOf(correct);
-+        return new QuestionData(question, options, correctIndex);
-+    }
-+
-+    /** Inserts the question into the DB including the passage_id column. */
-+    private int insertQuestion(String text, int number, int passageId) throws SQLException {
-+        int subId = questionDAO.getSubcategoryId(category, subcategory);
-+        String sql = "INSERT INTO questions (subcategory_id, question_number, text, format, test_simulation_id, passage_id) " +
-+                "VALUES (?, ?, ?, ?, ?, ?)";
-+        try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-+            stmt.setInt(1, subId);
-+            stmt.setInt(2, number);
-+            stmt.setString(3, text);
-+            stmt.setString(4, "Kurz");
-+            if (simulationId != null) {
-+                stmt.setInt(5, simulationId);
++++ b/create_passages_table.sql
+@@ -0,0 +1,10 @@
++-- Create passages table for Textverständnis passages
++CREATE TABLE `passages` (
++  `id` int NOT NULL AUTO_INCREMENT,
++  `subcategory_id` int NOT NULL,
++  `text` text NOT NULL,
++  `source` varchar(255) DEFAULT NULL,
++  PRIMARY KEY (`id`),
++  KEY `idx_passages_subcategory_id` (`subcategory_id`),
++  CONSTRAINT `fk_passages_subcategory` FOREIGN KEY (`subcategory_id`) REFERENCES `subcategories` (`id`) ON DELETE CASCADE
++) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+diff --git a/src/main/java/QuestionDAO.java b/src/main/java/QuestionDAO.java
+index fcee9704dd25619af5ba81cecf8c9806aa427c01..5aec95d2133c24c40b591267373a42999f06e4ed 100644
+--- a/src/main/java/QuestionDAO.java
++++ b/src/main/java/QuestionDAO.java
+@@ -222,69 +222,74 @@ public class QuestionDAO {
+         String sql = "INSERT INTO questions (subcategory_id, question_number, text, format, test_simulation_id, difficulty) VALUES (?, ?, ?, ?, ?, ?)";
+         try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+             stmt.setInt(1, subcategoryId);
+             stmt.setInt(2, questionNumber);
+             stmt.setString(3, "");
+             stmt.setString(4, "Kurz"); // Default format
+             stmt.setInt(5, simulationId);
+             stmt.setString(6, "MEDIUM");
+             int affectedRows = stmt.executeUpdate();
+             if (affectedRows == 0) {
+                 throw new SQLException("Creating question failed, no rows affected.");
+             }
+ 
+             try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                 if (generatedKeys.next()) {
+                     return generatedKeys.getInt(1);
+                 } else {
+                     throw new SQLException("Creating question failed, no ID obtained.");
+                 }
+             }
+         }
+     }
+ 
+     // Insert a new Question
+     public int insertQuestion(String category, String subcategory, String questionText, int questionNumber,
+-            Integer simulationId) throws SQLException {
++            Integer simulationId, Integer passageId) throws SQLException {
+         // First, let's get the subcategory_id
+         int subcategoryId = getSubcategoryId(category, subcategory);
+         if (subcategoryId == -1) {
+             throw new SQLException("Subcategory not found for category: " + category + ", subcategory: " + subcategory);
+         }
+ 
+-        String sql = "INSERT INTO questions (subcategory_id, question_number, text, format, test_simulation_id) VALUES (?, ?, ?, ?, ?)";
++        String sql = "INSERT INTO questions (subcategory_id, question_number, text, format, test_simulation_id, passage_id) VALUES (?, ?, ?, ?, ?, ?)";
+         MedatoninDB.debugLog("QuestionDAO", MedatoninDB.LogLevel.DEBUG, "insertQuestion", "Executing SQL: " + sql);
+         try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+             stmt.setInt(1, subcategoryId);
+             stmt.setInt(2, questionNumber);
+             stmt.setString(3, questionText);
+             stmt.setString(4, "Kurz");
+             if (simulationId != null) {
+                 stmt.setInt(5, simulationId);
+             } else {
+                 stmt.setNull(5, java.sql.Types.INTEGER);
+             }
++            if (passageId != null) {
++                stmt.setInt(6, passageId);
 +            } else {
-+                stmt.setNull(5, java.sql.Types.INTEGER);
++                stmt.setNull(6, java.sql.Types.INTEGER);
 +            }
-+            stmt.setInt(6, passageId);
-+            stmt.executeUpdate();
-+            try (ResultSet rs = stmt.getGeneratedKeys()) {
+             int affectedRows = stmt.executeUpdate();
+             if (affectedRows == 0) {
+                 throw new SQLException("Creating question failed, no rows affected.");
+             }
+ 
+             try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                 if (generatedKeys.next()) {
+                     return generatedKeys.getInt(1);
+                 } else {
+                     throw new SQLException("Creating question failed, no ID obtained.");
+                 }
+             }
+         }
+     }
+ 
+     public int insertQuestionWithShape(String category, String subcategory, int questionNumber, String text,
+             Integer simulationId, String shapeData, String shapeType, String dissectedPiecesData,
+             String assembledPiecesData) throws SQLException {
+         String sql = "INSERT INTO questions (subcategory_id, question_number, text, format, test_simulation_id, shape_data, shape_type, dissected_pieces_data, assembled_pieces_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+         try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+             int subcategoryId = getSubcategoryId(category, subcategory);
+             stmt.setInt(1, subcategoryId);
+             stmt.setInt(2, questionNumber);
+             stmt.setString(3, text);
+             stmt.setString(4, "Kurz");
+diff --git a/src/main/java/SyllogismGenerator.java b/src/main/java/SyllogismGenerator.java
+index ef7c421a381dd3cd263ee9df9ac33fb8775b65d0..62e137a071f090a5c223e0bc66b639f50db7ceed 100644
+--- a/src/main/java/SyllogismGenerator.java
++++ b/src/main/java/SyllogismGenerator.java
+@@ -617,52 +617,52 @@ public class SyllogismGenerator {
+    * Finds the index of the correct option in the options list.
+    */
+   private int findCorrectOptionIndex(List<String> options, String correctConclusion) {
+     if (NO_VALID_ANSWER.equals(correctConclusion)) {
+       return options.size() - 1; // Last option (E)
+     }
+     return options.indexOf(correctConclusion);
+   }
+ 
+   /**
+    * Replaces variable placeholders in templates with actual words.
+    */
+   private String replaceVariables(String template, String wordA, String wordB, String wordC) {
+     return template.replace("{A}", wordA)
+                   .replace("{B}", wordB)
+                   .replace("{C}", wordC);
+   }
+ 
+   /**
+    * Inserts the generated question and options into the database.
+    */
+   private void insertQuestionIntoDatabase(QuestionData questionData, int questionNumber) throws SQLException {
+     MedatoninDB.debugLog("Syllogism", "Question: " + questionData.questionText);
+     MedatoninDB.debugLog("Syllogism", "Generated " + questionData.options.size() + " options");
+     
+-    int questionId = questionDAO.insertQuestion(category, subcategory, questionData.questionText, 
+-                                               questionNumber, simulationId);
++    int questionId = questionDAO.insertQuestion(category, subcategory, questionData.questionText,
++                                               questionNumber, simulationId, null);
+     
+     for (int i = 0; i < questionData.options.size(); i++) {
+       String optionLabel = getOptionLabel(i);
+       String optionText = questionData.options.get(i);
+       boolean isCorrect = (i == questionData.correctOptionIndex);
+       
+       MedatoninDB.debugLog("Syllogism", "Option " + optionLabel + ": " + optionText + (isCorrect ? " (CORRECT)" : ""));
+       optionDAO.insertOption(questionId, optionLabel, optionText, isCorrect);
+     }
+   }
+ 
+   /**
+    * Generates distractor conclusions that are logically incorrect.
+    * 
+    * @param wordA First word variable
+    * @param wordB Second word variable  
+    * @param wordC Third word variable
+    * @param correctConclusion The correct conclusion to exclude
+    * @return List of distractor conclusions
+    */
+   private List<String> generateDistractorConclusions(String wordA, String wordB, String wordC, String correctConclusion) {
+     Set<String> distractorSet = new LinkedHashSet<>(); // Preserve order and avoid duplicates
+     
+     // Generate all possible conclusion patterns
+     String[] patterns = {
+diff --git a/src/main/java/ZahlenfolgenGenerator.java b/src/main/java/ZahlenfolgenGenerator.java
+index 36fac74328dd8486f143b77b41862b21915a194b..ee3315f52d3bda9b8bc2d895cd798ccc71a5634c 100644
+--- a/src/main/java/ZahlenfolgenGenerator.java
++++ b/src/main/java/ZahlenfolgenGenerator.java
+@@ -86,51 +86,51 @@ public class ZahlenfolgenGenerator {
+                 case 14:
+                     zahlenfolge = zahlenfolge15(zahl1, zahl2);
+                     break;
+             }
+ 
+             zahlenfolgenList.add(zahlenfolge);
+ 
+             // Insert the question and options into the database
+             insertQuestionAndOptions(zahlenfolge, nextQuestionNumber);
+             nextQuestionNumber++;
+ 
+         }
+     }
+ 
+     private static void insertQuestionAndOptions(Zahlenfolge zahlenfolge, int questionNumber) throws SQLException {
+         // Generate question text: first 7 numbers with "? ?"
+         StringBuilder questionTextBuilder = new StringBuilder();
+         for (int num : zahlenfolge.getSequence()) {
+             questionTextBuilder.append(num).append("    ");
+         }
+         questionTextBuilder.append("?    ?");
+ 
+         String questionText = questionTextBuilder.toString();
+ 
+         // Insert the question into the database
+-        int questionId = questionDAO.insertQuestion(category, subcategory, questionText, questionNumber, simulationId);
++        int questionId = questionDAO.insertQuestion(category, subcategory, questionText, questionNumber, simulationId, null);
+ 
+         // Generate options
+         int correctOptionIndex = r.nextInt(5); // Random index between 0 and 4
+ 
+         for (int j = 0; j < 5; j++) {
+             String optionLabel;
+             String optionText;
+             boolean isCorrect;
+ 
+             optionLabel = (j == 4) ? "E" : String.valueOf((char) ('A' + j));
+ 
+             if (j == correctOptionIndex) {
+                 if (j == 4) {
+                     optionText = "Keine Antwort ist richtig.";
+                     isCorrect = true;
+                 } else {
+                     optionText = zahlenfolge.getSolution()[0] + "/" + zahlenfolge.getSolution()[1];
+                     isCorrect = true;
+                 }
+             } else {
+                 if (j == 4) {
+                     optionText = "Keine Antwort ist richtig.";
+                     isCorrect = false;
+                 } else {
+                     int changeAntwort1 = randomRange(-30, 30, false);
+diff --git a/src/main/java/dao/PassageDAO.java b/src/main/java/dao/PassageDAO.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..062d9a7e2f5b540a9e392241d1b27be0271dd3db
+--- /dev/null
++++ b/src/main/java/dao/PassageDAO.java
+@@ -0,0 +1,86 @@
++package dao;
++
++import java.sql.*;
++
++/** DAO for CRUD operations on passages. */
++public class PassageDAO {
++    private final Connection conn;
++
++    public PassageDAO(Connection conn) {
++        this.conn = conn;
++    }
++
++    /**
++     * Inserts a passage and returns the generated id.
++     */
++    public int insert(int subcategoryId, String text, String source) throws SQLException {
++        String sql = "INSERT INTO passages (subcategory_id, text, source) VALUES (?, ?, ?)";
++        try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
++            ps.setInt(1, subcategoryId);
++            ps.setString(2, text);
++            if (source != null) {
++                ps.setString(3, source);
++            } else {
++                ps.setNull(3, Types.VARCHAR);
++            }
++            ps.executeUpdate();
++            try (ResultSet rs = ps.getGeneratedKeys()) {
 +                if (rs.next()) {
 +                    return rs.getInt(1);
 +                }
 +            }
 +        }
-+        throw new SQLException("Failed to insert question");
++        throw new SQLException("Failed to insert passage");
 +    }
 +
-+    private static class QuestionData {
-+        final String text;
-+        final List<String> options;
-+        final int correctIndex;
-+        QuestionData(String t, List<String> o, int i) { this.text = t; this.options = o; this.correctIndex = i; }
++    /**
++     * Updates an existing passage.
++     */
++    public void update(int id, String text, String source) throws SQLException {
++        String sql = "UPDATE passages SET text = ?, source = ? WHERE id = ?";
++        try (PreparedStatement ps = conn.prepareStatement(sql)) {
++            ps.setString(1, text);
++            if (source != null) {
++                ps.setString(2, source);
++            } else {
++                ps.setNull(2, Types.VARCHAR);
++            }
++            ps.setInt(3, id);
++            ps.executeUpdate();
++        }
 +    }
-+}
 +
-diff --git a/src/main/resources/textverstaendnis/templates.json b/src/main/resources/textverstaendnis/templates.json
-new file mode 100644
-index 0000000000000000000000000000000000000000..7f005446d9ffed7dca069325daaebff82256ae0a
---- /dev/null
-+++ b/src/main/resources/textverstaendnis/templates.json
-@@ -0,0 +1,17 @@
-+{
-+  "Ableitung": [
-+    "Welche Schlussfolgerung kann aus dem Satz '{SENTENCE}' gezogen werden?"
-+  ],
-+  "Widerspruch": [
-+    "Welche Aussage steht im Widerspruch zu '{SENTENCE}'?"
-+  ],
-+  "Nicht erwähnt": [
-+    "Welche der folgenden Aussagen wird im Text nicht erwähnt?"
-+  ],
-+  "Kernaussage": [
-+    "Was ist die Kernaussage des Textes?"
-+  ],
-+  "Ursache-Wirkung": [
-+    "Welche Ursache führt zu folgendem Ereignis: '{SENTENCE}'?"
-+  ]
++    /**
++     * Loads a passage by its identifier.
++     */
++    public Passage findById(int id) throws SQLException {
++        String sql = "SELECT id, subcategory_id, text, source FROM passages WHERE id = ?";
++        try (PreparedStatement ps = conn.prepareStatement(sql)) {
++            ps.setInt(1, id);
++            try (ResultSet rs = ps.executeQuery()) {
++                if (rs.next()) {
++                    return new Passage(
++                            rs.getInt("id"),
++                            rs.getInt("subcategory_id"),
++                            rs.getString("text"),
++                            rs.getString("source"));
++                }
++            }
++        }
++        return null;
++    }
++
++    /**
++     * Deletes a passage.
++     */
++    public void delete(int id) throws SQLException {
++        String sql = "DELETE FROM passages WHERE id = ?";
++        try (PreparedStatement ps = conn.prepareStatement(sql)) {
++            ps.setInt(1, id);
++            ps.executeUpdate();
++        }
++    }
++
++    /** Simple record representing a passage. */
++    public record Passage(int id, int subcategoryId, String text, String source) {}
 +}
+diff --git a/src/test/java/WortfluessigkeitGeneratorPropertyTest.java b/src/test/java/WortfluessigkeitGeneratorPropertyTest.java
+index f823dfdbe17fffac40025e72fb3985651174e1a9..bceb1b2425d5a134758880dd41d366af5bdd02d8 100644
+--- a/src/test/java/WortfluessigkeitGeneratorPropertyTest.java
++++ b/src/test/java/WortfluessigkeitGeneratorPropertyTest.java
+@@ -1,50 +1,50 @@
+ import static org.junit.jupiter.api.Assertions.assertEquals;
+ 
+ import java.sql.Connection;
+ import java.sql.DriverManager;
+ import java.sql.SQLException;
+ import java.sql.Statement;
+ import java.util.List;
+ 
+ import net.jqwik.api.ForAll;
+ import net.jqwik.api.Property;
+ import net.jqwik.api.Provide;
+ import net.jqwik.api.Arbitraries;
+ import net.jqwik.api.Arbitrary;
+ 
+ public class WortfluessigkeitGeneratorPropertyTest {
+ 
+     private Connection createDb() throws SQLException {
+         Connection c = DriverManager.getConnection("jdbc:h2:mem:test_wf_property;DB_CLOSE_DELAY=-1");
+         try (Statement st = c.createStatement()) {
+             st.execute("DROP ALL OBJECTS");
+             st.execute("CREATE TABLE categories(id INT PRIMARY KEY AUTO_INCREMENT, name VARCHAR(255))");
+             st.execute(
+                     "CREATE TABLE subcategories(id INT PRIMARY KEY AUTO_INCREMENT, category_id INT, name VARCHAR(255), order_index INT)");
+             st.execute(
+-                    "CREATE TABLE questions(id INT PRIMARY KEY AUTO_INCREMENT, subcategory_id INT, question_number INT, text VARCHAR(255), format VARCHAR(10), test_simulation_id INT, difficulty VARCHAR(10), shape_data VARCHAR(255), shape_type VARCHAR(255), dissected_pieces_data VARCHAR(255), assembled_pieces_data VARCHAR(255))");
++                    "CREATE TABLE questions(id INT PRIMARY KEY AUTO_INCREMENT, subcategory_id INT, question_number INT, text VARCHAR(255), format VARCHAR(10), test_simulation_id INT, passage_id INT, difficulty VARCHAR(10), shape_data VARCHAR(255), shape_type VARCHAR(255), dissected_pieces_data VARCHAR(255), assembled_pieces_data VARCHAR(255))");
+             st.execute(
+                     "CREATE TABLE options(id INT PRIMARY KEY AUTO_INCREMENT, question_id INT, label VARCHAR(5), text VARCHAR(255), is_correct BOOLEAN, shape_data VARCHAR(255))");
+             st.execute("INSERT INTO categories(id,name) VALUES(1,'KFF')");
+             st.execute("INSERT INTO subcategories(id,category_id,name,order_index) VALUES(1,1,'Wortflüssigkeit',1)");
+         }
+         return c;
+     }
+ 
+     @Property
+     void oneCorrectOptionPerQuestion(@ForAll("ids") int simId) throws Exception {
+         try (Connection conn = createDb()) {
+             WortfluessigkeitGenerator gen = new WortfluessigkeitGenerator(conn, "KFF", "Wortflüssigkeit", simId);
+             gen.execute(1);
+             QuestionDAO qDao = new QuestionDAO(conn);
+             int subId = qDao.getSubcategoryId("KFF", "Wortflüssigkeit");
+             List<QuestionDAO> qs = qDao.getQuestionsBySubcategoryAndSimulation(subId, simId);
+             assertEquals(1, qs.size());
+             OptionDAO oDao = new OptionDAO(conn);
+             List<OptionDAO> opts = oDao.getOptionsByQuestionId(qs.get(0).getId());
+             long count = opts.stream().filter(OptionDAO::isCorrect).count();
+             assertEquals(1, count);
+         }
+     }
+ 
+     @Provide
+diff --git a/src/test/java/WortfluessigkeitGeneratorTest.java b/src/test/java/WortfluessigkeitGeneratorTest.java
+index abe98250c88de93ba801e46e00daef266adb8cf1..e6668228b7299440c3a6fa10dc2f0594338bdc48 100644
+--- a/src/test/java/WortfluessigkeitGeneratorTest.java
++++ b/src/test/java/WortfluessigkeitGeneratorTest.java
+@@ -1,49 +1,49 @@
+ import static org.junit.jupiter.api.Assertions.*;
+ 
+ import java.sql.Connection;
+ import java.sql.DriverManager;
+ import java.sql.SQLException;
+ import java.sql.Statement;
+ 
+ import org.junit.jupiter.api.AfterEach;
+ import org.junit.jupiter.api.BeforeEach;
+ import org.junit.jupiter.api.Test;
+ 
+ /** Unit tests for the WortfluessigkeitGenerator. */
+ public class WortfluessigkeitGeneratorTest {
+ 
+     private Connection conn;
+ 
+     @BeforeEach
+     void setUp() throws SQLException {
+         conn = DriverManager.getConnection("jdbc:h2:mem:test_wf_unit;DB_CLOSE_DELAY=-1");
+         try (Statement st = conn.createStatement()) {
+             st.execute("DROP ALL OBJECTS");
+             st.execute("CREATE TABLE categories(id INT PRIMARY KEY AUTO_INCREMENT, name VARCHAR(255))");
+             st.execute("CREATE TABLE subcategories(id INT PRIMARY KEY AUTO_INCREMENT, category_id INT, name VARCHAR(255), order_index INT)");
+-            st.execute("CREATE TABLE questions(id INT PRIMARY KEY AUTO_INCREMENT, subcategory_id INT, question_number INT, text VARCHAR(255), format VARCHAR(10), test_simulation_id INT, difficulty VARCHAR(10), shape_data VARCHAR(255), shape_type VARCHAR(255), dissected_pieces_data VARCHAR(255), assembled_pieces_data VARCHAR(255))");
++            st.execute("CREATE TABLE questions(id INT PRIMARY KEY AUTO_INCREMENT, subcategory_id INT, question_number INT, text VARCHAR(255), format VARCHAR(10), test_simulation_id INT, passage_id INT, difficulty VARCHAR(10), shape_data VARCHAR(255), shape_type VARCHAR(255), dissected_pieces_data VARCHAR(255), assembled_pieces_data VARCHAR(255))");
+             st.execute("CREATE TABLE options(id INT PRIMARY KEY AUTO_INCREMENT, question_id INT, label VARCHAR(5), text VARCHAR(255), is_correct BOOLEAN, shape_data VARCHAR(255))");
+             st.execute("INSERT INTO categories(id,name) VALUES(1,'KFF')");
+             st.execute("INSERT INTO subcategories(id,category_id,name,order_index) VALUES(1,1,'Wortflüssigkeit',1)");
+         }
+     }
+ 
+     @AfterEach
+     void tearDown() throws SQLException {
+         conn.close();
+     }
+ 
+     @Test
+     void scrambleNeverReturnsOriginal() {
+         WortfluessigkeitGenerator gen = new WortfluessigkeitGenerator(null, "KFF", "Wortflüssigkeit", 1);
+         String word = "ABCDEFG";
+         for (int i = 0; i < 10; i++) {
+             String scrambled = gen.scramble(word);
+             assertNotEquals(word, scrambled);
+         }
+     }
+ 
+     @Test
+     void executeCreatesQuestionsAndOptions() throws Exception {
+         WortfluessigkeitGenerator gen = new WortfluessigkeitGenerator(conn, "KFF", "Wortflüssigkeit", 1);
+         gen.execute(15);
  
 EOF
 )

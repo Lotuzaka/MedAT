@@ -64,6 +64,7 @@ CREATE TABLE `questions` (
   `text` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `format` varchar(10) NOT NULL,
   `test_simulation_id` int DEFAULT NULL,
+  `passage_id` int DEFAULT NULL,
   `shape_data` text,
   `shape_type` varchar(50) DEFAULT NULL,
   `dissected_pieces_data` text,
@@ -71,8 +72,10 @@ CREATE TABLE `questions` (
   `difficulty` varchar(10) DEFAULT 'MEDIUM',
   PRIMARY KEY (`id`),
   KEY `idx_test_simulation_id` (`test_simulation_id`),
+  KEY `idx_passage_id` (`passage_id`),
   KEY `questions_ibfk_1` (`subcategory_id`),
   CONSTRAINT `fk_simulation` FOREIGN KEY (`test_simulation_id`) REFERENCES `test_simulations` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_passage` FOREIGN KEY (`passage_id`) REFERENCES `passages` (`id`) ON DELETE SET NULL,
   CONSTRAINT `questions_ibfk_1` FOREIGN KEY (`subcategory_id`) REFERENCES `subcategories` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=1793 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -93,6 +96,24 @@ CREATE TABLE `subcategories` (
   KEY `category_id` (`category_id`),
   CONSTRAINT `subcategories_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=46 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `passages`
+--
+
+DROP TABLE IF EXISTS `passages`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `passages` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `subcategory_id` int NOT NULL,
+  `text` text NOT NULL,
+  `source` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_passages_subcategory_id` (`subcategory_id`),
+  CONSTRAINT `passages_ibfk_1` FOREIGN KEY (`subcategory_id`) REFERENCES `subcategories` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --

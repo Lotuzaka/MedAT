@@ -108,7 +108,7 @@ public class ZahlenfolgenGenerator {
         String questionText = questionTextBuilder.toString();
 
         // Insert the question into the database
-        int questionId = questionDAO.insertQuestion(category, subcategory, questionText, questionNumber, simulationId);
+        int questionId = questionDAO.insertQuestion(category, subcategory, questionText, questionNumber, simulationId, null);
 
         // Generate options
         int correctOptionIndex = r.nextInt(5); // Random index between 0 and 4

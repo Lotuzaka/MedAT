@@ -244,14 +244,14 @@ public class QuestionDAO {
 
     // Insert a new Question
     public int insertQuestion(String category, String subcategory, String questionText, int questionNumber,
-            Integer simulationId) throws SQLException {
+            Integer simulationId, Integer passageId) throws SQLException {
         // First, let's get the subcategory_id
         int subcategoryId = getSubcategoryId(category, subcategory);
         if (subcategoryId == -1) {
             throw new SQLException("Subcategory not found for category: " + category + ", subcategory: " + subcategory);
         }
 
-        String sql = "INSERT INTO questions (subcategory_id, question_number, text, format, test_simulation_id) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO questions (subcategory_id, question_number, text, format, test_simulation_id, passage_id) VALUES (?, ?, ?, ?, ?, ?)";
         MedatoninDB.debugLog("QuestionDAO", MedatoninDB.LogLevel.DEBUG, "insertQuestion", "Executing SQL: " + sql);
         try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setInt(1, subcategoryId);
@@ -262,6 +262,11 @@ public class QuestionDAO {
                 stmt.setInt(5, simulationId);
             } else {
                 stmt.setNull(5, java.sql.Types.INTEGER);
+            }
+            if (passageId != null) {
+                stmt.setInt(6, passageId);
+            } else {
+                stmt.setNull(6, java.sql.Types.INTEGER);
             }
             int affectedRows = stmt.executeUpdate();
             if (affectedRows == 0) {
