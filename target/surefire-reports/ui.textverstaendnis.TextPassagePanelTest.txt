@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: ui.textverstaendnis.TextPassagePanelTest
 -------------------------------------------------------------------------------
-Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.79 s - in ui.textverstaendnis.TextPassagePanelTest
+Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.574 s - in ui.textverstaendnis.TextPassagePanelTest

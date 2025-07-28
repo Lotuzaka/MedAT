@@ -1,70 +1,60 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
 diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
-index 259e7eb74c1d6d445c121e4d7ec71f398f643d1c..4c55f74e29626c4a5f97e1bf794305c670739f05 100644
+index 4c55f74e29626c4a5f97e1bf794305c670739f05..338859ed8c6c3a1b267344b84ba4f3f0da4727e0 100644
 --- a/src/main/java/MedatoninDB.java
 +++ b/src/main/java/MedatoninDB.java
-@@ -722,50 +722,58 @@ public class MedatoninDB extends JFrame {
-                         } catch (SQLException ex) {
-                             debugLog("Simulation", LogLevel.ERROR, "Error validating simulation: " + ex.getMessage());
-                             selectedSimulationId = null;
-                         }
-                     } else {
-                         selectedSimulationId = null;
-                         debugLog("Simulation", "No simulation ID found for: " + selectedItem);
-                     }
-                 } else if ("+".equals(selectedItem)) {
-                     // Prompt for new simulation name
-                     String newSimName = JOptionPane.showInputDialog("Enter new simulation name:");
-                     if (newSimName != null && !newSimName.isEmpty()) {
-                         try {
-                             testSimulationDAO newSimulation = simulationDAO.createSimulation(newSimName);
-                             loadSimulationOptions(); // Refresh the simulation list
-                             simulationComboBox.setSelectedItem(newSimulation.getName());
-                             selectedSimulationId = newSimulation.getId();
-                         } catch (SQLException ex) {
-                             ex.printStackTrace();
-                             showToast("Error creating new simulation", NotificationType.ERROR);
-                         }
-                     }
-                 }
-                 if (selectedSimulationId != null) {
-                     loadQuestionsFromDatabase(currentCategory, categoryModels.get(currentCategory), selectedSimulationId);
-+                    if (currentTextPassagePanel != null) {
-+                        try {
-+                            currentTextPassagePanel.getClass().getMethod("setSimulationId", Integer.class)
-+                                    .invoke(currentTextPassagePanel, selectedSimulationId);
-+                        } catch (Exception ex) {
-+                            debugLog("UI", LogLevel.WARN, "Could not update TextPassagePanel simulation: " + ex.getMessage());
-+                        }
-+                    }
-                 }
-             }
-         });
+@@ -1,49 +1,50 @@
+ import dao.AllergyCardDAO;
+ import dao.PassageDAO;
+ import model.AllergyCardData;
+ import org.apache.poi.xwpf.usermodel.*;
+ import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTSectPr;
+ import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPageMar;
+ import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPPr;
+ import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTSpacing;
+ import org.openxmlformats.schemas.wordprocessingml.x2006.main.STLineSpacingRule;
+ import org.locationtech.jts.geom.Geometry;
+ import org.locationtech.jts.geom.Envelope;
+ // import org.locationtech.jts.io.ParseException;
+ import org.locationtech.jts.io.WKTReader;
+ import org.locationtech.jts.io.WKTWriter;
+ import org.locationtech.jts.awt.ShapeWriter;
+ import com.zaxxer.hikari.HikariConfig;
+ import com.zaxxer.hikari.HikariDataSource;
+ import javax.swing.*;
+ import javax.swing.event.*;
+ import javax.swing.plaf.basic.*;
+ import javax.swing.table.*;
+ import javax.swing.Timer;
+ import java.awt.*;
+ import java.awt.event.*;
++import java.util.function.Consumer;
+ import java.awt.geom.AffineTransform;
+ import java.awt.image.BufferedImage;
+ import javax.imageio.ImageIO;
+ import java.io.ByteArrayInputStream;
+ import java.io.ByteArrayOutputStream;
+ import java.io.File;
+ import java.io.FileInputStream;
+ import java.io.IOException;
+ import java.io.InputStream;
+ import java.net.URL;
+ import java.sql.*;
+ import java.util.*;
+ import java.util.List;
+ import java.math.BigInteger;
  
-         // Create the top panel with a horizontal BoxLayout for consistent header layout
-         JPanel topPanel = new JPanel();
-         topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.X_AXIS));
-         topPanel.setBackground(CLR_CARD);
-         topPanel.setBorder(BorderFactory.createCompoundBorder(
-             BorderFactory.createMatteBorder(0, 0, 1, 0, CLR_BORDER),
-             BorderFactory.createEmptyBorder(PANEL_PADDING, PANEL_PADDING * 2, PANEL_PADDING, PANEL_PADDING * 2)
-         ));
+ // import java.io.BufferedWriter; // No longer needed
+ // import java.io.OutputStreamWriter; // No longer needed
  
-         userTextField.setMinimumSize(new Dimension(80, 32));
-         userTextField.setPreferredSize(new Dimension(120, 32));
-         simulationComboBox.setMinimumSize(new Dimension(120, 32));
-         simulationComboBox.setPreferredSize(new Dimension(160, 32));
-         logoutButton.setMinimumSize(new Dimension(80, 32));
-         logoutButton.setPreferredSize(new Dimension(120, 32));
+ public class MedatoninDB extends JFrame {
  
-         // Solution toggle button setup (created below)
-         JButton solutionToggleButton = createModernButton("Solution");
-         solutionToggleButton.setBackground(new Color(52, 199, 89)); // Modern green
-         solutionToggleButton.setForeground(Color.WHITE);
-         solutionToggleButton.setFont(FONT_BASE);
-@@ -2438,52 +2446,54 @@ public class MedatoninDB extends JFrame {
-                             debugLog("UI", "Saved " + cardData.size() + " allergy cards to database for simulation " + selectedSimulationId);
-                         } else {
+     /**
+      * Ensures the JVM is running with UTF-8 as the default encoding.
+      * Logs a warning if not.
+      */
+     static {
+@@ -2448,64 +2449,71 @@ public class MedatoninDB extends JFrame {
                              debugLog("UI", LogLevel.WARN, "No simulation selected - allergy card data not saved to database");
                          }
                      } catch (Exception ex) {
@@ -88,12 +78,15 @@ index 259e7eb74c1d6d445c121e4d7ec71f398f643d1c..4c55f74e29626c4a5f97e1bf794305c6
                  Class<?> panelClass = Class.forName("ui.textverstaendnis.TextPassagePanel");
                  if (currentTextPassagePanel == null) {
                      int subId = getSubcategoryId(currentCategory, currentSubcategory);
--                    currentTextPassagePanel = (JPanel) panelClass.getDeclaredConstructor(PassageDAO.class, int.class)
--                            .newInstance(new PassageDAO(conn), subId);
-+                    currentTextPassagePanel = (JPanel) panelClass.getDeclaredConstructor(PassageDAO.class, int.class, Integer.class)
-+                            .newInstance(new PassageDAO(conn), subId, selectedSimulationId);
-+                } else {
-+                    panelClass.getMethod("setSimulationId", Integer.class).invoke(currentTextPassagePanel, selectedSimulationId);
+                     currentTextPassagePanel = (JPanel) panelClass.getDeclaredConstructor(PassageDAO.class, int.class, Integer.class)
+                             .newInstance(new PassageDAO(conn), subId, selectedSimulationId);
++                    // Register callback for passage switching
++                    panelClass.getMethod("setOnIndexChange", java.util.function.Consumer.class)
++                            .invoke(currentTextPassagePanel, (Consumer<Integer>) this::loadQuestionsForPassageIndex);
+                 } else {
+                     panelClass.getMethod("setSimulationId", Integer.class).invoke(currentTextPassagePanel, selectedSimulationId);
++                    panelClass.getMethod("setOnIndexChange", java.util.function.Consumer.class)
++                            .invoke(currentTextPassagePanel, (Consumer<Integer>) this::loadQuestionsForPassageIndex);
                  }
                  JScrollPane passageScroll = new JScrollPane(currentTextPassagePanel);
                  passageScroll.setPreferredSize(new Dimension(500, 380));
@@ -104,8 +97,11 @@ index 259e7eb74c1d6d445c121e4d7ec71f398f643d1c..4c55f74e29626c4a5f97e1bf794305c6
  
                  subcategoryContentPanel.add(splitPane, BorderLayout.CENTER);
  
-                 // Load passage from DB each time we switch
+-                // Load passage from DB each time we switch
++                // Load passage and corresponding questions from DB each time we switch
                  currentTextPassagePanel.getClass().getMethod("loadPassage").invoke(currentTextPassagePanel);
++                int idx = (Integer) panelClass.getMethod("getCurrentIndex").invoke(currentTextPassagePanel);
++                loadQuestionsForPassageIndex(idx);
              } catch (Exception e) {
                  debugLog("UI", LogLevel.ERROR, "Failed to load TextPassagePanel: " + e.getMessage());
                  subcategoryContentPanel.add(subScrollPane, BorderLayout.CENTER);
@@ -119,237 +115,205 @@ index 259e7eb74c1d6d445c121e4d7ec71f398f643d1c..4c55f74e29626c4a5f97e1bf794305c6
          JButton addQuestionButton = createModernButton("Add Question");
          addQuestionButton.setBackground(new Color(52, 199, 89)); // Modern green background
          addQuestionButton.setForeground(Color.WHITE);
-diff --git a/src/main/java/dao/PassageDAO.java b/src/main/java/dao/PassageDAO.java
-index 5433deb647c46d8f0d7d16b32342939397fd6180..e32cfedcce19f22bf4acbb381f3e2275cb973c66 100644
---- a/src/main/java/dao/PassageDAO.java
-+++ b/src/main/java/dao/PassageDAO.java
-@@ -1,197 +1,201 @@
- package dao;
+         addQuestionButton.setFont(new Font("SansSerif", Font.BOLD, 14));
+         addQuestionButton.setFocusPainted(false);
+         addQuestionButton.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // Button padding
+         addQuestionButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+         // Mark as navigation button for proper hover effects
+         addQuestionButton.putClientProperty("isNavigationButton", true);
  
- import java.sql.*;
- import java.util.ArrayList;
- import java.util.List;
+         // Adjust button width
+         addQuestionButton.setPreferredSize(new Dimension(150, addQuestionButton.getPreferredSize().height));
  
- /** DAO for CRUD operations on passages. */
- public class PassageDAO {
-     private final Connection conn;
+         // Create buttons according to category and subcategory
+         // Add "Add Question" button for ALL categories and subcategories
+@@ -5593,50 +5601,87 @@ public class MedatoninDB extends JFrame {
+                     questions = questionDAO.getQuestionsBySubcategoryAndSimulation(subcategoryId, simulationId);
+                     debugLog("DB", "Number of questions loaded: " + questions.size());
  
-     public PassageDAO(Connection conn) {
-         this.conn = conn;
-     }
- 
-     /**
-      * Inserts a passage and returns the generated id.
-      */
--    public int insert(int subcategoryId, int testSimulationId, String text, String source) throws SQLException {
--        String sql = "INSERT INTO passages (subcategory_id, test_simulation_id, text, source) VALUES (?, ?, ?, ?)";
-+    public int insert(int subcategoryId, int testSimulationId, int passageIndex, String text, String source) throws SQLException {
-+        String sql = "INSERT INTO passages (subcategory_id, test_simulation_id, passage_index, text, source) VALUES (?, ?, ?, ?, ?)";
-         try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-             ps.setInt(1, subcategoryId);
-             ps.setInt(2, testSimulationId);
--            ps.setString(3, text);
-+            ps.setInt(3, passageIndex);
-+            ps.setString(4, text);
-             if (source != null) {
--                ps.setString(4, source);
-+                ps.setString(5, source);
-             } else {
--                ps.setNull(4, Types.VARCHAR);
-+                ps.setNull(5, Types.VARCHAR);
-             }
-             ps.executeUpdate();
-             try (ResultSet rs = ps.getGeneratedKeys()) {
-                 if (rs.next()) {
-                     return rs.getInt(1);
+                     model.setRowCount(0); // Clear existing rows
+                     for (QuestionDAO question : questions) {
+                         if ("Figuren".equals(subcategoryName)) {
+                             // Handle "Figuren" subcategory differently
+                             loadFigurenQuestionIntoModel(model, question, optionDAO);
+                         } else {
+                             // Handle other subcategories
+                             loadStandardQuestionIntoModel(model, question, optionDAO);
+                         }
+                     }
+                     debugLog("DB", "Added " + questions.size() + " questions with options to the model for "
+                             + subcategoryName);
+                 } else {
+                     debugLog("DB", "Failed to get subcategory ID for: " + subcategoryName);
                  }
              }
+         } catch (SQLException e) {
+             debugLog("DB", "Error loading questions and options: " + e.getMessage());
+             e.printStackTrace();
          }
-         throw new SQLException("Failed to insert passage");
-     }
- 
-     /**
-      * Inserts a passage without test_simulation_id (for backward compatibility)
-      */
-     public int insert(int subcategoryId, String text, String source) throws SQLException {
--        String sql = "INSERT INTO passages (subcategory_id, text, source) VALUES (?, ?, ?)";
--        try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
--            ps.setInt(1, subcategoryId);
--            ps.setString(2, text);
--            if (source != null) {
--                ps.setString(3, source);
--            } else {
--                ps.setNull(3, Types.VARCHAR);
--            }
--            ps.executeUpdate();
--            try (ResultSet rs = ps.getGeneratedKeys()) {
--                if (rs.next()) {
--                    return rs.getInt(1);
--                }
--            }
--        }
--        throw new SQLException("Failed to insert passage");
-+        return insert(subcategoryId, 0, 1, text, source);
-     }
- 
-     /**
-      * Updates an existing passage including test_simulation_id.
-      */
--    public void update(int id, int testSimulationId, String text, String source) throws SQLException {
--        String sql = "UPDATE passages SET test_simulation_id = ?, text = ?, source = ? WHERE id = ?";
-+    public void update(int id, int testSimulationId, int passageIndex, String text, String source) throws SQLException {
-+        String sql = "UPDATE passages SET test_simulation_id = ?, passage_index = ?, text = ?, source = ? WHERE id = ?";
-         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-             ps.setInt(1, testSimulationId);
--            ps.setString(2, text);
-+            ps.setInt(2, passageIndex);
-+            ps.setString(3, text);
-             if (source != null) {
--                ps.setString(3, source);
-+                ps.setString(4, source);
-             } else {
--                ps.setNull(3, Types.VARCHAR);
-+                ps.setNull(4, Types.VARCHAR);
-             }
--            ps.setInt(4, id);
-+            ps.setInt(5, id);
-             ps.executeUpdate();
-         }
-     }
- 
-     /**
-      * Updates an existing passage (backward compatibility).
-      */
-     public void update(int id, String text, String source) throws SQLException {
--        String sql = "UPDATE passages SET text = ?, source = ? WHERE id = ?";
--        try (PreparedStatement ps = conn.prepareStatement(sql)) {
--            ps.setString(1, text);
--            if (source != null) {
--                ps.setString(2, source);
--            } else {
--                ps.setNull(2, Types.VARCHAR);
--            }
--            ps.setInt(3, id);
--            ps.executeUpdate();
--        }
-+        update(id, 0, 1, text, source);
-     }
- 
-     /**
-      * Loads a passage by its identifier.
-      */
-     public Passage findById(int id) throws SQLException {
--        String sql = "SELECT id, subcategory_id, test_simulation_id, text, source FROM passages WHERE id = ?";
-+        String sql = "SELECT id, subcategory_id, test_simulation_id, passage_index, text, source FROM passages WHERE id = ?";
-         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-             ps.setInt(1, id);
-             try (ResultSet rs = ps.executeQuery()) {
-                 if (rs.next()) {
-                     return new Passage(
-                             rs.getInt("id"),
-                             rs.getInt("subcategory_id"),
-                             rs.getObject("test_simulation_id", Integer.class), // Can be null
-+                            rs.getInt("passage_index"),
-                             rs.getString("text"),
-                             rs.getString("source"));
-                 }
-             }
-         }
-         return null;
-     }
- 
-     /**
-      * Loads the passage for a given subcategory. Returns {@code null} if none exists.
-      */
-     public Passage findBySubcategoryId(int subcategoryId) throws SQLException {
--        String sql = "SELECT id, subcategory_id, test_simulation_id, text, source FROM passages WHERE subcategory_id = ?";
-+        String sql = "SELECT id, subcategory_id, test_simulation_id, passage_index, text, source FROM passages WHERE subcategory_id = ? AND passage_index = 1";
-         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-             ps.setInt(1, subcategoryId);
-             try (ResultSet rs = ps.executeQuery()) {
-                 if (rs.next()) {
-                     return new Passage(
-                             rs.getInt("id"),
-                             rs.getInt("subcategory_id"),
-                             rs.getObject("test_simulation_id", Integer.class), // Can be null
-+                            rs.getInt("passage_index"),
-                             rs.getString("text"),
-                             rs.getString("source"));
-                 }
-             }
-         }
-         return null;
-     }
- 
-     /**
-      * Deletes a passage.
-      */
-     public void delete(int id) throws SQLException {
-         String sql = "DELETE FROM passages WHERE id = ?";
-         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-             ps.setInt(1, id);
-             ps.executeUpdate();
-         }
-     }
- 
-     /**
-      * Finds all passages for a specific test simulation.
-      */
-     public List<Passage> findByTestSimulation(int testSimulationId) throws SQLException {
--        String sql = "SELECT id, subcategory_id, test_simulation_id, text, source FROM passages WHERE test_simulation_id = ?";
-+        String sql = "SELECT id, subcategory_id, test_simulation_id, passage_index, text, source FROM passages WHERE test_simulation_id = ? ORDER BY passage_index";
-         List<Passage> passages = new ArrayList<>();
-         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-             ps.setInt(1, testSimulationId);
-             try (ResultSet rs = ps.executeQuery()) {
-                 while (rs.next()) {
-                     passages.add(new Passage(
-                             rs.getInt("id"),
-                             rs.getInt("subcategory_id"),
-                             rs.getObject("test_simulation_id", Integer.class),
-+                            rs.getInt("passage_index"),
-                             rs.getString("text"),
-                             rs.getString("source")));
-                 }
-             }
-         }
-         return passages;
-     }
- 
-     /**
-      * Finds passages for a specific subcategory and test simulation.
-      */
-     public List<Passage> findBySubcategoryAndSimulation(int subcategoryId, int testSimulationId) throws SQLException {
--        String sql = "SELECT id, subcategory_id, test_simulation_id, text, source FROM passages WHERE subcategory_id = ? AND test_simulation_id = ?";
-+        String sql = "SELECT id, subcategory_id, test_simulation_id, passage_index, text, source FROM passages WHERE subcategory_id = ? AND test_simulation_id = ? ORDER BY passage_index";
-         List<Passage> passages = new ArrayList<>();
-         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-             ps.setInt(1, subcategoryId);
-             ps.setInt(2, testSimulationId);
-             try (ResultSet rs = ps.executeQuery()) {
-                 while (rs.next()) {
-                     passages.add(new Passage(
-                             rs.getInt("id"),
-                             rs.getInt("subcategory_id"),
-                             rs.getObject("test_simulation_id", Integer.class),
-+                            rs.getInt("passage_index"),
-                             rs.getString("text"),
-                             rs.getString("source")));
-                 }
-             }
-         }
-         return passages;
      }
  
 +    /**
-+     * Finds a single passage by subcategory, simulation and index.
++     * Load questions for the given passage index of the current Textverständnis subcategory.
 +     */
-+    public Passage findBySubcategorySimulationAndIndex(int subcategoryId, int simulationId, int passageIndex) throws SQLException {
-+        String sql = "SELECT id, subcategory_id, test_simulation_id, passage_index, text, source FROM passages WHERE subcategory_id = ? AND test_simulation_id = ? AND passage_index = ?";
++    private void loadQuestionsForPassageIndex(int passageIndex) {
++        try {
++            int subId = getSubcategoryId(currentCategory, currentSubcategory);
++            PassageDAO passageDAO = new PassageDAO(conn);
++            PassageDAO.Passage passage;
++            if (selectedSimulationId != null) {
++                passage = passageDAO.findBySubcategorySimulationAndIndex(subId, selectedSimulationId, passageIndex);
++            } else {
++                passage = passageDAO.findBySubcategoryAndIndex(subId, passageIndex);
++            }
++
++            DefaultTableModel model = categoryModels.get(currentCategory).get(currentSubcategory);
++            model.setRowCount(0);
++            if (passage != null) {
++                QuestionDAO qDao = new QuestionDAO(conn);
++                OptionDAO oDao = new OptionDAO(conn);
++                List<QuestionDAO> qs = qDao.getQuestionsByPassage(passage.id());
++                for (QuestionDAO q : qs) {
++                    if ("Figuren".equals(currentSubcategory)) {
++                        loadFigurenQuestionIntoModel(model, q, oDao);
++                    } else {
++                        loadStandardQuestionIntoModel(model, q, oDao);
++                    }
++                }
++            }
++            if (questionTable != null) {
++                questionTable.revalidate();
++                questionTable.repaint();
++            }
++        } catch (Exception ex) {
++            debugLog("DB", "Failed to load questions for passage index " + passageIndex + ": " + ex.getMessage());
++        }
++    }
++
+     private void loadStandardQuestionIntoModel(DefaultTableModel model, QuestionDAO question, OptionDAO optionDAO) {
+         // Zahlenfolgen: Solution column must always show the correct two numbers from the correct OptionDAO
+         String solutionText = question.getShapeData();
+         if ("Zahlenfolgen".equals(currentSubcategory)) {
+             try {
+                 List<OptionDAO> options = optionDAO.getOptionsForQuestion(question.getId());
+                 boolean found = false;
+                 for (OptionDAO option : options) {
+                     if (option.isCorrect() && !"E".equals(option.getLabel())) {
+                         solutionText = option.getText();
+                         found = true;
+                         break;
+                     }
+                 }
+                 // If no correct option except E, fallback to first option with '/' in text
+                 if (!found) {
+                     for (OptionDAO option : options) {
+                         if (option.getText() != null && option.getText().contains("/")) {
+                             solutionText = option.getText();
+                             break;
+                         }
+                     }
+                 }
+             } catch (SQLException e) {
+                 debugLog("DB", "Error loading Zahlenfolgen solution: " + e.getMessage());
+diff --git a/src/main/java/QuestionDAO.java b/src/main/java/QuestionDAO.java
+index 5aec95d2133c24c40b591267373a42999f06e4ed..7ea0dde2c1199d087b02e15f52eef3f00f11f913 100644
+--- a/src/main/java/QuestionDAO.java
++++ b/src/main/java/QuestionDAO.java
+@@ -515,26 +515,56 @@ public class QuestionDAO {
+                         question.setQuestionNumber(rs.getInt("row_num")); // Use row_num for Haupt-Datenbank
+                     } else {
+                         question.setQuestionNumber(rs.getInt("question_number")); // Use question_number for simulations
+                     }
+                     question.setShapeData(rs.getString("shape_data"));
+                     question.setShapeType(rs.getString("shape_type"));
+                     question.setDissectedPiecesData(rs.getString("dissected_pieces_data"));
+                     question.setAssembledPiecesData(rs.getString("assembled_pieces_data"));
+                     questions.add(question);
+                 }
+             }
+         }
+         return questions;
+     }
+ 
+     // Insert new question for a specific simulation
+     public void addQuestionForSimulation(String questionText, int simulationId, int subcategoryId) throws SQLException {
+         String query = "INSERT INTO questions (question_text, test_simulation_id, subcategory_id) VALUES (?, ?, ?)";
+         PreparedStatement stmt = conn.prepareStatement(query);
+         stmt.setString(1, questionText);
+         stmt.setInt(2, simulationId);
+         stmt.setInt(3, subcategoryId);
+         stmt.executeUpdate();
+     }
+ 
++    /**
++     * Retrieve all questions linked to a specific passage.
++     */
++    public List<QuestionDAO> getQuestionsByPassage(int passageId) throws SQLException {
++        List<QuestionDAO> questions = new ArrayList<>();
++        String sql = "SELECT id, subcategory_id, question_number, text, format, test_simulation_id, " +
++                "difficulty, shape_data, shape_type, dissected_pieces_data, assembled_pieces_data " +
++                "FROM questions WHERE passage_id = ? ORDER BY question_number";
++        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
++            stmt.setInt(1, passageId);
++            try (ResultSet rs = stmt.executeQuery()) {
++                while (rs.next()) {
++                    QuestionDAO q = new QuestionDAO(conn);
++                    q.setId(rs.getInt("id"));
++                    q.setSubcategoryId(rs.getInt("subcategory_id"));
++                    q.setQuestionNumber(rs.getInt("question_number"));
++                    q.setText(rs.getString("text"));
++                    q.setFormat(rs.getString("format"));
++                    q.setDifficulty(rs.getString("difficulty"));
++                    q.setShapeData(rs.getString("shape_data"));
++                    q.setShapeType(rs.getString("shape_type"));
++                    q.setDissectedPiecesData(rs.getString("dissected_pieces_data"));
++                    q.setAssembledPiecesData(rs.getString("assembled_pieces_data"));
++                    questions.add(q);
++                }
++            }
++        }
++        return questions;
++    }
++
+ }
+diff --git a/src/main/java/dao/PassageDAO.java b/src/main/java/dao/PassageDAO.java
+index e32cfedcce19f22bf4acbb381f3e2275cb973c66..9ff2e9b30bb0d46fbc6a12ffb12b66c810443502 100644
+--- a/src/main/java/dao/PassageDAO.java
++++ b/src/main/java/dao/PassageDAO.java
+@@ -174,28 +174,51 @@ public class PassageDAO {
+ 
+     /**
+      * Finds a single passage by subcategory, simulation and index.
+      */
+     public Passage findBySubcategorySimulationAndIndex(int subcategoryId, int simulationId, int passageIndex) throws SQLException {
+         String sql = "SELECT id, subcategory_id, test_simulation_id, passage_index, text, source FROM passages WHERE subcategory_id = ? AND test_simulation_id = ? AND passage_index = ?";
+         try (PreparedStatement ps = conn.prepareStatement(sql)) {
+             ps.setInt(1, subcategoryId);
+             ps.setInt(2, simulationId);
+             ps.setInt(3, passageIndex);
+             try (ResultSet rs = ps.executeQuery()) {
+                 if (rs.next()) {
+                     return new Passage(
+                             rs.getInt("id"),
+                             rs.getInt("subcategory_id"),
+                             rs.getObject("test_simulation_id", Integer.class),
+                             rs.getInt("passage_index"),
+                             rs.getString("text"),
+                             rs.getString("source"));
+                 }
+             }
+         }
+         return null;
+     }
+ 
++    /**
++     * Finds a single passage by subcategory and index (main question pool).
++     */
++    public Passage findBySubcategoryAndIndex(int subcategoryId, int passageIndex) throws SQLException {
++        String sql = "SELECT id, subcategory_id, test_simulation_id, passage_index, text, source FROM passages WHERE subcategory_id = ? AND test_simulation_id IS NULL AND passage_index = ?";
 +        try (PreparedStatement ps = conn.prepareStatement(sql)) {
 +            ps.setInt(1, subcategoryId);
-+            ps.setInt(2, simulationId);
-+            ps.setInt(3, passageIndex);
++            ps.setInt(2, passageIndex);
 +            try (ResultSet rs = ps.executeQuery()) {
 +                if (rs.next()) {
 +                    return new Passage(
@@ -366,14 +330,13 @@ index 5433deb647c46d8f0d7d16b32342939397fd6180..e32cfedcce19f22bf4acbb381f3e2275
 +    }
 +
      /** Simple record representing a passage. */
--    public record Passage(int id, int subcategoryId, Integer testSimulationId, String text, String source) {}
-+    public record Passage(int id, int subcategoryId, Integer testSimulationId, int passageIndex, String text, String source) {}
+     public record Passage(int id, int subcategoryId, Integer testSimulationId, int passageIndex, String text, String source) {}
  }
 diff --git a/src/main/java/ui/textverstaendnis/TextPassagePanel.java b/src/main/java/ui/textverstaendnis/TextPassagePanel.java
-index f41bb118239e50603e4afefb59ef47ac79221143..bd5b4cea7ca704888e33edd31f7e9db68e41813d 100644
+index bd5b4cea7ca704888e33edd31f7e9db68e41813d..ee627af4cdaafeccd090a8a382ceeff9545167cf 100644
 --- a/src/main/java/ui/textverstaendnis/TextPassagePanel.java
 +++ b/src/main/java/ui/textverstaendnis/TextPassagePanel.java
-@@ -1,99 +1,174 @@
+@@ -1,47 +1,49 @@
  package ui.textverstaendnis;
  
  import dao.PassageDAO;
@@ -383,6 +346,7 @@ index f41bb118239e50603e4afefb59ef47ac79221143..bd5b4cea7ca704888e33edd31f7e9db6
  import java.awt.*;
  import java.awt.event.ActionEvent;
  import java.sql.SQLException;
++import java.util.function.Consumer;
  
  /**
   * Simple editor panel for Textverständnis passages.
@@ -393,18 +357,19 @@ index f41bb118239e50603e4afefb59ef47ac79221143..bd5b4cea7ca704888e33edd31f7e9db6
  
      private final PassageDAO dao;
      private final int subcategoryId;
-+    private Integer simulationId;
-+    private int currentIndex = 1;
+     private Integer simulationId;
+     private int currentIndex = 1;
      private PassageDAO.Passage currentPassage;
++    private Consumer<Integer> onIndexChange;
  
      public TextPassagePanel(PassageDAO dao, int subcategoryId) {
-+        this(dao, subcategoryId, null);
-+    }
-+
-+    public TextPassagePanel(PassageDAO dao, int subcategoryId, Integer simulationId) {
+         this(dao, subcategoryId, null);
+     }
+ 
+     public TextPassagePanel(PassageDAO dao, int subcategoryId, Integer simulationId) {
          this.dao = dao;
          this.subcategoryId = subcategoryId;
-+        this.simulationId = simulationId;
+         this.simulationId = simulationId;
          setLayout(new BorderLayout());
          buildToolbar();
          add(new JScrollPane(textPane), BorderLayout.CENTER);
@@ -414,68 +379,29 @@ index f41bb118239e50603e4afefb59ef47ac79221143..bd5b4cea7ca704888e33edd31f7e9db6
          add(south, BorderLayout.SOUTH);
      }
  
-+    private final JToggleButton[] passageButtons = new JToggleButton[5];
+     private final JToggleButton[] passageButtons = new JToggleButton[5];
      private void buildToolbar() {
-+        JPanel toolbarPanel = new JPanel();
-+        toolbarPanel.setLayout(new BorderLayout());
-+
-+        JToolBar navBar = new JToolBar();
-+        navBar.setFloatable(false);
-+        ButtonGroup group = new ButtonGroup();
-+        for (int i = 0; i < passageButtons.length; i++) {
-+            int idx = i + 1;
-+            JToggleButton btn = new JToggleButton("Text " + idx);
-+            btn.addActionListener(e -> switchPassage(idx));
-+            group.add(btn);
-+            navBar.add(btn);
-+            passageButtons[i] = btn;
-+        }
-+        JButton addBtn = new JButton("+");
-+        addBtn.addActionListener(e -> createNewPassage());
-+        navBar.add(addBtn);
-+
-+        toolbarPanel.add(navBar, BorderLayout.WEST);
-+
-         JToolBar bar = new JToolBar();
-         bar.setFloatable(false);
+         JPanel toolbarPanel = new JPanel();
+         toolbarPanel.setLayout(new BorderLayout());
  
-         Action bold = new StyledEditorKit.BoldAction();
-         bold.putValue(Action.NAME, "B");
-         bar.add(bold);
- 
-         Action italic = new StyledEditorKit.ItalicAction();
-         italic.putValue(Action.NAME, "I");
-         bar.add(italic);
- 
-         Action bullet = new AbstractAction("\u2022") {
-             @Override
-             public void actionPerformed(ActionEvent e) {
-                 textPane.replaceSelection("\u2022 ");
-             }
-         };
-         bar.add(bullet);
- 
-         JButton loadBtn = new JButton("Load");
-         loadBtn.addActionListener(e -> loadPassage());
-         bar.add(loadBtn);
- 
+         JToolBar navBar = new JToolBar();
+         navBar.setFloatable(false);
+@@ -86,89 +88,103 @@ public class TextPassagePanel extends JPanel {
          JButton saveBtn = new JButton("Save");
          saveBtn.addActionListener(e -> savePassage());
          bar.add(saveBtn);
  
--        add(bar, BorderLayout.NORTH);
-+        toolbarPanel.add(bar, BorderLayout.EAST);
-+        add(toolbarPanel, BorderLayout.NORTH);
+         toolbarPanel.add(bar, BorderLayout.EAST);
+         add(toolbarPanel, BorderLayout.NORTH);
      }
  
      public void loadPassage() {
          try {
--            currentPassage = dao.findBySubcategoryId(subcategoryId);
-+            if (simulationId != null) {
-+                currentPassage = dao.findBySubcategorySimulationAndIndex(subcategoryId, simulationId, currentIndex);
-+            } else {
-+                currentPassage = dao.findBySubcategoryId(subcategoryId);
-+            }
+             if (simulationId != null) {
+                 currentPassage = dao.findBySubcategorySimulationAndIndex(subcategoryId, simulationId, currentIndex);
+             } else {
+                 currentPassage = dao.findBySubcategoryId(subcategoryId);
+             }
              if (currentPassage != null) {
                  textPane.setText(currentPassage.text());
                  sourceField.setText(currentPassage.source() == null ? "" : currentPassage.source());
@@ -483,8 +409,11 @@ index f41bb118239e50603e4afefb59ef47ac79221143..bd5b4cea7ca704888e33edd31f7e9db6
                  textPane.setText("");
                  sourceField.setText("");
              }
-+            if (currentIndex >= 1 && currentIndex <= passageButtons.length) {
-+                passageButtons[currentIndex - 1].setSelected(true);
+             if (currentIndex >= 1 && currentIndex <= passageButtons.length) {
+                 passageButtons[currentIndex - 1].setSelected(true);
+             }
++            if (onIndexChange != null) {
++                onIndexChange.accept(currentIndex);
 +            }
          } catch (SQLException ex) {
              JOptionPane.showMessageDialog(this, "Fehler beim Laden: " + ex.getMessage(),
@@ -498,141 +427,69 @@ index f41bb118239e50603e4afefb59ef47ac79221143..bd5b4cea7ca704888e33edd31f7e9db6
              String src = sourceField.getText().trim();
              if (currentPassage == null) {
                  if (!text.trim().isEmpty()) {
--                    int id = dao.insert(subcategoryId, text, src.isEmpty() ? null : src);
--                    currentPassage = new PassageDAO.Passage(id, subcategoryId, null, text, src.isEmpty() ? null : src);
-+                    int id;
-+                    if (simulationId != null) {
-+                        id = dao.insert(subcategoryId, simulationId, currentIndex, text, src.isEmpty() ? null : src);
-+                    } else {
-+                        id = dao.insert(subcategoryId, text, src.isEmpty() ? null : src);
-+                    }
-+                    currentPassage = new PassageDAO.Passage(id, subcategoryId, simulationId, currentIndex, text, src.isEmpty() ? null : src);
+                     int id;
+                     if (simulationId != null) {
+                         id = dao.insert(subcategoryId, simulationId, currentIndex, text, src.isEmpty() ? null : src);
+                     } else {
+                         id = dao.insert(subcategoryId, text, src.isEmpty() ? null : src);
+                     }
+                     currentPassage = new PassageDAO.Passage(id, subcategoryId, simulationId, currentIndex, text, src.isEmpty() ? null : src);
                  }
              } else {
--                dao.update(currentPassage.id(), text, src.isEmpty() ? null : src);
--                currentPassage = new PassageDAO.Passage(currentPassage.id(), subcategoryId, currentPassage.testSimulationId(), text, src.isEmpty() ? null : src);
-+                if (simulationId != null) {
-+                    dao.update(currentPassage.id(), simulationId, currentIndex, text, src.isEmpty() ? null : src);
-+                } else {
-+                    dao.update(currentPassage.id(), text, src.isEmpty() ? null : src);
-+                }
-+                currentPassage = new PassageDAO.Passage(currentPassage.id(), subcategoryId, simulationId, currentIndex, text, src.isEmpty() ? null : src);
+                 if (simulationId != null) {
+                     dao.update(currentPassage.id(), simulationId, currentIndex, text, src.isEmpty() ? null : src);
+                 } else {
+                     dao.update(currentPassage.id(), text, src.isEmpty() ? null : src);
+                 }
+                 currentPassage = new PassageDAO.Passage(currentPassage.id(), subcategoryId, simulationId, currentIndex, text, src.isEmpty() ? null : src);
              }
          } catch (SQLException ex) {
              JOptionPane.showMessageDialog(this, "Fehler beim Speichern: " + ex.getMessage(),
                      "Save", JOptionPane.ERROR_MESSAGE);
          }
      }
-+
-+    private void switchPassage(int index) {
-+        savePassage();
-+        currentIndex = index;
-+        loadPassage();
-+    }
-+
-+    private void createNewPassage() {
-+        for (int i = 1; i <= passageButtons.length; i++) {
-+            try {
-+                if (simulationId != null && dao.findBySubcategorySimulationAndIndex(subcategoryId, simulationId, i) == null) {
-+                    passageButtons[i - 1].setSelected(true);
-+                    currentIndex = i;
-+                    textPane.setText("");
-+                    sourceField.setText("");
-+                    currentPassage = null;
-+                    return;
-+                }
-+            } catch (SQLException ignored) {
-+            }
+ 
+     private void switchPassage(int index) {
+         savePassage();
+         currentIndex = index;
+         loadPassage();
++        if (onIndexChange != null) {
++            onIndexChange.accept(currentIndex);
 +        }
+     }
+ 
+     private void createNewPassage() {
+         for (int i = 1; i <= passageButtons.length; i++) {
+             try {
+                 if (simulationId != null && dao.findBySubcategorySimulationAndIndex(subcategoryId, simulationId, i) == null) {
+                     passageButtons[i - 1].setSelected(true);
+                     currentIndex = i;
+                     textPane.setText("");
+                     sourceField.setText("");
+                     currentPassage = null;
+                     return;
+                 }
+             } catch (SQLException ignored) {
+             }
+         }
+     }
+ 
+     public void setSimulationId(Integer simulationId) {
+         savePassage();
+         this.simulationId = simulationId;
+         currentIndex = 1;
+         currentPassage = null;
+         loadPassage();
+     }
++
++    public void setOnIndexChange(Consumer<Integer> listener) {
++        this.onIndexChange = listener;
 +    }
 +
-+    public void setSimulationId(Integer simulationId) {
-+        savePassage();
-+        this.simulationId = simulationId;
-+        currentIndex = 1;
-+        currentPassage = null;
-+        loadPassage();
++    public int getCurrentIndex() {
++        return currentIndex;
 +    }
  }
-diff --git a/src/test/java/ui/textverstaendnis/TextPassagePanelTest.java b/src/test/java/ui/textverstaendnis/TextPassagePanelTest.java
-index 5e65dbb5f115155d2785773af9ea327eb6ec07ef..e87c3a388e948f343cf5ce77a3c44c1fe2086e20 100644
---- a/src/test/java/ui/textverstaendnis/TextPassagePanelTest.java
-+++ b/src/test/java/ui/textverstaendnis/TextPassagePanelTest.java
-@@ -22,72 +22,73 @@ class TextPassagePanelTest {
-     private static int testSubcategoryId = 1;
-     private TextPassagePanel panel;
-     
-     @BeforeAll
-     static void setUpDatabase() throws SQLException {
-         // Use H2 in-memory database for testing
-         conn = DriverManager.getConnection("jdbc:h2:mem:testui;DB_CLOSE_DELAY=-1", "sa", "");
-         
-         // Create required tables
-         try (Statement stmt = conn.createStatement()) {
-             // Create subcategories table
-             stmt.execute("""
-                 CREATE TABLE subcategories (
-                     id INTEGER PRIMARY KEY AUTO_INCREMENT,
-                     category VARCHAR(255) NOT NULL,
-                     name VARCHAR(255) NOT NULL
-                 )
-             """);
-             
-             // Create passages table
-             stmt.execute("""
-                 CREATE TABLE passages (
-                     id INTEGER PRIMARY KEY AUTO_INCREMENT,
-                     subcategory_id INTEGER NOT NULL,
-                     test_simulation_id INTEGER,
-+                    passage_index INTEGER NOT NULL,
-                     text TEXT NOT NULL,
-                     source VARCHAR(255),
-                     FOREIGN KEY (subcategory_id) REFERENCES subcategories(id)
-                 )
-             """);
-             
-             // Insert test subcategory
-             stmt.execute("INSERT INTO subcategories (category, name) VALUES ('Biologie', 'Textverständnis')");
-         }
-         
-         passageDAO = new PassageDAO(conn);
-     }
-     
-     @BeforeEach
-     void setUp() throws SQLException {
-         // Clean up passages table before each test
-         try (Statement stmt = conn.createStatement()) {
-             stmt.execute("DELETE FROM passages WHERE subcategory_id = " + testSubcategoryId);
-         }
-         
-         // Create panel for each test
--        panel = new TextPassagePanel(passageDAO, testSubcategoryId);
-+        panel = new TextPassagePanel(passageDAO, testSubcategoryId, null);
-     }
-     
-     @AfterAll
-     static void tearDown() throws SQLException {
-         if (conn != null && !conn.isClosed()) {
-             conn.close();
-         }
-     }
-     
-     @Test
-     @Order(1)
-     void testPanelInitialization() {
-         assertNotNull(panel, "Panel should be created successfully");
-         
-         // Check that text components exist
-         JTextPane textPane = findTextPane(panel);
-         JTextField sourceField = findSourceField(panel);
-         
-         assertNotNull(textPane, "Text pane should exist");
-         assertNotNull(sourceField, "Source field should exist");
-         
-         // Check initial state
-         assertEquals("", textPane.getText(), "Text pane should be initially empty");
-         assertEquals("", sourceField.getText(), "Source field should be initially empty");
-     }
  
 EOF
 )

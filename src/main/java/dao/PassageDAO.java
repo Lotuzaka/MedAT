@@ -196,6 +196,29 @@ public class PassageDAO {
         return null;
     }
 
+    /**
+     * Finds a single passage by subcategory and index (main question pool).
+     */
+    public Passage findBySubcategoryAndIndex(int subcategoryId, int passageIndex) throws SQLException {
+        String sql = "SELECT id, subcategory_id, test_simulation_id, passage_index, text, source FROM passages WHERE subcategory_id = ? AND test_simulation_id IS NULL AND passage_index = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, subcategoryId);
+            ps.setInt(2, passageIndex);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new Passage(
+                            rs.getInt("id"),
+                            rs.getInt("subcategory_id"),
+                            rs.getObject("test_simulation_id", Integer.class),
+                            rs.getInt("passage_index"),
+                            rs.getString("text"),
+                            rs.getString("source"));
+                }
+            }
+        }
+        return null;
+    }
+
     /** Simple record representing a passage. */
     public record Passage(int id, int subcategoryId, Integer testSimulationId, int passageIndex, String text, String source) {}
 }

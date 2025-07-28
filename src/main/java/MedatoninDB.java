@@ -22,6 +22,7 @@ import javax.swing.table.*;
 import javax.swing.Timer;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.function.Consumer;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
@@ -1860,8 +1861,33 @@ public class MedatoninDB extends JFrame {
             conn.setAutoCommit(false);
             int subcategoryId = getSubcategoryId(currentCategory, currentSubcategory);
             int questionNumber = questionDAO.getNextQuestionNumber(selectedSimulationId, subcategoryId);
-            int questionId = questionDAO.insertEmptyQuestion(currentCategory, currentSubcategory, questionNumber,
-                    selectedSimulationId);
+            int questionId;
+
+            // Special handling for Textverständnis - link questions to current passage
+            if ("Textverständnis".equals(currentSubcategory) && currentTextPassagePanel != null) {
+                try {
+                    // Get current passage ID from the TextPassagePanel
+                    Class<?> panelClass = currentTextPassagePanel.getClass();
+                    Object currentPassage = panelClass.getMethod("getCurrentPassage").invoke(currentTextPassagePanel);
+                    if (currentPassage != null) {
+                        Class<?> passageClass = currentPassage.getClass();
+                        int passageId = (Integer) passageClass.getMethod("id").invoke(currentPassage);
+                        questionId = questionDAO.insertEmptyQuestion(currentCategory, currentSubcategory, questionNumber,
+                                selectedSimulationId, passageId);
+                    } else {
+                        showToast("No passage selected. Please select or create a passage first.", NotificationType.WARNING);
+                        return;
+                    }
+                } catch (Exception ex) {
+                    debugLog("DB", LogLevel.ERROR, "Failed to get current passage: " + ex.getMessage());
+                    showToast("Error: Could not link question to passage. " + ex.getMessage(), NotificationType.ERROR);
+                    return;
+                }
+            } else {
+                // Standard question insertion for other subcategories
+                questionId = questionDAO.insertEmptyQuestion(currentCategory, currentSubcategory, questionNumber,
+                        selectedSimulationId);
+            }
 
             if (questionId == -1) {
                 throw new SQLException("Failed to insert question");
@@ -2470,8 +2496,13 @@ public class MedatoninDB extends JFrame {
                     int subId = getSubcategoryId(currentCategory, currentSubcategory);
                     currentTextPassagePanel = (JPanel) panelClass.getDeclaredConstructor(PassageDAO.class, int.class, Integer.class)
                             .newInstance(new PassageDAO(conn), subId, selectedSimulationId);
+                    // Register callback for passage switching
+                    panelClass.getMethod("setOnIndexChange", java.util.function.Consumer.class)
+                            .invoke(currentTextPassagePanel, (Consumer<Integer>) this::loadQuestionsForPassageIndex);
                 } else {
                     panelClass.getMethod("setSimulationId", Integer.class).invoke(currentTextPassagePanel, selectedSimulationId);
+                    panelClass.getMethod("setOnIndexChange", java.util.function.Consumer.class)
+                            .invoke(currentTextPassagePanel, (Consumer<Integer>) this::loadQuestionsForPassageIndex);
                 }
                 JScrollPane passageScroll = new JScrollPane(currentTextPassagePanel);
                 passageScroll.setPreferredSize(new Dimension(500, 380));
@@ -2482,8 +2513,10 @@ public class MedatoninDB extends JFrame {
 
                 subcategoryContentPanel.add(splitPane, BorderLayout.CENTER);
 
-                // Load passage from DB each time we switch
+                // Load passage and corresponding questions from DB each time we switch
                 currentTextPassagePanel.getClass().getMethod("loadPassage").invoke(currentTextPassagePanel);
+                int idx = (Integer) panelClass.getMethod("getCurrentIndex").invoke(currentTextPassagePanel);
+                loadQuestionsForPassageIndex(idx);
             } catch (Exception e) {
                 debugLog("UI", LogLevel.ERROR, "Failed to load TextPassagePanel: " + e.getMessage());
                 subcategoryContentPanel.add(subScrollPane, BorderLayout.CENTER);
@@ -5590,7 +5623,20 @@ public class MedatoninDB extends JFrame {
                 if (subcategoryId != -1) {
                     List<QuestionDAO> questions;
 
-                    questions = questionDAO.getQuestionsBySubcategoryAndSimulation(subcategoryId, simulationId);
+                    // Special handling for Textverständnis: load only questions for the first passage initially
+                    if ("Textverständnis".equals(subcategoryName)) {
+                        // For Textverständnis, load questions for passage index 0 (Text 1) by default
+                        questions = questionDAO.getQuestionsBySubcategorySimulationAndPassageIndex(subcategoryId, simulationId, 0);
+                        debugLog("DB", "Loading Textverständnis questions for passage index 0: " + questions.size());
+                        
+                        // If no questions found for passage index 0, try loading all questions as fallback
+                        if (questions.isEmpty()) {
+                            debugLog("DB", "No questions found for passage index 0, loading all Textverständnis questions as fallback");
+                            questions = questionDAO.getQuestionsBySubcategoryAndSimulation(subcategoryId, simulationId);
+                        }
+                    } else {
+                        questions = questionDAO.getQuestionsBySubcategoryAndSimulation(subcategoryId, simulationId);
+                    }
                     debugLog("DB", "Number of questions loaded: " + questions.size());
 
                     model.setRowCount(0); // Clear existing rows
@@ -5612,6 +5658,43 @@ public class MedatoninDB extends JFrame {
         } catch (SQLException e) {
             debugLog("DB", "Error loading questions and options: " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * Load questions for the given passage index of the current Textverständnis subcategory.
+     */
+    private void loadQuestionsForPassageIndex(int passageIndex) {
+        try {
+            int subId = getSubcategoryId(currentCategory, currentSubcategory);
+            PassageDAO passageDAO = new PassageDAO(conn);
+            PassageDAO.Passage passage;
+            if (selectedSimulationId != null) {
+                passage = passageDAO.findBySubcategorySimulationAndIndex(subId, selectedSimulationId, passageIndex);
+            } else {
+                passage = passageDAO.findBySubcategoryAndIndex(subId, passageIndex);
+            }
+
+            DefaultTableModel model = categoryModels.get(currentCategory).get(currentSubcategory);
+            model.setRowCount(0);
+            if (passage != null) {
+                QuestionDAO qDao = new QuestionDAO(conn);
+                OptionDAO oDao = new OptionDAO(conn);
+                List<QuestionDAO> qs = qDao.getQuestionsByPassage(passage.id());
+                for (QuestionDAO q : qs) {
+                    if ("Figuren".equals(currentSubcategory)) {
+                        loadFigurenQuestionIntoModel(model, q, oDao);
+                    } else {
+                        loadStandardQuestionIntoModel(model, q, oDao);
+                    }
+                }
+            }
+            if (questionTable != null) {
+                questionTable.revalidate();
+                questionTable.repaint();
+            }
+        } catch (Exception ex) {
+            debugLog("DB", "Failed to load questions for passage index " + passageIndex + ": " + ex.getMessage());
         }
     }
 

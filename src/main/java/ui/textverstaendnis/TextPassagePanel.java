@@ -7,6 +7,7 @@ import javax.swing.text.StyledEditorKit;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.sql.SQLException;
+import java.util.function.Consumer;
 
 /**
  * Simple editor panel for Textverständnis passages.
@@ -20,6 +21,7 @@ public class TextPassagePanel extends JPanel {
     private Integer simulationId;
     private int currentIndex = 1;
     private PassageDAO.Passage currentPassage;
+    private Consumer<Integer> onIndexChange;
 
     public TextPassagePanel(PassageDAO dao, int subcategoryId) {
         this(dao, subcategoryId, null);
@@ -108,6 +110,9 @@ public class TextPassagePanel extends JPanel {
             if (currentIndex >= 1 && currentIndex <= passageButtons.length) {
                 passageButtons[currentIndex - 1].setSelected(true);
             }
+            if (onIndexChange != null) {
+                onIndexChange.accept(currentIndex);
+            }
         } catch (SQLException ex) {
             JOptionPane.showMessageDialog(this, "Fehler beim Laden: " + ex.getMessage(),
                     "Load", JOptionPane.ERROR_MESSAGE);
@@ -146,6 +151,9 @@ public class TextPassagePanel extends JPanel {
         savePassage();
         currentIndex = index;
         loadPassage();
+        if (onIndexChange != null) {
+            onIndexChange.accept(currentIndex);
+        }
     }
 
     private void createNewPassage() {
@@ -170,5 +178,17 @@ public class TextPassagePanel extends JPanel {
         currentIndex = 1;
         currentPassage = null;
         loadPassage();
+    }
+
+    public void setOnIndexChange(Consumer<Integer> listener) {
+        this.onIndexChange = listener;
+    }
+
+    public int getCurrentIndex() {
+        return currentIndex;
+    }
+
+    public PassageDAO.Passage getCurrentPassage() {
+        return currentPassage;
     }
 }

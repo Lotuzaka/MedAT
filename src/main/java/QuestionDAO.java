@@ -242,6 +242,39 @@ public class QuestionDAO {
         }
     }
 
+    /**
+     * Inserts an empty question with passage_id for Textverständnis.
+     */
+    public int insertEmptyQuestion(String category, String subcategory, int questionNumber, int simulationId, int passageId)
+            throws SQLException {
+        int subcategoryId = getSubcategoryId(category, subcategory);
+        if (subcategoryId == -1) {
+            throw new SQLException("Subcategory not found.");
+        }
+        String sql = "INSERT INTO questions (subcategory_id, question_number, text, format, test_simulation_id, difficulty, passage_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            stmt.setInt(1, subcategoryId);
+            stmt.setInt(2, questionNumber);
+            stmt.setString(3, "");
+            stmt.setString(4, "Kurz"); // Default format
+            stmt.setInt(5, simulationId);
+            stmt.setString(6, "MEDIUM");
+            stmt.setInt(7, passageId);
+            int affectedRows = stmt.executeUpdate();
+            if (affectedRows == 0) {
+                throw new SQLException("Creating question failed, no rows affected.");
+            }
+
+            try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    return generatedKeys.getInt(1);
+                } else {
+                    throw new SQLException("Creating question failed, no ID obtained.");
+                }
+            }
+        }
+    }
+
     // Insert a new Question
     public int insertQuestion(String category, String subcategory, String questionText, int questionNumber,
             Integer simulationId, Integer passageId) throws SQLException {
@@ -535,6 +568,74 @@ public class QuestionDAO {
         stmt.setInt(2, simulationId);
         stmt.setInt(3, subcategoryId);
         stmt.executeUpdate();
+    }
+
+    /**
+     * Retrieve all questions linked to a specific passage.
+     */
+    public List<QuestionDAO> getQuestionsByPassage(int passageId) throws SQLException {
+        List<QuestionDAO> questions = new ArrayList<>();
+        String sql = "SELECT id, subcategory_id, question_number, text, format, test_simulation_id, " +
+                "difficulty, shape_data, shape_type, dissected_pieces_data, assembled_pieces_data " +
+                "FROM questions WHERE passage_id = ? ORDER BY question_number";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, passageId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    QuestionDAO q = new QuestionDAO(conn);
+                    q.setId(rs.getInt("id"));
+                    q.setSubcategoryId(rs.getInt("subcategory_id"));
+                    q.setQuestionNumber(rs.getInt("question_number"));
+                    q.setText(rs.getString("text"));
+                    q.setFormat(rs.getString("format"));
+                    q.setDifficulty(rs.getString("difficulty"));
+                    q.setShapeData(rs.getString("shape_data"));
+                    q.setShapeType(rs.getString("shape_type"));
+                    q.setDissectedPiecesData(rs.getString("dissected_pieces_data"));
+                    q.setAssembledPiecesData(rs.getString("assembled_pieces_data"));
+                    questions.add(q);
+                }
+            }
+        }
+        return questions;
+    }
+
+    /**
+     * Get questions by subcategory, simulation, and passage index for Textverständnis.
+     */
+    public List<QuestionDAO> getQuestionsBySubcategorySimulationAndPassageIndex(int subcategoryId, Integer simulationId, int passageIndex) throws SQLException {
+        List<QuestionDAO> questions = new ArrayList<>();
+        
+        String sql = "SELECT q.id, q.subcategory_id, q.question_number, q.text, q.format, " +
+                "q.test_simulation_id, q.difficulty, q.shape_data, q.shape_type, " +
+                "q.dissected_pieces_data, q.assembled_pieces_data " +
+                "FROM questions q " +
+                "JOIN passages p ON q.passage_id = p.id " +
+                "WHERE q.subcategory_id = ? AND q.test_simulation_id = ? AND p.passage_index = ? " +
+                "ORDER BY q.question_number";
+        
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, subcategoryId);
+            stmt.setInt(2, simulationId);
+            stmt.setInt(3, passageIndex);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    QuestionDAO question = new QuestionDAO(conn);
+                    question.setId(rs.getInt("id"));
+                    question.setSubcategoryId(subcategoryId);
+                    question.setText(rs.getString("text"));
+                    question.setFormat(rs.getString("format"));
+                    question.setDifficulty(rs.getString("difficulty"));
+                    question.setQuestionNumber(rs.getInt("question_number"));
+                    question.setShapeData(rs.getString("shape_data"));
+                    question.setShapeType(rs.getString("shape_type"));
+                    question.setDissectedPiecesData(rs.getString("dissected_pieces_data"));
+                    question.setAssembledPiecesData(rs.getString("assembled_pieces_data"));
+                    questions.add(question);
+                }
+            }
+        }
+        return questions;
     }
 
 }
