@@ -1,311 +1,297 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
-diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
-index b528da440d750d36a0924c54fd96bb198afb0c4a..836c2d33c41165b30b0189ebf709aefe5315cb92 100644
---- a/src/main/java/MedatoninDB.java
-+++ b/src/main/java/MedatoninDB.java
-@@ -3340,68 +3340,86 @@ public class MedatoninDB extends JFrame {
-     private void printCategory(String category) {
-         Map<String, DefaultTableModel> subcategories = categoryModels.get(category);
-         if (subcategories == null) {
-             showToast("No data available for category: " + category, NotificationType.ERROR);
-             return;
-         }
+diff --git a/pom.xml b/pom.xml
+index 32aa085c6b69e84ad5e37c5638cde3126abe9903..ad844619d4fbf0dd2d48ddbc648d0638d041d645 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -123,50 +123,56 @@
+       <artifactId>jaxb-api</artifactId>
+       <version>2.3.1</version>
+     </dependency>
+     <dependency>
+       <groupId>org.glassfish.jaxb</groupId>
+       <artifactId>jaxb-core</artifactId>
+       <version>3.0.2</version>
+     </dependency>
+     <dependency>
+       <groupId>com.sun.xml.bind</groupId>
+       <artifactId>jaxb-impl</artifactId>
+       <version>2.3.8</version>
+     </dependency>
+     
+     <!-- Activation APIs -->
+     <dependency>
+       <groupId>jakarta.activation</groupId>
+       <artifactId>jakarta.activation-api</artifactId>
+       <version>2.1.2</version>
+     </dependency>
+     <dependency>
+       <groupId>com.sun.activation</groupId>
+       <artifactId>javax.activation</artifactId>
+       <version>1.2.0</version>
+     </dependency>
++    <!-- Stanford CoreNLP for NLP operations in TextverstaendnisGenerator -->
++    <dependency>
++      <groupId>edu.stanford.nlp</groupId>
++      <artifactId>stanford-corenlp</artifactId>
++      <version>4.5.5</version>
++    </dependency>
  
-         try {
-             // Check if docx4j is available at runtime
-             Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage");
-             
-             docx.Docx4jPrinter printer = new docx.Docx4jPrinter();
+   </dependencies>
  
-             // Create document manually to avoid import issues
-             java.lang.reflect.Method createMethod = Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage")
-                 .getMethod("createPackage");
-             Object pkg = createMethod.invoke(null);
-             
-             // Process each subcategory with special handling for Gedächtnis- und Merkfähigkeit
-             java.util.List<String> subcatList = subcategoryOrder.get(category);
-             int totalSubcategories = subcatList.size();
-             
-             // Check if we need to handle Gedächtnis- und Merkfähigkeit special case
-             boolean hasGedaechtnisSubcat = subcatList.contains("Merkfähigkeiten");
-             java.util.List<String> processOrder = new java.util.ArrayList<>();
--            
--            // Build the processing order with proper Gedächtnis handling
--            for (String subcat : subcatList) {
--                if (subcat.equals("Figuren")) {
--                    processOrder.add(subcat);
--                } else if (subcat.equals("Merkfähigkeiten") && hasGedaechtnisSubcat) {
--                    // Add Lernphase first, right after Figuren
--                    processOrder.add("Gedächtnis und Merkfähigkeit (Lernphase)");
--                    // Merkfähigkeiten (Abrufphase) will be added later in correct position
--                } else if (!subcat.equals("Merkfähigkeiten")) {
--                    processOrder.add(subcat);
--                }
+ 
+   <build>
+     <plugins>
+       <!-- Maven JAR Plugin -->
+       <plugin>
+         <groupId>org.apache.maven.plugins</groupId>
+         <artifactId>maven-jar-plugin</artifactId>
+         <version>3.1.2</version>
+         <configuration>
+           <archive>
+             <manifestEntries>
+               <Main-Class>MedatoninDB</Main-Class> <!-- Replace with the correct package name -->
+             </manifestEntries>
+           </archive>
+         </configuration>
+       </plugin>
+ 
+       <!-- Maven Shade Plugin -->
+       <plugin>
+         <groupId>org.apache.maven.plugins</groupId>
+         <artifactId>maven-shade-plugin</artifactId>
+         <version>3.2.4</version>
+diff --git a/src/main/java/generator/TextverstaendnisGenerator.java b/src/main/java/generator/TextverstaendnisGenerator.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..a97ba5f4f9169518957c99520b413fa0b4565c79
+--- /dev/null
++++ b/src/main/java/generator/TextverstaendnisGenerator.java
+@@ -0,0 +1,203 @@
++import com.fasterxml.jackson.core.type.TypeReference;
++import com.fasterxml.jackson.databind.ObjectMapper;
++import edu.stanford.nlp.ie.util.RelationTriple;
++import edu.stanford.nlp.ling.CoreAnnotations;
++import edu.stanford.nlp.naturalli.NaturalLogicAnnotations;
++import edu.stanford.nlp.pipeline.Annotation;
++import edu.stanford.nlp.pipeline.StanfordCoreNLP;
++import edu.stanford.nlp.util.CoreMap;
 +
-+            // Always start with Figuren if present
-+            if (subcatList.contains("Figuren")) {
-+                processOrder.add("Figuren");
-             }
--            
--            // Add Abrufphase at the end if Merkfähigkeiten exists
++import java.io.IOException;
++import java.io.InputStream;
++import java.sql.Connection;
++import java.sql.PreparedStatement;
++import java.sql.ResultSet;
++import java.sql.SQLException;
++import java.sql.Statement;
++import java.util.*;
 +
-+            // Insert Lernphase immediately after Figuren when Merkfähigkeiten exists
-+            if (hasGedaechtnisSubcat) {
-+                processOrder.add("Gedächtnis und Merkfähigkeit (Lernphase)");
++/**
++ * Generator for Textverständnis questions using a passage based approach.
++ * The implementation mirrors the structure of {@link SyllogismGenerator}.
++ */
++public class TextverstaendnisGenerator {
++
++    private final Connection conn;
++    private final QuestionDAO questionDAO;
++    private final OptionDAO optionDAO;
++    private final String category;
++    private final String subcategory;
++    private final Integer simulationId;
++
++    private final StanfordCoreNLP pipeline;
++    private final Map<String, List<String>> templates;
++    private final Random random = new Random();
++
++    /**
++     * Constructs the generator with DB connection and context.
++     */
++    public TextverstaendnisGenerator(Connection conn, String category, String subcategory, Integer simulationId) throws IOException {
++        this.conn = conn;
++        this.category = category;
++        this.subcategory = subcategory;
++        this.simulationId = simulationId;
++        this.questionDAO = new QuestionDAO(conn);
++        this.optionDAO = new OptionDAO(conn);
++
++        // Load question stems
++        ObjectMapper mapper = new ObjectMapper();
++        try (InputStream is = getClass().getClassLoader().getResourceAsStream("textverstaendnis/templates.json")) {
++            if (is == null) {
++                throw new IOException("templates.json not found");
 +            }
++            this.templates = mapper.readValue(is, new TypeReference<>() {});
++        }
 +
-+            // Add Zahlenfolgen and Wortflüssigkeit in their usual spots if present
-+            if (subcatList.contains("Zahlenfolgen")) {
-+                processOrder.add("Zahlenfolgen");
-+            }
++        Properties props = new Properties();
++        props.setProperty("annotators", "tokenize,ssplit,pos,lemma,depparse,coref,openie");
++        props.setProperty("coref.algorithm", "neural");
++        this.pipeline = new StanfordCoreNLP(props);
++    }
 +
-+            if (subcatList.contains("Wortflüssigkeit")) {
-+                processOrder.add("Wortflüssigkeit");
-+            } else if (subcatList.contains("Wortfluessigkeit")) {
-+                processOrder.add("Wortfluessigkeit");
-+            }
-+
-+            // Insert Abrufphase directly after Wortflüssigkeit
-             if (hasGedaechtnisSubcat) {
-                 processOrder.add("Gedächtnis und Merkfähigkeit (Abrufphase)");
-             }
-+
-+            // Add remaining subcategories except the original Merkfähigkeiten
-+            for (String subcat : subcatList) {
-+                if (subcat.equals("Figuren") || subcat.equals("Merkfähigkeiten") ||
-+                    subcat.equals("Zahlenfolgen") || subcat.equals("Wortflüssigkeit") ||
-+                    subcat.equals("Wortfluessigkeit")) {
-+                    continue;
++    /** Reads the passage text from the database. */
++    private String loadPassage(int passageId) throws SQLException {
++        String sql = "SELECT text FROM passages WHERE id = ?";
++        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
++            stmt.setInt(1, passageId);
++            try (ResultSet rs = stmt.executeQuery()) {
++                if (rs.next()) {
++                    return rs.getString(1);
 +                }
-+                processOrder.add(subcat);
 +            }
-             
-             for (int i = 0; i < processOrder.size(); i++) {
-                 String subcategory = processOrder.get(i);
-                 
-                 // Update progress based on current subcategory
-                 int progress = 30 + (i * 30 / processOrder.size());
-                 updateStatus("Processing " + subcategory + "...", progress);
- 
-                 // Handle special Gedächtnis subcategories
-                 if (subcategory.equals("Gedächtnis und Merkfähigkeit (Lernphase)")) {
-                     // Add introduction page for Lernphase
-                     String introContent = getIntroContent(subcategory);
-                     if (introContent != null) {
-                         java.lang.reflect.Method addIntroMethod = printer.getClass()
-                             .getMethod("addIntroductionPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), String.class);
-                         addIntroMethod.invoke(printer, pkg, introContent);
-                     }
-                     
-                     // Add allergy cards (2 per page, 8 total = 4 pages)
-                     java.lang.reflect.Method addAllergyMethod = printer.getClass()
-                         .getDeclaredMethod("addAllergyCards", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), java.sql.Connection.class, Integer.class);
-                     addAllergyMethod.setAccessible(true);
-                     addAllergyMethod.invoke(printer, pkg, conn, selectedSimulationId);
-                     
-                     // Add stop sign page
-diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
-index b528da440d750d36a0924c54fd96bb198afb0c4a..836c2d33c41165b30b0189ebf709aefe5315cb92 100644
---- a/src/main/java/MedatoninDB.java
-+++ b/src/main/java/MedatoninDB.java
-@@ -3515,68 +3533,86 @@ public class MedatoninDB extends JFrame {
-     // Method to print the solution document for the current category
-     private void printCategorySolution(String category) {
-         Map<String, DefaultTableModel> subcategories = categoryModels.get(category);
-         if (subcategories == null) {
-             showToast("No data available for category: " + category, NotificationType.ERROR);
-             return;
-         }
- 
-         try {
-             // Check if docx4j is available at runtime
-             Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage");
-             
-             docx.Docx4jPrinter printer = new docx.Docx4jPrinter();
- 
-             // Create document manually to avoid import issues
-             java.lang.reflect.Method createMethod = Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage")
-                 .getMethod("createPackage");
-             Object pkg = createMethod.invoke(null);
-             
-             // Process each subcategory with special handling for Gedächtnis- und Merkfähigkeit
-             java.util.List<String> subcatList = subcategoryOrder.get(category);
-             
-             // Check if we need to handle Gedächtnis- und Merkfähigkeit special case
-             boolean hasGedaechtnisSubcat = subcatList.contains("Merkfähigkeiten");
-             java.util.List<String> processOrder = new java.util.ArrayList<>();
--            
--            // Build the processing order with proper Gedächtnis handling
--            for (String subcat : subcatList) {
--                if (subcat.equals("Figuren")) {
--                    processOrder.add(subcat);
--                } else if (subcat.equals("Merkfähigkeiten") && hasGedaechtnisSubcat) {
--                    // Add Lernphase first, right after Figuren
--                    processOrder.add("Gedächtnis und Merkfähigkeit (Lernphase)");
--                    // Merkfähigkeiten (Abrufphase) will be added later in correct position
--                } else if (!subcat.equals("Merkfähigkeiten")) {
--                    processOrder.add(subcat);
--                }
++        }
++        throw new SQLException("Passage not found: " + passageId);
++    }
 +
-+            // Figuren always first if present
-+            if (subcatList.contains("Figuren")) {
-+                processOrder.add("Figuren");
-             }
--            
--            // Add Abrufphase at the end if Merkfähigkeiten exists
++    /**
++     * Generate questions for the provided passage.
++     * @param count number of questions
++     * @param passageId passage identifier from passages table
++     */
++    public void execute(int count, int passageId) throws SQLException, IOException {
++        String passage = loadPassage(passageId);
 +
-+            // Lernphase directly after Figuren
-+            if (hasGedaechtnisSubcat) {
-+                processOrder.add("Gedächtnis und Merkfähigkeit (Lernphase)");
++        Annotation doc = new Annotation(passage);
++        pipeline.annotate(doc);
++
++        List<CoreMap> sentences = doc.get(CoreAnnotations.SentencesAnnotation.class);
++        List<RelationTriple> triples = new ArrayList<>();
++        for (CoreMap s : sentences) {
++            Collection<RelationTriple> rels = s.get(NaturalLogicAnnotations.RelationTriplesAnnotation.class);
++            if (rels != null) {
++                triples.addAll(rels);
 +            }
++        }
 +
-+            // Zahlenfolgen and Wortflüssigkeit next in order if available
-+            if (subcatList.contains("Zahlenfolgen")) {
-+                processOrder.add("Zahlenfolgen");
++        int subId = questionDAO.getSubcategoryId(category, subcategory);
++        int qNum = questionDAO.getNextQuestionNumber(simulationId, subId);
++
++        for (int i = 0; i < count; i++) {
++            String type = new ArrayList<>(templates.keySet()).get(random.nextInt(templates.size()));
++            String stem = templates.get(type).get(random.nextInt(templates.get(type).size()));
++            QuestionData q = buildQuestion(stem, type, sentences, triples);
++
++            int qId = insertQuestion(q.text, qNum, passageId);
++            for (int j = 0; j < q.options.size(); j++) {
++                String label = String.valueOf((char)('A' + j));
++                boolean isCorrect = (j == q.correctIndex);
++                optionDAO.insertOption(qId, label, q.options.get(j), isCorrect);
 +            }
++            qNum++;
++        }
++    }
 +
-+            if (subcatList.contains("Wortflüssigkeit")) {
-+                processOrder.add("Wortflüssigkeit");
-+            } else if (subcatList.contains("Wortfluessigkeit")) {
-+                processOrder.add("Wortfluessigkeit");
++    /**
++     * Creates a single question using simple heuristics.
++     */
++    private QuestionData buildQuestion(String stem, String type, List<CoreMap> sentences, List<RelationTriple> triples) {
++        String question;
++        String correct;
++        List<String> distractors = new ArrayList<>();
++
++        if ("Nicht erwähnt".equals(type)) {
++            question = stem;
++            correct = "Keine der anderen Aussagen";
++            for (int i = 0; i < Math.min(4, sentences.size()); i++) {
++                distractors.add(sentences.get(i).toString());
 +            }
-+
-+            // Insert Abrufphase directly after Wortflüssigkeit
-             if (hasGedaechtnisSubcat) {
-                 processOrder.add("Gedächtnis und Merkfähigkeit (Abrufphase)");
-             }
-+
-+            // Remaining subcategories except the original Merkfähigkeiten
-+            for (String subcat : subcatList) {
-+                if (subcat.equals("Figuren") || subcat.equals("Merkfähigkeiten") ||
-+                    subcat.equals("Zahlenfolgen") || subcat.equals("Wortflüssigkeit") ||
-+                    subcat.equals("Wortfluessigkeit")) {
-+                    continue;
-+                }
-+                processOrder.add(subcat);
++        } else if ("Kernaussage".equals(type)) {
++            question = stem;
++            correct = sentences.isEmpty() ? "" : sentences.get(0).toString();
++            for (int i = 1; i < sentences.size() && distractors.size() < 4; i++) {
++                distractors.add(sentences.get(i).toString());
 +            }
-             
-             for (int i = 0; i < processOrder.size(); i++) {
-                 String subcategory = processOrder.get(i);
- 
-                 // Handle special Gedächtnis subcategories
-                 if (subcategory.equals("Gedächtnis und Merkfähigkeit (Lernphase)")) {
-                     // Add introduction page for Lernphase
-                     String introContent = getIntroContent(subcategory);
-                     if (introContent != null) {
-                         java.lang.reflect.Method addIntroMethod = printer.getClass()
-                             .getMethod("addIntroductionPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), String.class);
-                         addIntroMethod.invoke(printer, pkg, introContent);
-                     }
-                     
-                     // Add allergy cards (2 per page, 8 total = 4 pages) - no solutions needed for cards
-                     java.lang.reflect.Method addAllergyMethod = printer.getClass()
-                         .getDeclaredMethod("addAllergyCards", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), java.sql.Connection.class, Integer.class);
-                     addAllergyMethod.setAccessible(true);
-                     addAllergyMethod.invoke(printer, pkg, conn, selectedSimulationId);
-                     
-                     // Add stop sign page
-                     java.lang.reflect.Method addStopSignMethod = printer.getClass()
-                         .getMethod("addStopSignPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
-                     addStopSignMethod.invoke(printer, pkg);
-                     
-diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
-index b528da440d750d36a0924c54fd96bb198afb0c4a..836c2d33c41165b30b0189ebf709aefe5315cb92 100644
---- a/src/main/java/MedatoninDB.java
-+++ b/src/main/java/MedatoninDB.java
-@@ -3797,66 +3833,80 @@ public class MedatoninDB extends JFrame {
-         try {
-             // Check if docx4j is available at runtime
-             Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage");
-             
-             docx.Docx4jPrinter printer = new docx.Docx4jPrinter();
- 
-             // Create document manually to avoid import issues
-             java.lang.reflect.Method createMethod = Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage")
-                 .getMethod("createPackage");
-             Object pkg = createMethod.invoke(null);
- 
-             // Iterate over all categories
-             java.util.List<String> categoryList = new java.util.ArrayList<>(categoryModels.keySet());
-             for (int c = 0; c < categoryList.size(); c++) {
-                 String category = categoryList.get(c);
-                 Map<String, DefaultTableModel> subcategories = categoryModels.get(category);
- 
-                 // Iterate over subcategories with special handling for Gedächtnis- und Merkfähigkeit
-                 java.util.List<String> subcatList = subcategoryOrder.get(category);
-                 
-                 // Check if we need to handle Gedächtnis- und Merkfähigkeit special case
-                 boolean hasGedaechtnisSubcat = subcatList.contains("Merkfähigkeiten");
-                 java.util.List<String> processOrder = new java.util.ArrayList<>();
-                 
-                 // Build the processing order with proper Gedächtnis handling
--                for (String subcat : subcatList) {
--                    if (subcat.equals("Figuren")) {
--                        processOrder.add(subcat);
--                    } else if (subcat.equals("Merkfähigkeiten") && hasGedaechtnisSubcat) {
--                        // Add Lernphase first, right after Figuren
--                        processOrder.add("Gedächtnis und Merkfähigkeit (Lernphase)");
--                        // Merkfähigkeiten (Abrufphase) will be added later in correct position
--                    } else if (!subcat.equals("Merkfähigkeiten")) {
--                        processOrder.add(subcat);
--                    }
-+                if (subcatList.contains("Figuren")) {
-+                    processOrder.add("Figuren");
-                 }
--                
--                // Add Abrufphase at the end if Merkfähigkeiten exists
-+
-+                if (hasGedaechtnisSubcat) {
-+                    processOrder.add("Gedächtnis und Merkfähigkeit (Lernphase)");
++        } else if ("Ursache-Wirkung".equals(type) && !triples.isEmpty()) {
++            RelationTriple t = triples.get(random.nextInt(triples.size()));
++            String sent = t.toString();
++            question = stem.replace("{SENTENCE}", sent);
++            correct = t.subjectGloss() + " " + t.relationGloss() + " " + t.objectGloss();
++            for (RelationTriple other : triples) {
++                String cand = other.subjectGloss() + " " + other.relationGloss() + " " + other.objectGloss();
++                if (!cand.equals(correct) && distractors.size() < 4) {
++                    distractors.add(cand);
 +                }
-+
-+                if (subcatList.contains("Zahlenfolgen")) {
-+                    processOrder.add("Zahlenfolgen");
++            }
++        } else {
++            String sent = sentences.isEmpty() ? "" : sentences.get(random.nextInt(sentences.size())).toString();
++            question = stem.replace("{SENTENCE}", sent);
++            correct = sent;
++            for (CoreMap s : sentences) {
++                String txt = s.toString();
++                if (!txt.equals(correct) && distractors.size() < 4) {
++                    distractors.add(txt);
 +                }
++            }
++        }
 +
-+                if (subcatList.contains("Wortflüssigkeit")) {
-+                    processOrder.add("Wortflüssigkeit");
-+                } else if (subcatList.contains("Wortfluessigkeit")) {
-+                    processOrder.add("Wortfluessigkeit");
++        while (distractors.size() < 4) {
++            distractors.add("...");
++        }
++
++        List<String> options = new ArrayList<>();
++        options.add(correct);
++        options.addAll(distractors.subList(0, 4));
++        Collections.shuffle(options);
++
++        int correctIndex = options.indexOf(correct);
++        return new QuestionData(question, options, correctIndex);
++    }
++
++    /** Inserts the question into the DB including the passage_id column. */
++    private int insertQuestion(String text, int number, int passageId) throws SQLException {
++        int subId = questionDAO.getSubcategoryId(category, subcategory);
++        String sql = "INSERT INTO questions (subcategory_id, question_number, text, format, test_simulation_id, passage_id) " +
++                "VALUES (?, ?, ?, ?, ?, ?)";
++        try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
++            stmt.setInt(1, subId);
++            stmt.setInt(2, number);
++            stmt.setString(3, text);
++            stmt.setString(4, "Kurz");
++            if (simulationId != null) {
++                stmt.setInt(5, simulationId);
++            } else {
++                stmt.setNull(5, java.sql.Types.INTEGER);
++            }
++            stmt.setInt(6, passageId);
++            stmt.executeUpdate();
++            try (ResultSet rs = stmt.getGeneratedKeys()) {
++                if (rs.next()) {
++                    return rs.getInt(1);
 +                }
++            }
++        }
++        throw new SQLException("Failed to insert question");
++    }
 +
-                 if (hasGedaechtnisSubcat) {
-                     processOrder.add("Gedächtnis und Merkfähigkeit (Abrufphase)");
-                 }
++    private static class QuestionData {
++        final String text;
++        final List<String> options;
++        final int correctIndex;
++        QuestionData(String t, List<String> o, int i) { this.text = t; this.options = o; this.correctIndex = i; }
++    }
++}
 +
-+                for (String subcat : subcatList) {
-+                    if (subcat.equals("Figuren") || subcat.equals("Merkfähigkeiten") ||
-+                        subcat.equals("Zahlenfolgen") || subcat.equals("Wortflüssigkeit") ||
-+                        subcat.equals("Wortfluessigkeit")) {
-+                        continue;
-+                    }
-+                    processOrder.add(subcat);
-+                }
-                 
-                 for (int i = 0; i < processOrder.size(); i++) {
-                     String subcategory = processOrder.get(i);
- 
-                     // Handle special Gedächtnis subcategories
-                     if (subcategory.equals("Gedächtnis und Merkfähigkeit (Lernphase)")) {
-                         // Add introduction page for Lernphase
-                         String introContent = getIntroContent(subcategory);
-                         if (introContent != null) {
-                             java.lang.reflect.Method addIntroMethod = printer.getClass()
-                                 .getMethod("addIntroductionPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), String.class);
-                             addIntroMethod.invoke(printer, pkg, introContent);
-                         }
-                         
-                         // Add allergy cards (2 per page, 8 total = 4 pages) - no solutions needed for cards
-                         java.lang.reflect.Method addAllergyMethod = printer.getClass()
-                             .getDeclaredMethod("addAllergyCards", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), java.sql.Connection.class, Integer.class);
-                         addAllergyMethod.setAccessible(true);
-                         addAllergyMethod.invoke(printer, pkg, conn, selectedSimulationId);
-                         
-                         // Add stop sign page
-                         java.lang.reflect.Method addStopSignMethod = printer.getClass()
-                             .getMethod("addStopSignPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
-                         addStopSignMethod.invoke(printer, pkg);
-                         
+diff --git a/src/main/resources/textverstaendnis/templates.json b/src/main/resources/textverstaendnis/templates.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..7f005446d9ffed7dca069325daaebff82256ae0a
+--- /dev/null
++++ b/src/main/resources/textverstaendnis/templates.json
+@@ -0,0 +1,17 @@
++{
++  "Ableitung": [
++    "Welche Schlussfolgerung kann aus dem Satz '{SENTENCE}' gezogen werden?"
++  ],
++  "Widerspruch": [
++    "Welche Aussage steht im Widerspruch zu '{SENTENCE}'?"
++  ],
++  "Nicht erwähnt": [
++    "Welche der folgenden Aussagen wird im Text nicht erwähnt?"
++  ],
++  "Kernaussage": [
++    "Was ist die Kernaussage des Textes?"
++  ],
++  "Ursache-Wirkung": [
++    "Welche Ursache führt zu folgendem Ereignis: '{SENTENCE}'?"
++  ]
++}
  
 EOF
 )

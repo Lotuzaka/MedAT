@@ -1,0 +1,17 @@
+{
+  "Ableitung": [
+    "Welche Schlussfolgerung kann aus dem Satz '{SENTENCE}' gezogen werden?"
+  ],
+  "Widerspruch": [
+    "Welche Aussage steht im Widerspruch zu '{SENTENCE}'?"
+  ],
+  "Nicht erwähnt": [
+    "Welche der folgenden Aussagen wird im Text nicht erwähnt?"
+  ],
+  "Kernaussage": [
+    "Was ist die Kernaussage des Textes?"
+  ],
+  "Ursache-Wirkung": [
+    "Welche Ursache führt zu folgendem Ereignis: '{SENTENCE}'?"
+  ]
+}
