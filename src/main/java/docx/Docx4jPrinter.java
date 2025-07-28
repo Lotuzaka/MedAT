@@ -270,8 +270,24 @@ public WordprocessingMLPackage buildDocumentComplete(
         boolean isFirstQuestionOnPage = true; // Track if this is the first question on each page
 
         for (int r = 0; r < model.getRowCount(); r++) {
-            String number = Objects.toString(model.getValueAt(r, 0), "");
+            String number = Objects.toString(model.getValueAt(r, 0), "").trim();
             Object questionObj = model.getValueAt(r, 1);
+
+            // Handle passage rows (non-numeric identifier and not option row)
+            if ((number.isEmpty() || !number.matches("\\d+")) && !number.matches("[A-E]\\)")
+                    && questionObj != null) {
+                String passage = questionObj.toString();
+                if (!passage.trim().isEmpty()) {
+                    P passageP = factory.createP();
+                    R passageR = factory.createR();
+                    Text passageT = factory.createText();
+                    passageT.setValue(passage);
+                    passageR.getContent().add(passageT);
+                    passageP.getContent().add(passageR);
+                    pkg.getMainDocumentPart().addObject(passageP);
+                }
+                continue;
+            }
 
             if (!number.isEmpty() && questionObj != null) {
                 String questionText;
@@ -363,9 +379,25 @@ public WordprocessingMLPackage buildDocumentComplete(
         boolean isFirstQuestionOnPage = true; // Track if first question on a new page
 
         for (int r = 0; r < model.getRowCount(); r++) {
-            String number = Objects.toString(model.getValueAt(r, 0), "");
+            String number = Objects.toString(model.getValueAt(r, 0), "").trim();
             Object questionObj = model.getValueAt(r, 1);
             String solution = Objects.toString(model.getValueAt(r, 2), "");
+
+            // Handle passage rows before question blocks
+            if ((number.isEmpty() || !number.matches("\\d+")) && !number.matches("[A-E]\\)")
+                    && questionObj != null) {
+                String passage = questionObj.toString();
+                if (!passage.trim().isEmpty()) {
+                    P passageP = factory.createP();
+                    R passageR = factory.createR();
+                    Text passageT = factory.createText();
+                    passageT.setValue(passage);
+                    passageR.getContent().add(passageT);
+                    passageP.getContent().add(passageR);
+                    pkg.getMainDocumentPart().addObject(passageP);
+                }
+                continue;
+            }
 
             if (!number.isEmpty() && questionObj != null) {
                 String questionText;

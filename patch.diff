@@ -1,426 +1,155 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
-diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
-index fa8da178091785e0ed020620b7e5de98dfdfe8a0..259e7eb74c1d6d445c121e4d7ec71f398f643d1c 100644
---- a/src/main/java/MedatoninDB.java
-+++ b/src/main/java/MedatoninDB.java
-@@ -1,26 +1,27 @@
- import dao.AllergyCardDAO;
-+import dao.PassageDAO;
- import model.AllergyCardData;
- import org.apache.poi.xwpf.usermodel.*;
- import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTSectPr;
- import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPageMar;
- import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPPr;
- import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTSpacing;
- import org.openxmlformats.schemas.wordprocessingml.x2006.main.STLineSpacingRule;
- import org.locationtech.jts.geom.Geometry;
- import org.locationtech.jts.geom.Envelope;
- // import org.locationtech.jts.io.ParseException;
- import org.locationtech.jts.io.WKTReader;
- import org.locationtech.jts.io.WKTWriter;
- import org.locationtech.jts.awt.ShapeWriter;
- import com.zaxxer.hikari.HikariConfig;
- import com.zaxxer.hikari.HikariDataSource;
- import javax.swing.*;
- import javax.swing.event.*;
- import javax.swing.plaf.basic.*;
- import javax.swing.table.*;
- import javax.swing.Timer;
- import java.awt.*;
- import java.awt.event.*;
- import java.awt.geom.AffineTransform;
- import java.awt.image.BufferedImage;
- import javax.imageio.ImageIO;
-@@ -159,50 +160,52 @@ public class MedatoninDB extends JFrame {
-     private DefaultTableModel tableModel; // Table model for adding rows
-     private JLabel userTextField; // Haupt-Textfeld for real-time editing
- 
-     private String currentCategory = "Biologie", currentSubcategory = ""; // Track the current subcategory
-     private JButton printCategoryButton; // Button that will dynamically change label
-     private JButton bioButton, chemButton, physButton, mathButton, kffButton; // Category buttons
-     private JPanel subcategoryPanel; // Panel to hold subcategory buttons
-     private JButton selectedSubcategoryButton = null; // Class-level variable to keep track of the currently selected
-                                                       // subcategory button
- 
-     private Map<JTable, Integer> tablePendingDeleteRowMap = new HashMap<>(); // Track pending delete row per table
-     private ImageIcon gearIcon; // Load the gear icon
-     private ImageIcon penIcon; // Load the pen icon
-     private ImageIcon penEditIcon; // Load the pen edit icon
- 
-     private boolean isEditMode = false; // Variable to check if edit mode is enabled
-     private Point initialClickPoint; // Initial click point for the drag
-     private JButton draggedButton; // Reference to the button being dragged
-     private JPanel draggedContainer; // Panel that contains the dragged button
-     private int originalIndex = -1; // Original index of the dragged button
-     private int dragThreshold = 5; // Threshold in pixels to start dragging
-     private boolean isDragging = false; // Indicates if a drag operation is in progress
-     
-     // Allergy card panel persistence
-     private JPanel currentAllergyCardGridPanel = null; // Keep reference to current allergy panel
-+    // Text passage panel persistence
-+    private JPanel currentTextPassagePanel = null;
-     private int lastTargetIndex = -1; // **Declaration of lastTargetIndex**
-     private Set<QuestionIdentifier> pendingDeleteQuestions = new HashSet<>();
-     private boolean isAdjustingFormat = false;
- 
-     // Panel to visually separate subcategories
-     private JPanel mainContentPanel;
-     JButton editToggleButton;
-     private JButton addSubcategoryButton; // Declare this as a class member
-     private Color backgroundColor = CLR_SURFACE;
-     private int buttonBorderRadius = 6; // Smaller radius for flatter look
- 
- 
-     // Dropdown to select test simulations
-     private JComboBox<String> simulationComboBox;
-     private Map<String, Integer> simulationMap; // Maps simulation names to their IDs
- 
-     private Integer selectedSimulationId = null; // ID der ausgewählten Simulation
- 
-     // Notification system components
-     private JPanel statusBar;
-     private JLabel statusLabel;
-     private JProgressBar statusProgressBar;
-     private JPanel toastContainer;
-     private Timer toastTimer;
- 
-@@ -2180,72 +2183,87 @@ public class MedatoninDB extends JFrame {
-             chemButton.setForeground(Color.WHITE);
-         } else if (category.equals("Physik")) {
-             physButton.setBackground(new Color(0, 122, 255)); // Modern blue
-             physButton.setForeground(Color.WHITE);
-         } else if (category.equals("Mathematik")) {
-             mathButton.setBackground(new Color(175, 82, 222)); // Modern purple
-             mathButton.setForeground(Color.WHITE);
-         } else if (category.equals("KFF")) {
-             kffButton.setBackground(new Color(255, 149, 0)); // Modern orange
-             kffButton.setForeground(Color.WHITE);
-         }
-     }
- 
-     // Adjust the print button width based on text length
-     private void adjustPrintButtonWidth(JButton button, String text) {
-         FontMetrics metrics = button.getFontMetrics(button.getFont());
-         int width = metrics.stringWidth(text) + 20; // Add some padding
-         button.setPreferredSize(new Dimension(width, button.getPreferredSize().height));
-         button.setMaximumSize(new Dimension(width, button.getPreferredSize().height));
-     }
- 
-     /**
-      * Save current allergy card data to database before switching subcategories
-      */
-     private void saveCurrentAllergyCardData() {
--        if (currentAllergyCardGridPanel != null && selectedSimulationId != null && 
-+        if (currentAllergyCardGridPanel != null && selectedSimulationId != null &&
-             "Merkfähigkeiten".equals(currentSubcategory)) {
-             try {
-                 @SuppressWarnings("unchecked")
-                 List<AllergyCardData> cardData = (List<AllergyCardData>) currentAllergyCardGridPanel
-                     .getClass().getMethod("getAllCards").invoke(currentAllergyCardGridPanel);
-                 
-                 if (!cardData.isEmpty()) {
-                     AllergyCardDAO allergyDAO = new AllergyCardDAO(conn);
-                     allergyDAO.insertAll(cardData, selectedSimulationId);
-                     debugLog("UI", "Auto-saved " + cardData.size() + " allergy cards before switching subcategory");
-                 }
-             } catch (Exception e) {
-                 debugLog("UI", LogLevel.WARN, "Could not auto-save allergy card data: " + e.getMessage());
+diff --git a/src/main/java/docx/Docx4jPrinter.java b/src/main/java/docx/Docx4jPrinter.java
+index 37c78f13ccd672010f5b865ca4acbf256e209a3e..d06a2830de217c51f8deacb42756fc4dbed8460d 100644
+--- a/src/main/java/docx/Docx4jPrinter.java
++++ b/src/main/java/docx/Docx4jPrinter.java
+@@ -248,53 +248,69 @@ public WordprocessingMLPackage buildDocumentComplete(
+             DefaultTableModel model = subcats.get(rawSubcat);
+             if (model != null) {
+                 addQuestions(pkg, model);
              }
          }
-     }
  
-+    /**
-+     * Save current text passage before switching subcategories.
-+     */
-+    private void saveCurrentTextPassage() {
-+        if (currentTextPassagePanel != null && "Textverständnis".equals(currentSubcategory)) {
-+            try {
-+                currentTextPassagePanel.getClass().getMethod("savePassage").invoke(currentTextPassagePanel);
-+                debugLog("UI", "Auto-saved text passage before switching subcategory");
-+            } catch (Exception e) {
-+                debugLog("UI", LogLevel.WARN, "Could not auto-save text passage: " + e.getMessage());
-+            }
-+        }
-+    }
-+
-     private void switchSubcategory(String category, String subcategory) {
-         
--        // Save allergy card data before switching if currently on Merkfähigkeiten
-+        // Save any special UI data before switching subcategories
-         saveCurrentAllergyCardData();
-+        saveCurrentTextPassage();
- 
-         currentCategory = category;
-         currentSubcategory = subcategory;
- 
-         // Remove all components from mainContentPanel
-         mainContentPanel.removeAll();
-         mainContentPanel.setLayout(new BorderLayout());
- 
-         // Create a panel to hold the content
-         JPanel subcategoryContentPanel = new JPanel();
-         subcategoryContentPanel.setLayout(new BorderLayout());
- 
-         // Create a panel for the buttons
-         JPanel buttonPanel = new JPanel();
-         buttonPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
-         buttonPanel.setBackground(backgroundColor);
- 
-         // Ensure the subcategory exists before setting the model
-         Map<String, DefaultTableModel> subcategories = categoryModels.get(category);
-         if (subcategories.containsKey(subcategory)) {
-             tableModel = subcategories.get(subcategory);
-         } else {
-             tableModel = createTableModel(); // Create an empty model if subcategory doesn't exist
-             subcategories.put(subcategory, tableModel); // Add the new subcategory to the map
-         }
-@@ -2411,50 +2429,77 @@ public class MedatoninDB extends JFrame {
-                         currentAllergyCardGridPanel.getClass().getMethod("generateRandomData").invoke(currentAllergyCardGridPanel);
-                         debugLog("UI", "Generated random data for all allergy cards");
-                         
-                         // Save allergy card data to database if we have a selected simulation
-                         if (selectedSimulationId != null) {
-                             @SuppressWarnings("unchecked")
-                             List<AllergyCardData> cardData = (List<AllergyCardData>) currentAllergyCardGridPanel.getClass().getMethod("getAllCards").invoke(currentAllergyCardGridPanel);
-                             AllergyCardDAO allergyDAO = new AllergyCardDAO(conn);
-                             allergyDAO.insertAll(cardData, selectedSimulationId);
-                             debugLog("UI", "Saved " + cardData.size() + " allergy cards to database for simulation " + selectedSimulationId);
-                         } else {
-                             debugLog("UI", LogLevel.WARN, "No simulation selected - allergy card data not saved to database");
-                         }
-                     } catch (Exception ex) {
-                         debugLog("UI", LogLevel.ERROR, "Failed to generate/save random data: " + ex.getMessage());
-                         ex.printStackTrace();
-                     }
-                 });
-                 
-                 debugLog("UI", "Added AllergyCardGridPanel for Merkfähigkeiten subcategory");
-             } catch (Exception e) {
-                 debugLog("UI", LogLevel.ERROR, "Failed to load AllergyCardGridPanel: " + e.getMessage());
-                 // Fallback to normal table view
-                 subcategoryContentPanel.add(subScrollPane, BorderLayout.CENTER);
-             }
-+        } else if ("Textverständnis".equals(currentSubcategory)) {
-+            // Split pane with table on left and text passage editor on right
-+            JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-+            splitPane.setLeftComponent(subScrollPane);
-+
-+            try {
-+                Class<?> panelClass = Class.forName("ui.textverstaendnis.TextPassagePanel");
-+                if (currentTextPassagePanel == null) {
-+                    int subId = getSubcategoryId(currentCategory, currentSubcategory);
-+                    currentTextPassagePanel = (JPanel) panelClass.getDeclaredConstructor(PassageDAO.class, int.class)
-+                            .newInstance(new PassageDAO(conn), subId);
-+                }
-+                JScrollPane passageScroll = new JScrollPane(currentTextPassagePanel);
-+                passageScroll.setPreferredSize(new Dimension(500, 380));
-+                splitPane.setRightComponent(passageScroll);
-+                splitPane.setResizeWeight(1.0);
-+                splitPane.setDividerLocation(0.6);
-+                splitPane.setOneTouchExpandable(true);
-+
-+                subcategoryContentPanel.add(splitPane, BorderLayout.CENTER);
-+
-+                // Load passage from DB each time we switch
-+                currentTextPassagePanel.getClass().getMethod("loadPassage").invoke(currentTextPassagePanel);
-+            } catch (Exception e) {
-+                debugLog("UI", LogLevel.ERROR, "Failed to load TextPassagePanel: " + e.getMessage());
-+                subcategoryContentPanel.add(subScrollPane, BorderLayout.CENTER);
-+            }
-         } else {
-             // Add components to subcategoryContentPanel for normal subcategories
-             subcategoryContentPanel.add(subScrollPane, BorderLayout.CENTER);
-         }
- 
-         // For other categories and subcategories, only add "Add Question" button
-         JButton addQuestionButton = createModernButton("Add Question");
-         addQuestionButton.setBackground(new Color(52, 199, 89)); // Modern green background
-         addQuestionButton.setForeground(Color.WHITE);
-         addQuestionButton.setFont(new Font("SansSerif", Font.BOLD, 14));
-         addQuestionButton.setFocusPainted(false);
-         addQuestionButton.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // Button padding
-         addQuestionButton.setAlignmentX(Component.LEFT_ALIGNMENT);
-         // Mark as navigation button for proper hover effects
-         addQuestionButton.putClientProperty("isNavigationButton", true);
- 
-         // Adjust button width
-         addQuestionButton.setPreferredSize(new Dimension(150, addQuestionButton.getPreferredSize().height));
- 
-         // Create buttons according to category and subcategory
-         // Add "Add Question" button for ALL categories and subcategories
-         buttonPanel.add(addQuestionButton);
- 
-         // Set up action listener for "Add Question" button
-         addQuestionButton.addActionListener(e -> {
-diff --git a/src/main/java/dao/PassageDAO.java b/src/main/java/dao/PassageDAO.java
-index 062d9a7e2f5b540a9e392241d1b27be0271dd3db..3ea04e03ac652bfc3cff5e4aeab88cc9ee039eaf 100644
---- a/src/main/java/dao/PassageDAO.java
-+++ b/src/main/java/dao/PassageDAO.java
-@@ -48,39 +48,59 @@ public class PassageDAO {
-             ps.setInt(3, id);
-             ps.executeUpdate();
+         // 4) break *between* subsections, but not after the last one
+         if (i < reorderedSubcats.size() - 1) {
+             addPageBreak(pkg);
          }
      }
  
-     /**
-      * Loads a passage by its identifier.
-      */
-     public Passage findById(int id) throws SQLException {
-         String sql = "SELECT id, subcategory_id, text, source FROM passages WHERE id = ?";
-         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-             ps.setInt(1, id);
-             try (ResultSet rs = ps.executeQuery()) {
-                 if (rs.next()) {
-                     return new Passage(
-                             rs.getInt("id"),
-                             rs.getInt("subcategory_id"),
-                             rs.getString("text"),
-                             rs.getString("source"));
-                 }
-             }
-         }
-         return null;
-     }
- 
-+    /**
-+     * Loads the passage for a given subcategory. Returns {@code null} if none exists.
-+     */
-+    public Passage findBySubcategoryId(int subcategoryId) throws SQLException {
-+        String sql = "SELECT id, subcategory_id, text, source FROM passages WHERE subcategory_id = ?";
-+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-+            ps.setInt(1, subcategoryId);
-+            try (ResultSet rs = ps.executeQuery()) {
-+                if (rs.next()) {
-+                    return new Passage(
-+                            rs.getInt("id"),
-+                            rs.getInt("subcategory_id"),
-+                            rs.getString("text"),
-+                            rs.getString("source"));
-+                }
-+            }
-+        }
-+        return null;
-+    }
-+
-     /**
-      * Deletes a passage.
-      */
-     public void delete(int id) throws SQLException {
-         String sql = "DELETE FROM passages WHERE id = ?";
-         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-             ps.setInt(1, id);
-             ps.executeUpdate();
-         }
-     }
- 
-     /** Simple record representing a passage. */
-     public record Passage(int id, int subcategoryId, String text, String source) {}
+     return pkg;
  }
-diff --git a/src/main/java/ui/textverstaendnis/TextPassagePanel.java b/src/main/java/ui/textverstaendnis/TextPassagePanel.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..4c8247f7099f9007581e6b60ac472e3af379d8d8
---- /dev/null
-+++ b/src/main/java/ui/textverstaendnis/TextPassagePanel.java
-@@ -0,0 +1,99 @@
-+package ui.textverstaendnis;
-+
-+import dao.PassageDAO;
-+
-+import javax.swing.*;
-+import javax.swing.text.StyledEditorKit;
-+import java.awt.*;
-+import java.awt.event.ActionEvent;
-+import java.sql.SQLException;
-+
-+/**
-+ * Simple editor panel for Textverständnis passages.
-+ */
-+public class TextPassagePanel extends JPanel {
-+    private final JTextPane textPane = new JTextPane();
-+    private final JTextField sourceField = new JTextField();
-+
-+    private final PassageDAO dao;
-+    private final int subcategoryId;
-+    private PassageDAO.Passage currentPassage;
-+
-+    public TextPassagePanel(PassageDAO dao, int subcategoryId) {
-+        this.dao = dao;
-+        this.subcategoryId = subcategoryId;
-+        setLayout(new BorderLayout());
-+        buildToolbar();
-+        add(new JScrollPane(textPane), BorderLayout.CENTER);
-+        JPanel south = new JPanel(new BorderLayout());
-+        south.add(new JLabel("Quelle:"), BorderLayout.WEST);
-+        south.add(sourceField, BorderLayout.CENTER);
-+        add(south, BorderLayout.SOUTH);
-+    }
-+
-+    private void buildToolbar() {
-+        JToolBar bar = new JToolBar();
-+        bar.setFloatable(false);
-+
-+        Action bold = new StyledEditorKit.BoldAction();
-+        bold.putValue(Action.NAME, "B");
-+        bar.add(bold);
-+
-+        Action italic = new StyledEditorKit.ItalicAction();
-+        italic.putValue(Action.NAME, "I");
-+        bar.add(italic);
-+
-+        Action bullet = new AbstractAction("\u2022") {
-+            @Override
-+            public void actionPerformed(ActionEvent e) {
-+                textPane.replaceSelection("\u2022 ");
-+            }
-+        };
-+        bar.add(bullet);
-+
-+        JButton loadBtn = new JButton("Load");
-+        loadBtn.addActionListener(e -> loadPassage());
-+        bar.add(loadBtn);
-+
-+        JButton saveBtn = new JButton("Save");
-+        saveBtn.addActionListener(e -> savePassage());
-+        bar.add(saveBtn);
-+
-+        add(bar, BorderLayout.NORTH);
-+    }
-+
-+    public void loadPassage() {
-+        try {
-+            currentPassage = dao.findBySubcategoryId(subcategoryId);
-+            if (currentPassage != null) {
-+                textPane.setText(currentPassage.text());
-+                sourceField.setText(currentPassage.source() == null ? "" : currentPassage.source());
-+            } else {
-+                textPane.setText("");
-+                sourceField.setText("");
-+            }
-+        } catch (SQLException ex) {
-+            JOptionPane.showMessageDialog(this, "Fehler beim Laden: " + ex.getMessage(),
-+                    "Load", JOptionPane.ERROR_MESSAGE);
-+        }
-+    }
-+
-+    public void savePassage() {
-+        try {
-+            String text = textPane.getText();
-+            String src = sourceField.getText().trim();
-+            if (currentPassage == null) {
-+                if (!text.trim().isEmpty()) {
-+                    int id = dao.insert(subcategoryId, text, src.isEmpty() ? null : src);
-+                    currentPassage = new PassageDAO.Passage(id, subcategoryId, text, src.isEmpty() ? null : src);
+ 
+     /**
+      * Append the given question table to the document with proper handling for
+      * different question types.
+      */
+     public void addQuestions(WordprocessingMLPackage pkg, DefaultTableModel model) {
+         int figurenCounter = 0; // Counter for Figuren questions
+         int nonFigCounter = 0; // Counter for non-Figuren questions
+         boolean isFirstQuestionOnPage = true; // Track if this is the first question on each page
+ 
+         for (int r = 0; r < model.getRowCount(); r++) {
+-            String number = Objects.toString(model.getValueAt(r, 0), "");
++            String number = Objects.toString(model.getValueAt(r, 0), "").trim();
+             Object questionObj = model.getValueAt(r, 1);
+ 
++            // Handle passage rows (non-numeric identifier and not option row)
++            if ((number.isEmpty() || !number.matches("\\d+")) && !number.matches("[A-E]\\)")
++                    && questionObj != null) {
++                String passage = questionObj.toString();
++                if (!passage.trim().isEmpty()) {
++                    P passageP = factory.createP();
++                    R passageR = factory.createR();
++                    Text passageT = factory.createText();
++                    passageT.setValue(passage);
++                    passageR.getContent().add(passageT);
++                    passageP.getContent().add(passageR);
++                    pkg.getMainDocumentPart().addObject(passageP);
 +                }
-+            } else {
-+                dao.update(currentPassage.id(), text, src.isEmpty() ? null : src);
-+                currentPassage = new PassageDAO.Passage(currentPassage.id(), subcategoryId, text, src.isEmpty() ? null : src);
++                continue;
 +            }
-+        } catch (SQLException ex) {
-+            JOptionPane.showMessageDialog(this, "Fehler beim Speichern: " + ex.getMessage(),
-+                    "Save", JOptionPane.ERROR_MESSAGE);
-+        }
-+    }
-+}
++
+             if (!number.isEmpty() && questionObj != null) {
+                 String questionText;
+                 boolean isFigurenQuestion = false;
+ 
+                 // Handle Figuren questions (DissectedPieces objects)
+                 if (questionObj.getClass().getSimpleName().equals("DissectedPieces")) {
+                     questionText = "Welche Figur lässt sich aus den folgenden Bausteinen zusammensetzen?";
+                     isFigurenQuestion = true;
+                 } else {
+                     questionText = questionObj.toString();
+                 }
+ 
+                 // Add page break for non-Figuren questions every 5 questions
+                 if (!isFigurenQuestion) {
+                     nonFigCounter++;
+                 }
+ 
+                 // For Figuren questions: existing page break logic
+                 if (isFigurenQuestion) {
+                     figurenCounter++;
+                     if (figurenCounter > 3 && (figurenCounter - 1) % 3 == 0) {
+                         // Clean any trailing breaks to avoid blank page before new section
+                         removeTrailingPageBreak(pkg);
+                         addPageBreak(pkg);
+                         isFirstQuestionOnPage = true; // Reset for new page
+diff --git a/src/main/java/docx/Docx4jPrinter.java b/src/main/java/docx/Docx4jPrinter.java
+index 37c78f13ccd672010f5b865ca4acbf256e209a3e..d06a2830de217c51f8deacb42756fc4dbed8460d 100644
+--- a/src/main/java/docx/Docx4jPrinter.java
++++ b/src/main/java/docx/Docx4jPrinter.java
+@@ -341,54 +357,70 @@ public WordprocessingMLPackage buildDocumentComplete(
+                 
+                 // Add options/answers if they exist in the model, but control spacing for page breaks
+                 // Also skip option rows to avoid re-processing them
+                 r = addQuestionOptions(pkg, model, r, isFirstQuestionOnPage, needsPageBreak, isFigurenQuestion, nonFigCounter);
+ 
+ 
+                 // Reset the first question flag after processing the first question
+                 isFirstQuestionOnPage = false;
+             }
+         }
+ 
+         // Ensure no leftover page break after the last question
+         removeTrailingPageBreak(pkg);
+     }
+ 
+     /**
+      * Add questions with solutions to the document with proper handling for
+      * different question types.
+      */
+     public void addQuestionsSolution(WordprocessingMLPackage pkg, DefaultTableModel model) {
+         int figurenCounter = 0; // Counter for Figuren questions
+         int nonFigCounter = 0; // Counter for non-Figuren questions
+         boolean isFirstQuestionOnPage = true; // Track if first question on a new page
+ 
+         for (int r = 0; r < model.getRowCount(); r++) {
+-            String number = Objects.toString(model.getValueAt(r, 0), "");
++            String number = Objects.toString(model.getValueAt(r, 0), "").trim();
+             Object questionObj = model.getValueAt(r, 1);
+             String solution = Objects.toString(model.getValueAt(r, 2), "");
+ 
++            // Handle passage rows before question blocks
++            if ((number.isEmpty() || !number.matches("\\d+")) && !number.matches("[A-E]\\)")
++                    && questionObj != null) {
++                String passage = questionObj.toString();
++                if (!passage.trim().isEmpty()) {
++                    P passageP = factory.createP();
++                    R passageR = factory.createR();
++                    Text passageT = factory.createText();
++                    passageT.setValue(passage);
++                    passageR.getContent().add(passageT);
++                    passageP.getContent().add(passageR);
++                    pkg.getMainDocumentPart().addObject(passageP);
++                }
++                continue;
++            }
++
+             if (!number.isEmpty() && questionObj != null) {
+                 String questionText;
+                 boolean isFigurenQuestion = false;
+ 
+                 // Handle Figuren questions (DissectedPieces objects)
+                 if (questionObj.getClass().getSimpleName().equals("DissectedPieces")) {
+                     questionText = "Welche Figur lässt sich aus den folgenden Bausteinen zusammensetzen?";
+                     isFigurenQuestion = true;
+                 } else {
+                     questionText = questionObj.toString();
+                 }
+ 
+                 // Page break for non-Figuren questions every 5 questions
+                 if (!isFigurenQuestion) {
+                     nonFigCounter++;
+                 }
+ 
+                 // For Figuren questions: existing page break logic
+                 if (isFigurenQuestion) {
+                     figurenCounter++;
+                     if (figurenCounter > 3 && (figurenCounter - 1) % 3 == 0) {
+                         addPageBreak(pkg);
+                         isFirstQuestionOnPage = true; // Reset for new page
+                     }
+                 }
  
 EOF
 )
