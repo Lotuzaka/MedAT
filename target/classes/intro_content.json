@@ -85,16 +85,6 @@
         "correct_answer": "E",
         "correct_answer_text": "Die Pulmonalklappe ist eine Taschenklappe"
     },
-    "Figuren Zusammensetzen": {
-        "template": "figuren",
-        "header": "Figuren Zusammensetzen",
-        "task_count": "15 Aufgaben",
-        "time_limit": "20 Minuten",
-        "spatial_description": "Die folgenden Aufgaben überprüfen Ihr räumliches Vorstellungsvermögen.",
-        "task_explanation": "Ihnen werden mehrere Einzelteile einer zerstückelten Figur vorgestellt. Ihre Aufgabe ist es herauszufinden, Welche Figur [Antwortmöglichkeiten A) bis D)] sich durch das Zusammensetzen der Teile bilden lässt. Sollten die zusammengesetzten Teile keiner dieser Figuren entsprechen, so ist Antwortmöglichkeit E) zu wählen.",
-        "visual_example": "Welche Figur lässt sich aus den folgenden Bausteinen zusammensetzen?",
-        "correct_answer": "A"
-    },
     "Figuren": {
         "template": "figuren",
         "header": "Figuren Zusammensetzen",
@@ -123,30 +113,12 @@
         "correct_answer": "D",
         "correct_answer_text": "Keine"
     },
-    "Merkfähigkeiten": {
-        "template": "memory_learning",
-        "header": "Gedächtnis und Merkfähigkeit",
-        "subheader": "Lernphase",
-        "learning_time": "Lernzeit für 8 Ausweise: 8 Minuten",
-        "description": "Die folgenden Aufgaben überprüfen Ihre Fähigkeit Bilder und Fakten zu merken und später Fragen diesbezüglich zu beantworten.\nIhnen werden insgesamt 8 Allergieausweise mit je 8 Merkmalen angezeigt. Bitte prägen Sie sich alle Fakten in der zu Ihnen zur Verfügung stehenden Zeit gut ein. Anschließend werden Sie zwei weitere Untertests absolvieren und danach Fragen zu den Ausweisen beantworten.",
-        "learning_rules": "Bitte beachten Sie, dass während der Lernphase keinerlei Hilfsmaterialien erlaubt sind! Bitte legen Sie Ihr Schreibgerät auf den Tisch vor Ihnen. Sie dürfen ebenso in den folgenden zwei Untertests keine Notizen zu den Ausweisen zu machen. Ihr Testheft wird bei der Auswertung stichprobenartig auf Regelverstoß überprüft.",
-        "example_question": "Die Person mit der Blutgruppe B hat welche Allergie?",
-        "answer_options": [
-            "Pollen",
-            "Staub",
-            "Penicillin",
-            "Keine",
-            "Milben"
-        ],
-        "correct_answer": "D",
-        "correct_answer_text": "Keine"
-    },
     "Zahlenfolgen": {
         "template": "default",
         "header": "Zahlenfolgen",
         "task_count": "10 Aufgaben",
         "time_limit": "15 Minuten",
-        "description": "In diesem Untertest werden Ihre Fähigkeit eine Zahlenreihe logisch fortzusetzen überprüft.\nIhnen wird pro Aufgabe eine Zahlenreihe präsentiert. Ihre Aufgabe ist es die Regel hinter jeder\nZahlenreihe zu erkennen und anhand dieser die zwei folgenden Zahlen der Reihe zu berechnen. Sollten\ndie errechneten Zahlen nicht unter den Antwortmöglichkeiten A) bis D) zu finden sein, so ist Antwort E) zu wählen.\n\n**ZUSÄTZLICHER TEXT:** Hier können Sie beliebigen zusätzlichen Text hinzufügen!",
+        "description": "In diesem Untertest werden Ihre Fähigkeit eine Zahlenreihe logisch fortzusetzen überprüft.\nIhnen wird pro Aufgabe eine Zahlenreihe präsentiert. Ihre Aufgabe ist es die Regel hinter jeder\nZahlenreihe zu erkennen und anhand dieser die zwei folgenden Zahlen der Reihe zu berechnen. Sollten\ndie errechneten Zahlen nicht unter den Antwortmöglichkeiten A) bis D) zu finden sein, so ist Antwort E) zu wählen.",
         "example_question": "2\t4\t3\t6\t5\t10\t9\t?\t?",
         "answer_options": [
             "18/17",
@@ -190,52 +162,25 @@
             "Keine der Antworten ist richtig"
         ],
         "correct_answer": "D",
-        "correct_answeKeine Antwortr_text": "A"
-    },
-    "Wortfluessigkeit": {
-        "template": "default",
-        "header": "Wortflüssigkeit",
-        "task_count": "15 Aufgaben",
-        "time_limit": "20 Minuten",
-        "description": "In diesem Untertest wird Ihnen pro Aufgabe ein Wort präsentiert, bei welchem die Anordnung\nder Buchstaben vertauscht wurde. Ihre Aufgabe ist es, die Buchstaben in die korrekte Reihenfolge zu bringen und den Anfangsbuchstaben des gesuchten Wortes zu finden.",
-        "example_question": "U \t N \t A \t H \t M \t E \t F \t A",
-        "answer_options": [
-            "Anfangsbuchtabe: U",
-            "Anfangsbuchtabe: F",
-            "Anfangsbuchtabe: H",
-            "Anfangsbuchtabe: A",
-            "Keine der Antworten ist richtig"
-        ],
-        "correct_answer": "D",
-        "correct_answeKeine Antwortr_text": "A"
+        "correct_answer_text": "A"
     },
     "Gedächtnis und Merkfähigkeit (Abrufphase)": {
         "template": "memory_recall",
         "header": "Gedächtnis und Merkfähigkeit",
         "subheader": "Abrufphase",
-        "task_count": "40 Aufgaben",
-        "time_limit": "25 Minuten",
-        "description": "In diesem Aufgabenteil werden Sie nun Fragen zu den Allergieausweisen aus der Lernphase beantworten.\nBitte beachten Sie erneut, dass keinerlei Hilfsmaterialien erlaubt sind!"
-    },
-    "Implikationen erkennen": {
-        "template": "implikationen",
-        "header": "Implikationen erkennen",
-        "task_count": "10 Aufgaben",
-        "time_limit": "10 Minuten",
-        "description": "Die folgenden Aufgaben überprüfen Ihre Fähigkeit Annahmen in Aussagen zu erkennen.\nIn jeder Aufgabe wird Ihnen eine Ausgangsaussage gezeigt. Bitte beurteilen Sie, welche der gegebenen Antwortmöglichkeiten eine notwendige Annahme dieser Ausgangsaussage ist. Die gesuchte Annahme muss erfüllt werden, damit die Ausgangsaussage wahr ist.",
-        "example_premises": [
-            "\"Alle Hunde sind Katzen.\"",
-            "\"Alle Katzen sind Pferde.\""
-        ],
+        "task_count": "25 Aufgaben",
+        "time_limit": "15 Minuten",
+        "description": "In diesem Untertest wird überprüft, ob sie sich die Informationen der vorher gezeigten Allergieausweise der einzelnen Personen einprägen konnten. Bitte beantworten Sie die folgenden Fragen zu den Allergieausweisen.",
+        "example_question": "Welche Blutgruppe hat die Person mit der Ausweisnummer 32452?",
         "answer_options": [
-            "Alle Hunde sind Pferde",
-            "Keine Hunde sind Pferde",
-            "Einige Hunde sind keine Pferde",
-            "Alle Pferde sind Hunde",
-            "Keine der Antworten ist richtig"
+            "A",
+            "AB",
+            "0",
+            "B",
+            "Keine der Antworten ist richtig."
         ],
-        "correct_answer": "A",
-        "correct_answer_text": "Alle Hunde sind Pferde"
+        "correct_answer": "D",
+        "correct_answer_text": "B"
     },
     "Implikationen": {
         "template": "implikationen",

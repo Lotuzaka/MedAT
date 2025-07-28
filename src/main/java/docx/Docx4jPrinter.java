@@ -644,12 +644,14 @@ public WordprocessingMLPackage buildDocumentComplete(
         
         // Find key sections
         String headerLine = "";
+        String subheaderLine = "";
         String timingLine = "";
         List<String> instructionLines = new ArrayList<>();
         List<String> exampleLines = new ArrayList<>();
         
         boolean inInstructions = false;
         boolean inExample = false;
+        boolean headerFound = false;
         
         for (String line : lines) {
             line = line.trim();
@@ -661,6 +663,11 @@ public WordprocessingMLPackage buildDocumentComplete(
                 line.contains("Implikationen") || line.contains("Emotionen") || 
                 line.contains("Soziales") || line.contains("Textverständnis"))) {
                 headerLine = line;
+                headerFound = true;
+            } else if (headerFound && subheaderLine.isEmpty() && 
+                       (line.equals("Lernphase") || line.equals("Abrufphase"))) {
+                // Detect subheader for memory sections
+                subheaderLine = line;
             } else if (line.startsWith("Bearbeitungszeit") || line.startsWith("Lernzeit")) {
                 timingLine = line;
             } else if (line.startsWith("Beispielaufgabe:") || line.startsWith("Beispieltext:") || line.startsWith("Beispielausweis:")) {
@@ -689,17 +696,22 @@ public WordprocessingMLPackage buildDocumentComplete(
             addFormattedParagraph(pkg, headerLine, true, 36, 0, 0, false, JcEnumeration.LEFT, "Montserrat");
         }
         
-        // 2. Add timing line - Bold, Montserrat, 11pt, Vor 6pt, Nach 18pt, Mehrfach 1.15
+        // 2. Add subheader if present - Bold, 14pt, line break instead of paragraph break
+        if (!subheaderLine.isEmpty()) {
+            addFormattedSubheader(pkg, subheaderLine);
+        }
+        
+        // 3. Add timing line - Bold, Montserrat, 11pt, Vor 6pt, Nach 18pt, Mehrfach 1.15
         if (!timingLine.isEmpty()) {
             addFormattedParagraph(pkg, timingLine, true, 22, 120, 360, true, JcEnumeration.LEFT, "Montserrat");
         }
         
-        // 3. Add instructions in a 1x1 table
+        // 4. Add instructions in a 1x1 table
         if (!instructionLines.isEmpty()) {
             addInstructionsTable(pkg, instructionLines);
         }
         
-        // 4. Add example section with "Beispielaufgabe:" bold
+        // 5. Add example section with "Beispielaufgabe:" bold
         for (int idx = 0; idx < exampleLines.size(); idx++) {
             String exampleLine = exampleLines.get(idx);
 
@@ -715,6 +727,11 @@ public WordprocessingMLPackage buildDocumentComplete(
             if (exampleLine.startsWith("Beispielaufgabe:") || exampleLine.startsWith("Beispieltext:") || exampleLine.startsWith("Beispielausweis:")) {
                 // Example question header: Bold, Aptos 11pt, Vor 10pt, Nach 10pt, Mehrfach 1.15
                 addFormattedParagraph(pkg, exampleLine, true, 22, 200, 200, true, JcEnumeration.LEFT, "Aptos");
+                
+                // If this is Beispielausweis for memory section, add example allergy card
+                if (exampleLine.startsWith("Beispielausweis:") && headerLine.contains("Gedächtnis")) {
+                    addExampleAllergyCard(pkg);
+                }
             } else if (exampleLine.equals("Welche Figur lässt sich aus den folgenden Bausteinen zusammensetzen?")
                     && headerLine.contains("Figuren")) {
                 // Add the question text for Figuren example
@@ -775,6 +792,7 @@ public WordprocessingMLPackage buildDocumentComplete(
                     addPageBreak(pkg);
                 }
                 
+                
                 addAllergyCard(pkg, cardObj);
                 cardsAdded++;
             }
@@ -810,47 +828,71 @@ public WordprocessingMLPackage buildDocumentComplete(
         String ausstellungsland = (String) cardClass.getMethod("ausstellungsland").invoke(cardData);
         byte[] bildBytes = (byte[]) cardClass.getMethod("bildPng").invoke(cardData);
         
-        // Create a table for the allergy card layout
+        // Create a table for the allergy card layout - single row with photo left, text right
         Tbl cardTable = factory.createTbl();
         
-        // Table properties
+        // Table properties with card-style borders
         TblPr tblPr = factory.createTblPr();
         TblWidth tblWidth = factory.createTblWidth();
         tblWidth.setType("pct");
         tblWidth.setW(BigInteger.valueOf(5000)); // 100% width
         tblPr.setTblW(tblWidth);
         
-        // Add borders
+        // Create thick borders for card-like appearance with rounded effect
         TblBorders tblBorders = factory.createTblBorders();
-        CTBorder border = factory.createCTBorder();
-        border.setVal(STBorder.SINGLE);
-        border.setSz(BigInteger.valueOf(4));
-        tblBorders.setTop(border);
-        tblBorders.setLeft(border);
-        tblBorders.setBottom(border);
-        tblBorders.setRight(border);
-        tblBorders.setInsideH(border);
-        tblBorders.setInsideV(border);
+        
+        // Create clean straight borders
+        CTBorder straightBorder = factory.createCTBorder();
+        straightBorder.setVal(STBorder.SINGLE); // Simple straight line border
+        straightBorder.setSz(BigInteger.valueOf(8)); // Standard border thickness
+        straightBorder.setColor("4A5568"); // Professional dark gray color
+        straightBorder.setSpace(BigInteger.valueOf(0)); // No extra spacing for clean look
+        
+        tblBorders.setTop(straightBorder);
+        tblBorders.setLeft(straightBorder);
+        tblBorders.setBottom(straightBorder);
+        tblBorders.setRight(straightBorder);
         tblPr.setTblBorders(tblBorders);
+        
+        // Add subtle table shading for modern card background effect
+        CTShd tblShd = factory.createCTShd();
+        tblShd.setVal(STShd.CLEAR);
+        tblShd.setColor("000000");
+        tblShd.setFill("FAFAFA"); // Very light gray background for subtle card effect
+        tblPr.setShd(tblShd);
         
         cardTable.setTblPr(tblPr);
         
-        // Title row
+        // Title row spanning across entire width first
         Tr titleRow = factory.createTr();
         Tc titleCell = factory.createTc();
         
+        // Full width for title cell - spans both photo and text columns
         TcPr titleCellPr = factory.createTcPr();
         TblWidth titleCellWidth = factory.createTblWidth();
         titleCellWidth.setType("pct");
         titleCellWidth.setW(BigInteger.valueOf(5000)); // 100% width
         titleCellPr.setTcW(titleCellWidth);
+        
+        // Add column span for title to cover both photo and text columns
+        org.docx4j.wml.TcPrInner.GridSpan gridSpan = factory.createTcPrInnerGridSpan();
+        gridSpan.setVal(BigInteger.valueOf(2)); // Span 2 columns
+        titleCellPr.setGridSpan(gridSpan);
+        
         titleCell.setTcPr(titleCellPr);
         
+        // Add title with medical cross - centered across entire card
         P titleP = factory.createP();
         PPr titlePPr = factory.createPPr();
         Jc titleJc = factory.createJc();
         titleJc.setVal(JcEnumeration.CENTER);
         titlePPr.setJc(titleJc);
+        
+        // Add padding for title
+        PPrBase.Spacing titleSpacing = factory.createPPrBaseSpacing();
+        titleSpacing.setBefore(BigInteger.valueOf(120)); // 6pt before
+        titleSpacing.setAfter(BigInteger.valueOf(120)); // 6pt after
+        titlePPr.setSpacing(titleSpacing);
         titleP.setPPr(titlePPr);
         
         R titleR = factory.createR();
@@ -874,35 +916,167 @@ public WordprocessingMLPackage buildDocumentComplete(
         Text titleText = factory.createText();
         titleText.setValue("ALLERGIEAUSWEIS");
         titleR.getContent().add(titleText);
+        
+        // Add medical cross symbol in red
+        R crossR = factory.createR();
+        RPr crossRPr = factory.createRPr();
+        org.docx4j.wml.Color crossColor = factory.createColor();
+        crossColor.setVal("FF0000"); // Red color
+        crossRPr.setColor(crossColor);
+        HpsMeasure crossSize = factory.createHpsMeasure();
+        crossSize.setVal(BigInteger.valueOf(24)); // 12pt font
+        crossRPr.setSz(crossSize);
+        crossRPr.setSzCs(crossSize);
+        crossR.setRPr(crossRPr);
+        
+        Text crossText = factory.createText();
+        crossText.setValue("  ✚"); // Medical cross with spacing
+        crossR.getContent().add(crossText);
+        
         titleP.getContent().add(titleR);
+        titleP.getContent().add(crossR);
         titleCell.getContent().add(titleP);
         titleRow.getContent().add(titleCell);
         cardTable.getContent().add(titleRow);
         
-        // Data rows
-        addCardDataRow(cardTable, "Name:", name);
-        addCardDataRow(cardTable, "Geburtsdatum:", geburtsdatum != null ? geburtsdatum.toString() : "");
-        addCardDataRow(cardTable, "Medikamenteneinnahme:", medikamente != null ? medikamente : "Keine");
-        addCardDataRow(cardTable, "Blutgruppe:", blutgruppe != null ? blutgruppe : "");
-        addCardDataRow(cardTable, "Bekannte Allergien:", allergien != null ? allergien : "Keine");
-        addCardDataRow(cardTable, "Ausweisnummer:", ausweisnummer != null ? ausweisnummer : "");
-        addCardDataRow(cardTable, "Ausstellungsland:", ausstellungsland != null ? ausstellungsland : "");
+        // Content row: photo left, text right
+        Tr contentRow = factory.createTr();
         
-        // Add image if available
+        // Photo cell (left side) - smaller to give more space to text
+        Tc photoCell = factory.createTc();
+        TcPr photoCellPr = factory.createTcPr();
+        TblWidth photoCellWidth = factory.createTblWidth();
+        photoCellWidth.setType("pct");
+        photoCellWidth.setW(BigInteger.valueOf(1200)); // 24% width for photo (reduced)
+        photoCellPr.setTcW(photoCellWidth);
+        
+        // Vertical alignment for photo cell
+        CTVerticalJc photoVAlign = factory.createCTVerticalJc();
+        photoVAlign.setVal(STVerticalJc.CENTER);
+        photoCellPr.setVAlign(photoVAlign);
+        // No left margin - image directly at left edge of cell
+        
+        photoCell.setTcPr(photoCellPr);
+        
+        // Add photo or placeholder
+        P photoP = factory.createP();
+        PPr photoPPr = factory.createPPr();
+        Jc photoJc = factory.createJc();
+        photoJc.setVal(JcEnumeration.CENTER);
+        photoPPr.setJc(photoJc);
+        photoP.setPPr(photoPPr);
+        
         if (bildBytes != null && bildBytes.length > 0) {
-            addCardImageRow(cardTable, bildBytes, pkg);
+            try {
+                BinaryPartAbstractImage imagePart = BinaryPartAbstractImage.createImagePart(pkg, bildBytes);
+                // Set photo height to 5cm (approximately 142 points, 1cm ≈ 28.35 points)
+                // 5cm width & height = 1800000 EMU; use 7-arg overload to force exact size
+                Inline inline = imagePart.createImageInline("Allergy Card Photo", "Photo", 0, 0, 2160000, 2160000, false);
+                
+                R photoR = factory.createR();
+                Drawing drawing = factory.createDrawing();
+                drawing.getAnchorOrInline().add(inline);
+                photoR.getContent().add(drawing);
+                photoP.getContent().add(photoR);
+            } catch (Exception e) {
+                // Placeholder text on error
+                R photoR = factory.createR();
+                Text photoT = factory.createText();
+                photoT.setValue("[Foto]");
+                photoR.getContent().add(photoT);
+                photoP.getContent().add(photoR);
+            }
+        } else {
+            // Placeholder text if no image
+            R photoR = factory.createR();
+            Text photoT = factory.createText();
+            photoT.setValue("[Foto]");
+            photoR.getContent().add(photoT);
+            photoP.getContent().add(photoR);
         }
+        
+        photoCell.getContent().add(photoP);
+        
+        // Text cell (right side) - larger to prevent line breaks with margin for spacing
+        Tc textCell = factory.createTc();
+        TcPr textCellPr = factory.createTcPr();
+        TblWidth textCellWidth = factory.createTblWidth();
+        textCellWidth.setType("pct");
+        textCellWidth.setW(BigInteger.valueOf(3800)); // 76% width for text (increased)
+        textCellPr.setTcW(textCellWidth);
+        
+        // Add left margin to text cell for spacing from photo
+        TcMar textCellMar = factory.createTcMar();
+        TblWidth leftMargin = factory.createTblWidth();
+        leftMargin.setType("dxa");
+        leftMargin.setW(BigInteger.valueOf(144)); // Reduced from 288 to 144 twips (approximately 5px equivalent)
+        textCellMar.setLeft(leftMargin);
+        textCellPr.setTcMar(textCellMar);
+        
+        // Vertical alignment for text cell
+        CTVerticalJc textVAlign = factory.createCTVerticalJc();
+        textVAlign.setVal(STVerticalJc.TOP);
+        textCellPr.setVAlign(textVAlign);
+        
+        textCell.setTcPr(textCellPr);
+        
+        // Format geburtsdatum as DD.Month
+        String formattedDate = "";
+        if (geburtsdatum != null) {
+            String dateStr = geburtsdatum.toString();
+            if (dateStr.length() >= 10) {
+                try {
+                    String[] dateParts = dateStr.split("-");
+                    if (dateParts.length >= 3) {
+                        String year = dateParts[0];
+                        String month = dateParts[1];
+                        String day = dateParts[2];
+                        
+                        // Convert month number to month name
+                        String[] monthNames = {"Januar", "Februar", "März", "April", "Mai", "Juni",
+                                              "Juli", "August", "September", "Oktober", "November", "Dezember"};
+                        int monthNum = Integer.parseInt(month) - 1; // 0-based index
+                        if (monthNum >= 0 && monthNum < 12) {
+                            formattedDate = day + ". " + monthNames[monthNum];
+                        } else {
+                            formattedDate = day + "." + month;
+                        }
+                    } else {
+                        formattedDate = dateStr;
+                    }
+                } catch (Exception e) {
+                    formattedDate = dateStr;
+                }
+            } else {
+                formattedDate = dateStr;
+            }
+        }
+        
+        // Add all data fields as simple text lines
+        addCardTextField(textCell, "Name", name);
+        addCardTextField(textCell, "Geburtsdatum", formattedDate);
+        addCardTextField(textCell, "Medikamenteneinnahme", medikamente != null ? medikamente : "Keine");
+        addCardTextField(textCell, "Blutgruppe", blutgruppe != null ? blutgruppe : "");
+        addCardTextField(textCell, "Bekannte Allergien", allergien != null ? allergien : "Keine");
+        addCardTextField(textCell, "Ausweisnummer", ausweisnummer != null ? ausweisnummer : "");
+        addCardTextField(textCell, "Ausstellungsland", ausstellungsland != null ? ausstellungsland : "");
+        
+        contentRow.getContent().add(photoCell);
+        contentRow.getContent().add(textCell);
+        cardTable.getContent().add(contentRow);
         
         pkg.getMainDocumentPart().addObject(cardTable);
         
-        // Add spacing after card
-        P spacingP = factory.createP();
-        PPr spacingPPr = factory.createPPr();
-        PPrBase.Spacing spacing = factory.createPPrBaseSpacing();
-        spacing.setAfter(BigInteger.valueOf(400)); // 20pt spacing
-        spacingPPr.setSpacing(spacing);
-        spacingP.setPPr(spacingPPr);
-        pkg.getMainDocumentPart().addObject(spacingP);
+        // Add 4 line spacing after each card for proper vertical separation
+        for (int i = 0; i < 4; i++) {
+            P spacingP = factory.createP();
+            PPr spacingPPr = factory.createPPr();
+            PPrBase.Spacing spacing = factory.createPPrBaseSpacing();
+            spacing.setAfter(BigInteger.valueOf(120)); // 6pt spacing per line
+            spacingPPr.setSpacing(spacing);
+            spacingP.setPPr(spacingPPr);
+            pkg.getMainDocumentPart().addObject(spacingP);
+        }
     }
     
     /**
@@ -983,12 +1157,76 @@ public WordprocessingMLPackage buildDocumentComplete(
     }
     
     /**
+     * Add a text field to the allergy card text cell with extra line spacing
+     */
+    private void addCardTextField(Tc textCell, String label, String value) {
+        P fieldP = factory.createP();
+        PPr fieldPPr = factory.createPPr();
+        
+        // Add more spacing between fields - increased for better readability
+        PPrBase.Spacing fieldSpacing = factory.createPPrBaseSpacing();
+        fieldSpacing.setAfter(BigInteger.valueOf(240)); // 12pt spacing after each field (increased from 4pt)
+        fieldPPr.setSpacing(fieldSpacing);
+        fieldP.setPPr(fieldPPr);
+        
+        // Label part (bold)
+        R labelR = factory.createR();
+        RPr labelRPr = factory.createRPr();
+        BooleanDefaultTrue labelBold = factory.createBooleanDefaultTrue();
+        labelRPr.setB(labelBold);
+        
+        // Set font to Aptos
+        RFonts labelFonts = factory.createRFonts();
+        labelFonts.setAscii("Aptos");
+        labelFonts.setHAnsi("Aptos");
+        labelRPr.setRFonts(labelFonts);
+        
+        HpsMeasure labelSize = factory.createHpsMeasure();
+        labelSize.setVal(BigInteger.valueOf(20)); // 10pt
+        labelRPr.setSz(labelSize);
+        labelRPr.setSzCs(labelSize);
+        
+        labelR.setRPr(labelRPr);
+        
+        Text labelText = factory.createText();
+        labelText.setValue(label + ":  "); // Add 2 spaces after the colon
+        // Preserve trailing spaces so Word does not trim them
+        labelText.setSpace("preserve");
+        labelR.getContent().add(labelText);
+        fieldP.getContent().add(labelR);
+        
+        // Value part (normal)
+        R valueR = factory.createR();
+        RPr valueRPr = factory.createRPr();
+        
+        // Set font to Aptos
+        RFonts valueFonts = factory.createRFonts();
+        valueFonts.setAscii("Aptos");
+        valueFonts.setHAnsi("Aptos");
+        valueRPr.setRFonts(valueFonts);
+        
+        HpsMeasure valueSize = factory.createHpsMeasure();
+        valueSize.setVal(BigInteger.valueOf(20)); // 10pt
+        valueRPr.setSz(valueSize);
+        valueRPr.setSzCs(valueSize);
+        
+        valueR.setRPr(valueRPr);
+        
+        Text valueText = factory.createText();
+        valueText.setValue(value != null ? value : "");
+        valueR.getContent().add(valueText);
+        fieldP.getContent().add(valueR);
+        
+        textCell.getContent().add(fieldP);
+    }
+    
+    /**
      * Add an image row to the allergy card table
      */
     private void addCardImageRow(Tbl cardTable, byte[] imageBytes, WordprocessingMLPackage pkg) {
         try {
             BinaryPartAbstractImage imagePart = BinaryPartAbstractImage.createImagePart(pkg, imageBytes);
-            Inline inline = imagePart.createImageInline("Allergy Card Photo", "Photo", 0, 1, false);
+            Inline inline = imagePart.createImageInline("Allergy Card Photo", "Photo", 0, 142, false);
             
             Tr imageRow = factory.createTr();
             Tc imageCell = factory.createTc();
@@ -1082,7 +1320,7 @@ public WordprocessingMLPackage buildDocumentComplete(
         stoppR.getContent().add(stoppText);
         stoppP.getContent().add(stoppR);
         
-        pkg.getMainDocumentPart().addObject(stoppP);
+        //pkg.getMainDocumentPart().addObject(stoppP);
         
         // Add instruction text below
         P instructionP = factory.createP();
@@ -1118,7 +1356,7 @@ public WordprocessingMLPackage buildDocumentComplete(
         
         Text instructionText = factory.createText();
         instructionText.setValue("Bitte warten Sie auf weitere Anweisungen.");
-        instructionR.getContent().add(instructionText);
+        //instructionR.getContent().add(instructionText);
         instructionP.getContent().add(instructionR);
         
         pkg.getMainDocumentPart().addObject(instructionP);
@@ -1198,6 +1436,56 @@ public WordprocessingMLPackage buildDocumentComplete(
             textElement.setValue(parts[i]);
             run.getContent().add(textElement);
         }
+        paragraph.getContent().add(run);
+        
+        pkg.getMainDocumentPart().addObject(paragraph);
+    }
+    
+    /**
+     * Helper method to add a formatted subheader with line break instead of paragraph break
+     * Format: Bold, 14pt font, line break from previous content
+     */
+    private void addFormattedSubheader(WordprocessingMLPackage pkg, String text) {
+        // Get the last paragraph and add the subheader as a line break + new content
+        P paragraph = factory.createP();
+        PPr pPr = factory.createPPr();
+        
+        // Set minimal spacing - no space before, minimal space after
+        PPrBase.Spacing spacing = factory.createPPrBaseSpacing();
+        spacing.setBefore(BigInteger.valueOf(0)); // No space before
+        spacing.setAfter(BigInteger.valueOf(120)); // Minimal space after (6pt = 120 twips)
+        pPr.setSpacing(spacing);
+        
+        paragraph.setPPr(pPr);
+        
+        // Create run with text formatting
+        R run = factory.createR();
+        RPr rPr = factory.createRPr();
+        
+        // Set font to Montserrat (same as header)
+        RFonts fonts = factory.createRFonts();
+        fonts.setAscii("Montserrat");
+        fonts.setHAnsi("Montserrat");
+        rPr.setRFonts(fonts);
+        
+        // Set font size to 14pt (28 half-points)
+        HpsMeasure size = factory.createHpsMeasure();
+        size.setVal(BigInteger.valueOf(28)); // 14pt = 28 half-points
+        rPr.setSz(size);
+        rPr.setSzCs(size); // For complex scripts
+        
+        // Set bold
+        BooleanDefaultTrue boldProp = factory.createBooleanDefaultTrue();
+        boldProp.setVal(true);
+        rPr.setB(boldProp);
+        rPr.setBCs(boldProp); // For complex scripts
+        
+        run.setRPr(rPr);
+        
+        // Add text
+        Text textElement = factory.createText();
+        textElement.setValue(text);
+        run.getContent().add(textElement);
         paragraph.getContent().add(run);
         
         pkg.getMainDocumentPart().addObject(paragraph);
@@ -2134,5 +2422,216 @@ public WordprocessingMLPackage buildDocumentComplete(
         org.docx4j.wml.Drawing drawing = factory.createDrawing();
         drawing.getAnchorOrInline().add(inline);
         run.getContent().add(drawing);
+    }
+    
+    /**
+     * Add an example allergy card for the memory learning phase introduction
+     */
+    private void addExampleAllergyCard(WordprocessingMLPackage pkg) {
+        try {
+            // Create an example allergy card with sample data using new single-row layout
+            Tbl cardTable = factory.createTbl();
+            
+            // Table properties with card-style borders
+            TblPr tblPr = factory.createTblPr();
+            TblWidth tblWidth = factory.createTblWidth();
+            tblWidth.setType("pct");
+            tblWidth.setW(BigInteger.valueOf(5000)); // 100% width
+            tblPr.setTblW(tblWidth);
+            
+            // Create thick borders for card-like appearance
+            TblBorders tblBorders = factory.createTblBorders();
+            CTBorder cardBorder = factory.createCTBorder();
+            cardBorder.setVal(STBorder.SINGLE);
+            cardBorder.setSz(BigInteger.valueOf(12)); // Thick border
+            cardBorder.setColor("000000"); // Black border like reference
+            
+            tblBorders.setTop(cardBorder);
+            tblBorders.setLeft(cardBorder);
+            tblBorders.setBottom(cardBorder);
+            tblBorders.setRight(cardBorder);
+            tblPr.setTblBorders(tblBorders);
+            
+            cardTable.setTblPr(tblPr);
+            
+            // Title row spanning across entire width first
+            Tr titleRow = factory.createTr();
+            Tc titleCell = factory.createTc();
+            
+            // Full width for title cell - spans both photo and text columns
+            TcPr titleCellPr = factory.createTcPr();
+            TblWidth titleCellWidth = factory.createTblWidth();
+            titleCellWidth.setType("pct");
+            titleCellWidth.setW(BigInteger.valueOf(5000)); // 100% width
+            titleCellPr.setTcW(titleCellWidth);
+            
+            // Add column span for title to cover both photo and text columns
+            org.docx4j.wml.TcPrInner.GridSpan gridSpan = factory.createTcPrInnerGridSpan();
+            gridSpan.setVal(BigInteger.valueOf(2)); // Span 2 columns
+            titleCellPr.setGridSpan(gridSpan);
+            
+            titleCell.setTcPr(titleCellPr);
+            
+            // Add title with medical cross - centered across entire card
+            P titleP = factory.createP();
+            PPr titlePPr = factory.createPPr();
+            Jc titleJc = factory.createJc();
+            titleJc.setVal(JcEnumeration.CENTER);
+            titlePPr.setJc(titleJc);
+            
+            // Add padding for title
+            PPrBase.Spacing titleSpacing = factory.createPPrBaseSpacing();
+            titleSpacing.setBefore(BigInteger.valueOf(120)); // 6pt before
+            titleSpacing.setAfter(BigInteger.valueOf(120)); // 6pt after
+            titlePPr.setSpacing(titleSpacing);
+            titleP.setPPr(titlePPr);
+            
+            R titleR = factory.createR();
+            RPr titleRPr = factory.createRPr();
+            BooleanDefaultTrue titleBold = factory.createBooleanDefaultTrue();
+            titleRPr.setB(titleBold);
+            
+            // Set font to Aptos
+            RFonts titleFonts = factory.createRFonts();
+            titleFonts.setAscii("Aptos");
+            titleFonts.setHAnsi("Aptos");
+            titleRPr.setRFonts(titleFonts);
+            
+            HpsMeasure titleSize = factory.createHpsMeasure();
+            titleSize.setVal(BigInteger.valueOf(28)); // 14pt for title
+            titleRPr.setSz(titleSize);
+            titleRPr.setSzCs(titleSize);
+            
+            titleR.setRPr(titleRPr);
+            
+            Text titleText = factory.createText();
+            titleText.setValue("ALLERGIEAUSWEIS");
+            titleR.getContent().add(titleText);
+            
+            // Add medical cross symbol in red
+            R crossR = factory.createR();
+            RPr crossRPr = factory.createRPr();
+            org.docx4j.wml.Color crossColor = factory.createColor();
+            crossColor.setVal("FF0000"); // Red color
+            crossRPr.setColor(crossColor);
+            HpsMeasure crossSize = factory.createHpsMeasure();
+            crossSize.setVal(BigInteger.valueOf(24)); // 12pt font
+            crossRPr.setSz(crossSize);
+            crossRPr.setSzCs(crossSize);
+            crossR.setRPr(crossRPr);
+            
+            Text crossText = factory.createText();
+            crossText.setValue("  ✚"); // Medical cross with spacing
+            crossR.getContent().add(crossText);
+            
+            titleP.getContent().add(titleR);
+            titleP.getContent().add(crossR);
+            titleCell.getContent().add(titleP);
+            titleRow.getContent().add(titleCell);
+            cardTable.getContent().add(titleRow);
+            
+            // Content row: photo left, text right
+            Tr contentRow = factory.createTr();
+            
+            // Photo cell (left side) - placeholder for example card, smaller to give more space to text
+            Tc photoCell = factory.createTc();
+            TcPr photoCellPr = factory.createTcPr();
+            TblWidth photoCellWidth = factory.createTblWidth();
+            photoCellWidth.setType("pct");
+            photoCellWidth.setW(BigInteger.valueOf(1200)); // 24% width for photo (reduced)
+            photoCellPr.setTcW(photoCellWidth);
+            
+            // Vertical alignment for photo cell
+            CTVerticalJc photoVAlign = factory.createCTVerticalJc();
+            photoVAlign.setVal(STVerticalJc.CENTER);
+            photoCellPr.setVAlign(photoVAlign);
+            
+            photoCell.setTcPr(photoCellPr);
+            
+            // Add photo placeholder
+            P photoP = factory.createP();
+            PPr photoPPr = factory.createPPr();
+            Jc photoJc = factory.createJc();
+            photoJc.setVal(JcEnumeration.CENTER);
+            photoPPr.setJc(photoJc);
+            photoP.setPPr(photoPPr);
+            
+            R photoR = factory.createR();
+            RPr photoRPr = factory.createRPr();
+            
+            // Set font to Aptos
+            RFonts photoFonts = factory.createRFonts();
+            photoFonts.setAscii("Aptos");
+            photoFonts.setHAnsi("Aptos");
+            photoRPr.setRFonts(photoFonts);
+            
+            HpsMeasure photoSize = factory.createHpsMeasure();
+            photoSize.setVal(BigInteger.valueOf(20)); // 10pt
+            photoRPr.setSz(photoSize);
+            photoRPr.setSzCs(photoSize);
+            
+            photoR.setRPr(photoRPr);
+            
+            Text photoT = factory.createText();
+            photoT.setValue("[Foto]");
+            photoR.getContent().add(photoT);
+            photoP.getContent().add(photoR);
+            photoCell.getContent().add(photoP);
+            
+            // Text cell (right side) - larger to prevent line breaks with margin for spacing
+            Tc textCell = factory.createTc();
+            TcPr textCellPr = factory.createTcPr();
+            TblWidth textCellWidth = factory.createTblWidth();
+            textCellWidth.setType("pct");
+            textCellWidth.setW(BigInteger.valueOf(3800)); // 76% width for text (increased)
+            textCellPr.setTcW(textCellWidth);
+            
+            // Add left margin to text cell for spacing from photo
+            TcMar textCellMar = factory.createTcMar();
+            TblWidth leftMargin = factory.createTblWidth();
+            leftMargin.setType("dxa");
+            leftMargin.setW(BigInteger.valueOf(288)); // 288 twips = approximately 1 tab (0.5cm)
+            textCellMar.setLeft(leftMargin);
+            textCellPr.setTcMar(textCellMar);
+            
+            // Vertical alignment for text cell
+            CTVerticalJc textVAlign = factory.createCTVerticalJc();
+            textVAlign.setVal(STVerticalJc.TOP);
+            textCellPr.setVAlign(textVAlign);
+            
+            textCell.setTcPr(textCellPr);
+            
+            // Add all data fields as simple text lines (using DD.Month date format)
+            addCardTextField(textCell, "Name", "Max Mustermann");
+            addCardTextField(textCell, "Geburtsdatum", "15. März"); // DD.Month format
+            addCardTextField(textCell, "Medikamenteneinnahme", "Keine");
+            addCardTextField(textCell, "Blutgruppe", "AB");
+            addCardTextField(textCell, "Bekannte Allergien", "Penicillin");
+            addCardTextField(textCell, "Ausweisnummer", "45678");
+            addCardTextField(textCell, "Ausstellungsland", "Deutschland");
+            
+            contentRow.getContent().add(photoCell);
+            contentRow.getContent().add(textCell);
+            cardTable.getContent().add(contentRow);
+            
+            pkg.getMainDocumentPart().addObject(cardTable);
+            
+            // Add 4 line spacing after example card for consistency
+            for (int i = 0; i < 4; i++) {
+                P spacingP = factory.createP();
+                PPr spacingPPr = factory.createPPr();
+                PPrBase.Spacing spacing = factory.createPPrBaseSpacing();
+                spacing.setAfter(BigInteger.valueOf(120)); // 6pt spacing per line
+                spacingPPr.setSpacing(spacing);
+                spacingP.setPPr(spacingPPr);
+                pkg.getMainDocumentPart().addObject(spacingP);
+            }
+            
+        } catch (Exception e) {
+            System.err.println("Error adding example allergy card: " + e.getMessage());
+            // Add text fallback
+            addFormattedParagraph(pkg, "[Hier würde ein Beispiel-Allergieausweis angezeigt werden]", 
+                                false, 22, 120, 120, false, JcEnumeration.CENTER, "Aptos");
+        }
     }
 }

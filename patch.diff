@@ -1,62 +1,311 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
-diff --git a/src/main/java/docx/Docx4jPrinter.java b/src/main/java/docx/Docx4jPrinter.java
-index f7c392f41c7f5f4279a3b60036a2cfeca8774f86..ede9319831770631eda0ea5f460c56f924134f13 100644
---- a/src/main/java/docx/Docx4jPrinter.java
-+++ b/src/main/java/docx/Docx4jPrinter.java
-@@ -732,51 +732,52 @@ public WordprocessingMLPackage buildDocumentComplete(
-             } else if (exampleLine.endsWith("?")) {
-                 // Example question line: Vor 10pt, Nach 10pt, Mehrfach 1.15
-                 addFormattedParagraph(pkg, exampleLine, false, 22, 200, 200, true, JcEnumeration.LEFT, "Aptos");
-             } else {
-                 // Other example content
-                 addFormattedParagraph(pkg, exampleLine, false, 22, 120, 120, false, JcEnumeration.LEFT, "Aptos");
-             }
+diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
+index b528da440d750d36a0924c54fd96bb198afb0c4a..836c2d33c41165b30b0189ebf709aefe5315cb92 100644
+--- a/src/main/java/MedatoninDB.java
++++ b/src/main/java/MedatoninDB.java
+@@ -3340,68 +3340,86 @@ public class MedatoninDB extends JFrame {
+     private void printCategory(String category) {
+         Map<String, DefaultTableModel> subcategories = categoryModels.get(category);
+         if (subcategories == null) {
+             showToast("No data available for category: " + category, NotificationType.ERROR);
+             return;
          }
-         
-         // Add a page break after the introduction
-         addPageBreak(pkg);
-     }
-     
-     /**
-      * Add allergy cards for the learning phase (2 cards per page, 4 pages total)
-      */
-     private void addAllergyCards(WordprocessingMLPackage pkg, java.sql.Connection conn, Integer sessionId) {
+ 
          try {
-             // Import the DAO class
-             Class<?> allergyDAOClass = Class.forName("dao.AllergyCardDAO");
+             // Check if docx4j is available at runtime
+             Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage");
              
-             // Create DAO instance
-             Object allergyDAO = allergyDAOClass.getConstructor(java.sql.Connection.class).newInstance(conn);
+             docx.Docx4jPrinter printer = new docx.Docx4jPrinter();
+ 
+             // Create document manually to avoid import issues
+             java.lang.reflect.Method createMethod = Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage")
+                 .getMethod("createPackage");
+             Object pkg = createMethod.invoke(null);
              
-             // Get allergy cards for this session
--            java.lang.reflect.Method getBySessionMethod = allergyDAOClass.getMethod("getBySessionId", Integer.class);
-+            // getBySessionId uses primitive int parameter
-+            java.lang.reflect.Method getBySessionMethod = allergyDAOClass.getMethod("getBySessionId", int.class);
-             @SuppressWarnings("unchecked")
-             java.util.List<Object> allergyCards = (java.util.List<Object>) getBySessionMethod.invoke(allergyDAO, sessionId);
+             // Process each subcategory with special handling for Gedächtnis- und Merkfähigkeit
+             java.util.List<String> subcatList = subcategoryOrder.get(category);
+             int totalSubcategories = subcatList.size();
              
-             if (allergyCards.isEmpty()) {
-                 // Add placeholder text if no cards found
-                 P noCardsP = factory.createP();
-                 R noCardsR = factory.createR();
-                 Text noCardsT = factory.createText();
-                 noCardsT.setValue("Keine Allergieausweise für diese Simulation gefunden.");
-                 noCardsR.getContent().add(noCardsT);
-                 noCardsP.getContent().add(noCardsR);
-                 pkg.getMainDocumentPart().addObject(noCardsP);
-                 return;
+             // Check if we need to handle Gedächtnis- und Merkfähigkeit special case
+             boolean hasGedaechtnisSubcat = subcatList.contains("Merkfähigkeiten");
+             java.util.List<String> processOrder = new java.util.ArrayList<>();
+-            
+-            // Build the processing order with proper Gedächtnis handling
+-            for (String subcat : subcatList) {
+-                if (subcat.equals("Figuren")) {
+-                    processOrder.add(subcat);
+-                } else if (subcat.equals("Merkfähigkeiten") && hasGedaechtnisSubcat) {
+-                    // Add Lernphase first, right after Figuren
+-                    processOrder.add("Gedächtnis und Merkfähigkeit (Lernphase)");
+-                    // Merkfähigkeiten (Abrufphase) will be added later in correct position
+-                } else if (!subcat.equals("Merkfähigkeiten")) {
+-                    processOrder.add(subcat);
+-                }
++
++            // Always start with Figuren if present
++            if (subcatList.contains("Figuren")) {
++                processOrder.add("Figuren");
              }
+-            
+-            // Add Abrufphase at the end if Merkfähigkeiten exists
++
++            // Insert Lernphase immediately after Figuren when Merkfähigkeiten exists
++            if (hasGedaechtnisSubcat) {
++                processOrder.add("Gedächtnis und Merkfähigkeit (Lernphase)");
++            }
++
++            // Add Zahlenfolgen and Wortflüssigkeit in their usual spots if present
++            if (subcatList.contains("Zahlenfolgen")) {
++                processOrder.add("Zahlenfolgen");
++            }
++
++            if (subcatList.contains("Wortflüssigkeit")) {
++                processOrder.add("Wortflüssigkeit");
++            } else if (subcatList.contains("Wortfluessigkeit")) {
++                processOrder.add("Wortfluessigkeit");
++            }
++
++            // Insert Abrufphase directly after Wortflüssigkeit
+             if (hasGedaechtnisSubcat) {
+                 processOrder.add("Gedächtnis und Merkfähigkeit (Abrufphase)");
+             }
++
++            // Add remaining subcategories except the original Merkfähigkeiten
++            for (String subcat : subcatList) {
++                if (subcat.equals("Figuren") || subcat.equals("Merkfähigkeiten") ||
++                    subcat.equals("Zahlenfolgen") || subcat.equals("Wortflüssigkeit") ||
++                    subcat.equals("Wortfluessigkeit")) {
++                    continue;
++                }
++                processOrder.add(subcat);
++            }
              
-             // Add up to 8 cards, 2 per page
-             int cardsAdded = 0;
-             for (Object cardObj : allergyCards) {
-                 if (cardsAdded >= 8) break; // Maximum 8 cards
+             for (int i = 0; i < processOrder.size(); i++) {
+                 String subcategory = processOrder.get(i);
                  
-                 if (cardsAdded > 0 && cardsAdded % 2 == 0) {
-                     // Add page break after every 2 cards
-                     addPageBreak(pkg);
+                 // Update progress based on current subcategory
+                 int progress = 30 + (i * 30 / processOrder.size());
+                 updateStatus("Processing " + subcategory + "...", progress);
+ 
+                 // Handle special Gedächtnis subcategories
+                 if (subcategory.equals("Gedächtnis und Merkfähigkeit (Lernphase)")) {
+                     // Add introduction page for Lernphase
+                     String introContent = getIntroContent(subcategory);
+                     if (introContent != null) {
+                         java.lang.reflect.Method addIntroMethod = printer.getClass()
+                             .getMethod("addIntroductionPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), String.class);
+                         addIntroMethod.invoke(printer, pkg, introContent);
+                     }
+                     
+                     // Add allergy cards (2 per page, 8 total = 4 pages)
+                     java.lang.reflect.Method addAllergyMethod = printer.getClass()
+                         .getDeclaredMethod("addAllergyCards", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), java.sql.Connection.class, Integer.class);
+                     addAllergyMethod.setAccessible(true);
+                     addAllergyMethod.invoke(printer, pkg, conn, selectedSimulationId);
+                     
+                     // Add stop sign page
+diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
+index b528da440d750d36a0924c54fd96bb198afb0c4a..836c2d33c41165b30b0189ebf709aefe5315cb92 100644
+--- a/src/main/java/MedatoninDB.java
++++ b/src/main/java/MedatoninDB.java
+@@ -3515,68 +3533,86 @@ public class MedatoninDB extends JFrame {
+     // Method to print the solution document for the current category
+     private void printCategorySolution(String category) {
+         Map<String, DefaultTableModel> subcategories = categoryModels.get(category);
+         if (subcategories == null) {
+             showToast("No data available for category: " + category, NotificationType.ERROR);
+             return;
+         }
+ 
+         try {
+             // Check if docx4j is available at runtime
+             Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage");
+             
+             docx.Docx4jPrinter printer = new docx.Docx4jPrinter();
+ 
+             // Create document manually to avoid import issues
+             java.lang.reflect.Method createMethod = Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage")
+                 .getMethod("createPackage");
+             Object pkg = createMethod.invoke(null);
+             
+             // Process each subcategory with special handling for Gedächtnis- und Merkfähigkeit
+             java.util.List<String> subcatList = subcategoryOrder.get(category);
+             
+             // Check if we need to handle Gedächtnis- und Merkfähigkeit special case
+             boolean hasGedaechtnisSubcat = subcatList.contains("Merkfähigkeiten");
+             java.util.List<String> processOrder = new java.util.ArrayList<>();
+-            
+-            // Build the processing order with proper Gedächtnis handling
+-            for (String subcat : subcatList) {
+-                if (subcat.equals("Figuren")) {
+-                    processOrder.add(subcat);
+-                } else if (subcat.equals("Merkfähigkeiten") && hasGedaechtnisSubcat) {
+-                    // Add Lernphase first, right after Figuren
+-                    processOrder.add("Gedächtnis und Merkfähigkeit (Lernphase)");
+-                    // Merkfähigkeiten (Abrufphase) will be added later in correct position
+-                } else if (!subcat.equals("Merkfähigkeiten")) {
+-                    processOrder.add(subcat);
+-                }
++
++            // Figuren always first if present
++            if (subcatList.contains("Figuren")) {
++                processOrder.add("Figuren");
+             }
+-            
+-            // Add Abrufphase at the end if Merkfähigkeiten exists
++
++            // Lernphase directly after Figuren
++            if (hasGedaechtnisSubcat) {
++                processOrder.add("Gedächtnis und Merkfähigkeit (Lernphase)");
++            }
++
++            // Zahlenfolgen and Wortflüssigkeit next in order if available
++            if (subcatList.contains("Zahlenfolgen")) {
++                processOrder.add("Zahlenfolgen");
++            }
++
++            if (subcatList.contains("Wortflüssigkeit")) {
++                processOrder.add("Wortflüssigkeit");
++            } else if (subcatList.contains("Wortfluessigkeit")) {
++                processOrder.add("Wortfluessigkeit");
++            }
++
++            // Insert Abrufphase directly after Wortflüssigkeit
+             if (hasGedaechtnisSubcat) {
+                 processOrder.add("Gedächtnis und Merkfähigkeit (Abrufphase)");
+             }
++
++            // Remaining subcategories except the original Merkfähigkeiten
++            for (String subcat : subcatList) {
++                if (subcat.equals("Figuren") || subcat.equals("Merkfähigkeiten") ||
++                    subcat.equals("Zahlenfolgen") || subcat.equals("Wortflüssigkeit") ||
++                    subcat.equals("Wortfluessigkeit")) {
++                    continue;
++                }
++                processOrder.add(subcat);
++            }
+             
+             for (int i = 0; i < processOrder.size(); i++) {
+                 String subcategory = processOrder.get(i);
+ 
+                 // Handle special Gedächtnis subcategories
+                 if (subcategory.equals("Gedächtnis und Merkfähigkeit (Lernphase)")) {
+                     // Add introduction page for Lernphase
+                     String introContent = getIntroContent(subcategory);
+                     if (introContent != null) {
+                         java.lang.reflect.Method addIntroMethod = printer.getClass()
+                             .getMethod("addIntroductionPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), String.class);
+                         addIntroMethod.invoke(printer, pkg, introContent);
+                     }
+                     
+                     // Add allergy cards (2 per page, 8 total = 4 pages) - no solutions needed for cards
+                     java.lang.reflect.Method addAllergyMethod = printer.getClass()
+                         .getDeclaredMethod("addAllergyCards", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), java.sql.Connection.class, Integer.class);
+                     addAllergyMethod.setAccessible(true);
+                     addAllergyMethod.invoke(printer, pkg, conn, selectedSimulationId);
+                     
+                     // Add stop sign page
+                     java.lang.reflect.Method addStopSignMethod = printer.getClass()
+                         .getMethod("addStopSignPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
+                     addStopSignMethod.invoke(printer, pkg);
+                     
+diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
+index b528da440d750d36a0924c54fd96bb198afb0c4a..836c2d33c41165b30b0189ebf709aefe5315cb92 100644
+--- a/src/main/java/MedatoninDB.java
++++ b/src/main/java/MedatoninDB.java
+@@ -3797,66 +3833,80 @@ public class MedatoninDB extends JFrame {
+         try {
+             // Check if docx4j is available at runtime
+             Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage");
+             
+             docx.Docx4jPrinter printer = new docx.Docx4jPrinter();
+ 
+             // Create document manually to avoid import issues
+             java.lang.reflect.Method createMethod = Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage")
+                 .getMethod("createPackage");
+             Object pkg = createMethod.invoke(null);
+ 
+             // Iterate over all categories
+             java.util.List<String> categoryList = new java.util.ArrayList<>(categoryModels.keySet());
+             for (int c = 0; c < categoryList.size(); c++) {
+                 String category = categoryList.get(c);
+                 Map<String, DefaultTableModel> subcategories = categoryModels.get(category);
+ 
+                 // Iterate over subcategories with special handling for Gedächtnis- und Merkfähigkeit
+                 java.util.List<String> subcatList = subcategoryOrder.get(category);
+                 
+                 // Check if we need to handle Gedächtnis- und Merkfähigkeit special case
+                 boolean hasGedaechtnisSubcat = subcatList.contains("Merkfähigkeiten");
+                 java.util.List<String> processOrder = new java.util.ArrayList<>();
+                 
+                 // Build the processing order with proper Gedächtnis handling
+-                for (String subcat : subcatList) {
+-                    if (subcat.equals("Figuren")) {
+-                        processOrder.add(subcat);
+-                    } else if (subcat.equals("Merkfähigkeiten") && hasGedaechtnisSubcat) {
+-                        // Add Lernphase first, right after Figuren
+-                        processOrder.add("Gedächtnis und Merkfähigkeit (Lernphase)");
+-                        // Merkfähigkeiten (Abrufphase) will be added later in correct position
+-                    } else if (!subcat.equals("Merkfähigkeiten")) {
+-                        processOrder.add(subcat);
+-                    }
++                if (subcatList.contains("Figuren")) {
++                    processOrder.add("Figuren");
                  }
+-                
+-                // Add Abrufphase at the end if Merkfähigkeiten exists
++
++                if (hasGedaechtnisSubcat) {
++                    processOrder.add("Gedächtnis und Merkfähigkeit (Lernphase)");
++                }
++
++                if (subcatList.contains("Zahlenfolgen")) {
++                    processOrder.add("Zahlenfolgen");
++                }
++
++                if (subcatList.contains("Wortflüssigkeit")) {
++                    processOrder.add("Wortflüssigkeit");
++                } else if (subcatList.contains("Wortfluessigkeit")) {
++                    processOrder.add("Wortfluessigkeit");
++                }
++
+                 if (hasGedaechtnisSubcat) {
+                     processOrder.add("Gedächtnis und Merkfähigkeit (Abrufphase)");
+                 }
++
++                for (String subcat : subcatList) {
++                    if (subcat.equals("Figuren") || subcat.equals("Merkfähigkeiten") ||
++                        subcat.equals("Zahlenfolgen") || subcat.equals("Wortflüssigkeit") ||
++                        subcat.equals("Wortfluessigkeit")) {
++                        continue;
++                    }
++                    processOrder.add(subcat);
++                }
                  
+                 for (int i = 0; i < processOrder.size(); i++) {
+                     String subcategory = processOrder.get(i);
+ 
+                     // Handle special Gedächtnis subcategories
+                     if (subcategory.equals("Gedächtnis und Merkfähigkeit (Lernphase)")) {
+                         // Add introduction page for Lernphase
+                         String introContent = getIntroContent(subcategory);
+                         if (introContent != null) {
+                             java.lang.reflect.Method addIntroMethod = printer.getClass()
+                                 .getMethod("addIntroductionPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), String.class);
+                             addIntroMethod.invoke(printer, pkg, introContent);
+                         }
+                         
+                         // Add allergy cards (2 per page, 8 total = 4 pages) - no solutions needed for cards
+                         java.lang.reflect.Method addAllergyMethod = printer.getClass()
+                             .getDeclaredMethod("addAllergyCards", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"), java.sql.Connection.class, Integer.class);
+                         addAllergyMethod.setAccessible(true);
+                         addAllergyMethod.invoke(printer, pkg, conn, selectedSimulationId);
+                         
+                         // Add stop sign page
+                         java.lang.reflect.Method addStopSignMethod = printer.getClass()
+                             .getMethod("addStopSignPage", Class.forName("org.docx4j.openpackaging.packages.WordprocessingMLPackage"));
+                         addStopSignMethod.invoke(printer, pkg);
+                         
  
 EOF
 )

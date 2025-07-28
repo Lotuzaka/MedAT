@@ -36,11 +36,11 @@ public class AllergyCardPanel extends JPanel {
 
     public AllergyCardPanel() {
         setLayout(new BorderLayout());
-        setPreferredSize(new Dimension(320, 85)); // Slightly wider for bigger image area
+        setPreferredSize(new Dimension(480, 160)); // Much larger for bigger image area (160x150 image + text)
         setOpaque(false); // Make transparent so custom painting shows
         
         // Add inner padding
-        setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5)); // Left padding adjusted to 5px
         
         buildImageArea();
         // No formatter needed - we'll handle the TT.Monat format manually
@@ -83,7 +83,7 @@ public class AllergyCardPanel extends JPanel {
     }
 
     private void buildImageArea() {
-        imageLabel.setPreferredSize(new Dimension(80, 75)); // Larger image area for better proportion
+        imageLabel.setPreferredSize(new Dimension(160, 150)); // Larger image area (double size) for better proportion
         imageLabel.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(180, 180, 180), 1),
             BorderFactory.createEmptyBorder(2, 2, 2, 2)
@@ -167,18 +167,22 @@ public class AllergyCardPanel extends JPanel {
         try {
             BufferedImage img = ImageIO.read(f);
             if (img != null) {
-                Image scaled = img.getScaledInstance(80, 75, Image.SCALE_SMOOTH);
-                BufferedImage bi = new BufferedImage(80, 75, BufferedImage.TYPE_INT_ARGB);
-                Graphics2D g2 = bi.createGraphics();
+                // Save original image bytes without scaling for docx4j
+                ByteArrayOutputStream originalBos = new ByteArrayOutputStream();
+                ImageIO.write(img, "png", originalBos);
+                imageBytes = originalBos.toByteArray();
+                
+                // Create scaled version for UI display - force exact size to fill the label
+                BufferedImage displayImage = new BufferedImage(160, 150, BufferedImage.TYPE_INT_ARGB);
+                Graphics2D g2 = displayImage.createGraphics();
                 g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.drawImage(scaled, 0, 0, null);
+                // Draw the original image scaled to fill the entire 160x150 area
+                g2.drawImage(img, 0, 0, 160, 150, null);
                 g2.dispose();
                 
-                ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                ImageIO.write(bi, "png", bos);
-                imageBytes = bos.toByteArray();
-                imageLabel.setIcon(new ImageIcon(bi));
+                ImageIcon icon = new ImageIcon(displayImage);
+                imageLabel.setIcon(icon);
                 imageLabel.setText("");
             }
         } catch (IOException ex) {

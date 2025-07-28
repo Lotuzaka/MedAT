@@ -178,6 +178,9 @@ public class MedatoninDB extends JFrame {
     private int originalIndex = -1; // Original index of the dragged button
     private int dragThreshold = 5; // Threshold in pixels to start dragging
     private boolean isDragging = false; // Indicates if a drag operation is in progress
+    
+    // Allergy card panel persistence
+    private JPanel currentAllergyCardGridPanel = null; // Keep reference to current allergy panel
     private int lastTargetIndex = -1; // **Declaration of lastTargetIndex**
     private Set<QuestionIdentifier> pendingDeleteQuestions = new HashSet<>();
     private boolean isAdjustingFormat = false;
@@ -420,37 +423,13 @@ public class MedatoninDB extends JFrame {
     }
     
     /**
-     * Show a toast notification
+     * Show a toast notification - DISABLED 
+     * Toast popups are disabled to reduce UI clutter
      */
     private void showToast(String message, NotificationType type) {
-        Color bgColor, textColor;
-        
-        switch (type) {
-            case SUCCESS:
-                bgColor = new Color(34, 197, 94);
-                textColor = Color.WHITE;
-                break;
-            case ERROR:
-                bgColor = new Color(239, 68, 68);
-                textColor = Color.WHITE;
-                break;
-            case INFO:
-                bgColor = CLR_ACCENT;
-                textColor = Color.WHITE;
-                break;
-            case WARNING:
-                bgColor = new Color(245, 158, 11);
-                textColor = Color.WHITE;
-                break;
-            default:
-                bgColor = CLR_PRIMARY;
-                textColor = Color.WHITE;
-        }
-        
-        SwingUtilities.invokeLater(() -> {
-            ToastNotification toast = new ToastNotification(message, bgColor, textColor);
-            toast.showToast();
-        });
+        // Toast notifications are disabled - no popup will be shown
+        // Important messages will be shown in the status bar instead
+        return;
     }
     
     /**
@@ -480,6 +459,30 @@ public class MedatoninDB extends JFrame {
             statusProgressBar.setValue(0);
             statusBar.revalidate();
             statusBar.repaint();
+        });
+    }
+    
+    /**
+     * Show success message in status bar with green color
+     */
+    private void showSuccessStatus(String message) {
+        SwingUtilities.invokeLater(() -> {
+            statusLabel.setText(message);
+            statusLabel.setForeground(new Color(34, 139, 34)); // Forest green color
+            statusProgressBar.setVisible(false);
+            statusProgressBar.setValue(0);
+            statusBar.revalidate();
+            statusBar.repaint();
+            
+            // Reset to normal color after 5 seconds
+            Timer resetTimer = new Timer(5000, e -> {
+                statusLabel.setForeground(CLR_PRIMARY);
+                statusLabel.setText("Ready");
+                statusBar.revalidate();
+                statusBar.repaint();
+            });
+            resetTimer.setRepeats(false);
+            resetTimer.start();
         });
     }
     
@@ -945,7 +948,6 @@ public class MedatoninDB extends JFrame {
         // Add ActionListener for printing the current category
         printCategoryButton.addActionListener(e -> {
             SwingUtilities.invokeLater(() -> {
-                showToast("Starting document generation for " + currentCategory, NotificationType.INFO);
                 updateStatus("Generating " + currentCategory + " document...", 10);
                 
                 // Run print operations in background thread
@@ -957,15 +959,26 @@ public class MedatoninDB extends JFrame {
                         updateStatus("Generating solutions...", 60);
                         printCategorySolution(currentCategory);
                         
-                        updateStatus("Document completed!", 100);
+                        updateStatus("Finalizing document...", 90);
+                        
                         SwingUtilities.invokeLater(() -> {
-                            showToast("Document created successfully for " + currentCategory, NotificationType.SUCCESS);
-                            clearStatus();
+                            showSuccessStatus(currentCategory + " + Solutions erstellt");
                         });
                     } catch (Exception ex) {
                         SwingUtilities.invokeLater(() -> {
-                            showToast("Error creating document: " + ex.getMessage(), NotificationType.ERROR);
-                            clearStatus();
+                            statusLabel.setText("Error: " + ex.getMessage());
+                            statusLabel.setForeground(Color.RED);
+                            statusProgressBar.setVisible(false);
+                            
+                            // Reset to normal after 5 seconds
+                            Timer resetTimer = new Timer(5000, resetEvent -> {
+                                statusLabel.setForeground(CLR_PRIMARY);
+                                statusLabel.setText("Ready");
+                                statusBar.revalidate();
+                                statusBar.repaint();
+                            });
+                            resetTimer.setRepeats(false);
+                            resetTimer.start();
                         });
                     }
                 }).start();
@@ -975,7 +988,6 @@ public class MedatoninDB extends JFrame {
         // Add ActionListener for printing all categories
         printAllButton.addActionListener(e -> {
             SwingUtilities.invokeLater(() -> {
-                showToast("Starting complete document generation for all categories", NotificationType.INFO);
                 updateStatus("Generating complete document...", 5);
                 
                 // Run print operations in background thread
@@ -987,15 +999,26 @@ public class MedatoninDB extends JFrame {
                         updateStatus("Generating all solutions...", 70);
                         printAllCategoriesSolution();
                         
-                        updateStatus("Complete document ready!", 100);
+                        updateStatus("Finalizing complete document...", 90);
+                        
                         SwingUtilities.invokeLater(() -> {
-                            showToast("Complete document created successfully", NotificationType.SUCCESS);
-                            clearStatus();
+                            showSuccessStatus("Alle Kategorien + Solutions erstellt");
                         });
                     } catch (Exception ex) {
                         SwingUtilities.invokeLater(() -> {
-                            showToast("Error creating complete document: " + ex.getMessage(), NotificationType.ERROR);
-                            clearStatus();
+                            statusLabel.setText("Error: " + ex.getMessage());
+                            statusLabel.setForeground(Color.RED);
+                            statusProgressBar.setVisible(false);
+                            
+                            // Reset to normal after 5 seconds
+                            Timer resetTimer = new Timer(5000, resetEvent -> {
+                                statusLabel.setForeground(CLR_PRIMARY);
+                                statusLabel.setText("Ready");
+                                statusBar.revalidate();
+                                statusBar.repaint();
+                            });
+                            resetTimer.setRepeats(false);
+                            resetTimer.start();
                         });
                     }
                 }).start();
@@ -2175,7 +2198,32 @@ public class MedatoninDB extends JFrame {
         button.setMaximumSize(new Dimension(width, button.getPreferredSize().height));
     }
 
+    /**
+     * Save current allergy card data to database before switching subcategories
+     */
+    private void saveCurrentAllergyCardData() {
+        if (currentAllergyCardGridPanel != null && selectedSimulationId != null && 
+            "Merkfähigkeiten".equals(currentSubcategory)) {
+            try {
+                @SuppressWarnings("unchecked")
+                List<AllergyCardData> cardData = (List<AllergyCardData>) currentAllergyCardGridPanel
+                    .getClass().getMethod("getAllCards").invoke(currentAllergyCardGridPanel);
+                
+                if (!cardData.isEmpty()) {
+                    AllergyCardDAO allergyDAO = new AllergyCardDAO(conn);
+                    allergyDAO.insertAll(cardData, selectedSimulationId);
+                    debugLog("UI", "Auto-saved " + cardData.size() + " allergy cards before switching subcategory");
+                }
+            } catch (Exception e) {
+                debugLog("UI", LogLevel.WARN, "Could not auto-save allergy card data: " + e.getMessage());
+            }
+        }
+    }
+
     private void switchSubcategory(String category, String subcategory) {
+        
+        // Save allergy card data before switching if currently on Merkfähigkeiten
+        saveCurrentAllergyCardData();
 
         currentCategory = category;
         currentSubcategory = subcategory;
@@ -2312,8 +2360,13 @@ public class MedatoninDB extends JFrame {
             // Create the allergy card grid panel on the right
             try {
                 Class<?> allergyGridClass = Class.forName("ui.merkfaehigkeit.AllergyCardGridPanel");
-                JPanel allergyCardGridPanel = (JPanel) allergyGridClass.getDeclaredConstructor().newInstance();
-                JScrollPane allergyScrollPane = new JScrollPane(allergyCardGridPanel);
+                
+                // Reuse existing panel if available, otherwise create new one
+                if (currentAllergyCardGridPanel == null) {
+                    currentAllergyCardGridPanel = (JPanel) allergyGridClass.getDeclaredConstructor().newInstance();
+                }
+                
+                JScrollPane allergyScrollPane = new JScrollPane(currentAllergyCardGridPanel);
                 allergyScrollPane.setPreferredSize(new Dimension(620, 380)); // Much smaller for compact cards
                 allergyScrollPane.getViewport().setBackground(Color.WHITE); // Set viewport background to white
                 allergyScrollPane.setBackground(Color.WHITE); // Set scroll pane background to white
@@ -2334,7 +2387,7 @@ public class MedatoninDB extends JFrame {
                             List<AllergyCardData> existingData = allergyDAO.getBySessionId(selectedSimulationId);
                             if (!existingData.isEmpty()) {
                                 // Load existing data into the allergy card panel
-                                allergyCardGridPanel.getClass().getMethod("loadCards", List.class).invoke(allergyCardGridPanel, existingData);
+                                currentAllergyCardGridPanel.getClass().getMethod("loadCards", List.class).invoke(currentAllergyCardGridPanel, existingData);
                                 debugLog("UI", "Restored " + existingData.size() + " allergy cards from database for simulation " + selectedSimulationId);
                             }
                         }
@@ -2355,13 +2408,13 @@ public class MedatoninDB extends JFrame {
                 generateIdButton.addActionListener(e -> {
                     try {
                         // Call generateRandomData method on the allergy card grid panel
-                        allergyCardGridPanel.getClass().getMethod("generateRandomData").invoke(allergyCardGridPanel);
+                        currentAllergyCardGridPanel.getClass().getMethod("generateRandomData").invoke(currentAllergyCardGridPanel);
                         debugLog("UI", "Generated random data for all allergy cards");
                         
                         // Save allergy card data to database if we have a selected simulation
                         if (selectedSimulationId != null) {
                             @SuppressWarnings("unchecked")
-                            List<AllergyCardData> cardData = (List<AllergyCardData>) allergyCardGridPanel.getClass().getMethod("getAllCards").invoke(allergyCardGridPanel);
+                            List<AllergyCardData> cardData = (List<AllergyCardData>) currentAllergyCardGridPanel.getClass().getMethod("getAllCards").invoke(currentAllergyCardGridPanel);
                             AllergyCardDAO allergyDAO = new AllergyCardDAO(conn);
                             allergyDAO.insertAll(cardData, selectedSimulationId);
                             debugLog("UI", "Saved " + cardData.size() + " allergy cards to database for simulation " + selectedSimulationId);
@@ -3362,23 +3415,41 @@ public class MedatoninDB extends JFrame {
             // Check if we need to handle Gedächtnis- und Merkfähigkeit special case
             boolean hasGedaechtnisSubcat = subcatList.contains("Merkfähigkeiten");
             java.util.List<String> processOrder = new java.util.ArrayList<>();
-            
-            // Build the processing order with proper Gedächtnis handling
-            for (String subcat : subcatList) {
-                if (subcat.equals("Figuren")) {
-                    processOrder.add(subcat);
-                } else if (subcat.equals("Merkfähigkeiten") && hasGedaechtnisSubcat) {
-                    // Add Lernphase first, right after Figuren
-                    processOrder.add("Gedächtnis und Merkfähigkeit (Lernphase)");
-                    // Merkfähigkeiten (Abrufphase) will be added later in correct position
-                } else if (!subcat.equals("Merkfähigkeiten")) {
-                    processOrder.add(subcat);
-                }
+
+            // Always start with Figuren if present
+            if (subcatList.contains("Figuren")) {
+                processOrder.add("Figuren");
             }
-            
-            // Add Abrufphase at the end if Merkfähigkeiten exists
+
+            // Insert Lernphase immediately after Figuren when Merkfähigkeiten exists
+            if (hasGedaechtnisSubcat) {
+                processOrder.add("Gedächtnis und Merkfähigkeit (Lernphase)");
+            }
+
+            // Add Zahlenfolgen and Wortflüssigkeit in their usual spots if present
+            if (subcatList.contains("Zahlenfolgen")) {
+                processOrder.add("Zahlenfolgen");
+            }
+
+            if (subcatList.contains("Wortflüssigkeit")) {
+                processOrder.add("Wortflüssigkeit");
+            } else if (subcatList.contains("Wortfluessigkeit")) {
+                processOrder.add("Wortfluessigkeit");
+            }
+
+            // Insert Abrufphase directly after Wortflüssigkeit
             if (hasGedaechtnisSubcat) {
                 processOrder.add("Gedächtnis und Merkfähigkeit (Abrufphase)");
+            }
+
+            // Add remaining subcategories except the original Merkfähigkeiten
+            for (String subcat : subcatList) {
+                if (subcat.equals("Figuren") || subcat.equals("Merkfähigkeiten") ||
+                    subcat.equals("Zahlenfolgen") || subcat.equals("Wortflüssigkeit") ||
+                    subcat.equals("Wortfluessigkeit")) {
+                    continue;
+                }
+                processOrder.add(subcat);
             }
             
             for (int i = 0; i < processOrder.size(); i++) {
@@ -3537,23 +3608,41 @@ public class MedatoninDB extends JFrame {
             // Check if we need to handle Gedächtnis- und Merkfähigkeit special case
             boolean hasGedaechtnisSubcat = subcatList.contains("Merkfähigkeiten");
             java.util.List<String> processOrder = new java.util.ArrayList<>();
-            
-            // Build the processing order with proper Gedächtnis handling
-            for (String subcat : subcatList) {
-                if (subcat.equals("Figuren")) {
-                    processOrder.add(subcat);
-                } else if (subcat.equals("Merkfähigkeiten") && hasGedaechtnisSubcat) {
-                    // Add Lernphase first, right after Figuren
-                    processOrder.add("Gedächtnis und Merkfähigkeit (Lernphase)");
-                    // Merkfähigkeiten (Abrufphase) will be added later in correct position
-                } else if (!subcat.equals("Merkfähigkeiten")) {
-                    processOrder.add(subcat);
-                }
+
+            // Figuren always first if present
+            if (subcatList.contains("Figuren")) {
+                processOrder.add("Figuren");
             }
-            
-            // Add Abrufphase at the end if Merkfähigkeiten exists
+
+            // Lernphase directly after Figuren
+            if (hasGedaechtnisSubcat) {
+                processOrder.add("Gedächtnis und Merkfähigkeit (Lernphase)");
+            }
+
+            // Zahlenfolgen and Wortflüssigkeit next in order if available
+            if (subcatList.contains("Zahlenfolgen")) {
+                processOrder.add("Zahlenfolgen");
+            }
+
+            if (subcatList.contains("Wortflüssigkeit")) {
+                processOrder.add("Wortflüssigkeit");
+            } else if (subcatList.contains("Wortfluessigkeit")) {
+                processOrder.add("Wortfluessigkeit");
+            }
+
+            // Insert Abrufphase directly after Wortflüssigkeit
             if (hasGedaechtnisSubcat) {
                 processOrder.add("Gedächtnis und Merkfähigkeit (Abrufphase)");
+            }
+
+            // Remaining subcategories except the original Merkfähigkeiten
+            for (String subcat : subcatList) {
+                if (subcat.equals("Figuren") || subcat.equals("Merkfähigkeiten") ||
+                    subcat.equals("Zahlenfolgen") || subcat.equals("Wortflüssigkeit") ||
+                    subcat.equals("Wortfluessigkeit")) {
+                    continue;
+                }
+                processOrder.add(subcat);
             }
             
             for (int i = 0; i < processOrder.size(); i++) {
@@ -3819,21 +3908,35 @@ public class MedatoninDB extends JFrame {
                 java.util.List<String> processOrder = new java.util.ArrayList<>();
                 
                 // Build the processing order with proper Gedächtnis handling
-                for (String subcat : subcatList) {
-                    if (subcat.equals("Figuren")) {
-                        processOrder.add(subcat);
-                    } else if (subcat.equals("Merkfähigkeiten") && hasGedaechtnisSubcat) {
-                        // Add Lernphase first, right after Figuren
-                        processOrder.add("Gedächtnis und Merkfähigkeit (Lernphase)");
-                        // Merkfähigkeiten (Abrufphase) will be added later in correct position
-                    } else if (!subcat.equals("Merkfähigkeiten")) {
-                        processOrder.add(subcat);
-                    }
+                if (subcatList.contains("Figuren")) {
+                    processOrder.add("Figuren");
                 }
-                
-                // Add Abrufphase at the end if Merkfähigkeiten exists
+
+                if (hasGedaechtnisSubcat) {
+                    processOrder.add("Gedächtnis und Merkfähigkeit (Lernphase)");
+                }
+
+                if (subcatList.contains("Zahlenfolgen")) {
+                    processOrder.add("Zahlenfolgen");
+                }
+
+                if (subcatList.contains("Wortflüssigkeit")) {
+                    processOrder.add("Wortflüssigkeit");
+                } else if (subcatList.contains("Wortfluessigkeit")) {
+                    processOrder.add("Wortfluessigkeit");
+                }
+
                 if (hasGedaechtnisSubcat) {
                     processOrder.add("Gedächtnis und Merkfähigkeit (Abrufphase)");
+                }
+
+                for (String subcat : subcatList) {
+                    if (subcat.equals("Figuren") || subcat.equals("Merkfähigkeiten") ||
+                        subcat.equals("Zahlenfolgen") || subcat.equals("Wortflüssigkeit") ||
+                        subcat.equals("Wortfluessigkeit")) {
+                        continue;
+                    }
+                    processOrder.add(subcat);
                 }
                 
                 for (int i = 0; i < processOrder.size(); i++) {
