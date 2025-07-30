@@ -2486,39 +2486,55 @@ public class MedatoninDB extends JFrame {
                 subcategoryContentPanel.add(subScrollPane, BorderLayout.CENTER);
             }
         } else if ("Textverständnis".equals(currentSubcategory)) {
-            // Split pane with table on left and text passage editor on right
+            // Split pane with table on left and PROFESSIONAL text passage editor on right
             JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
             splitPane.setLeftComponent(subScrollPane);
 
             try {
-                Class<?> panelClass = Class.forName("ui.textverstaendnis.TextPassagePanel");
+                // Use the new ProfessionalTextPassagePanel with Word-like features
                 if (currentTextPassagePanel == null) {
                     int subId = getSubcategoryId(currentCategory, currentSubcategory);
-                    currentTextPassagePanel = (JPanel) panelClass.getDeclaredConstructor(PassageDAO.class, int.class, Integer.class)
-                            .newInstance(new PassageDAO(conn), subId, selectedSimulationId);
+                    
+                    // Create professional editor with comprehensive formatting options
+                    ui.textverstaendnis.ProfessionalTextPassagePanel professionalPanel = 
+                        new ui.textverstaendnis.ProfessionalTextPassagePanel(
+                            new PassageDAO(conn), subId, selectedSimulationId);
+                    
+                    currentTextPassagePanel = professionalPanel;
+                    
                     // Register callback for passage switching
-                    panelClass.getMethod("setOnIndexChange", java.util.function.Consumer.class)
-                            .invoke(currentTextPassagePanel, (Consumer<Integer>) this::loadQuestionsForPassageIndex);
+                    professionalPanel.setOnIndexChange((Consumer<Integer>) this::loadQuestionsForPassageIndex);
                 } else {
-                    panelClass.getMethod("setSimulationId", Integer.class).invoke(currentTextPassagePanel, selectedSimulationId);
-                    panelClass.getMethod("setOnIndexChange", java.util.function.Consumer.class)
-                            .invoke(currentTextPassagePanel, (Consumer<Integer>) this::loadQuestionsForPassageIndex);
+                    // Update simulation ID if panel already exists
+                    if (currentTextPassagePanel instanceof ui.textverstaendnis.ProfessionalTextPassagePanel) {
+                        ui.textverstaendnis.ProfessionalTextPassagePanel profPanel = 
+                            (ui.textverstaendnis.ProfessionalTextPassagePanel) currentTextPassagePanel;
+                        profPanel.setSimulationId(selectedSimulationId);
+                        profPanel.setOnIndexChange((Consumer<Integer>) this::loadQuestionsForPassageIndex);
+                    }
                 }
+                
                 JScrollPane passageScroll = new JScrollPane(currentTextPassagePanel);
-                passageScroll.setPreferredSize(new Dimension(500, 380));
+                passageScroll.setPreferredSize(new Dimension(700, 500)); // Größer für Word-ähnliche Features
                 splitPane.setRightComponent(passageScroll);
-                splitPane.setResizeWeight(1.0);
-                splitPane.setDividerLocation(0.6);
+                splitPane.setResizeWeight(0.3); // Mehr Platz für den professionellen Editor
+                splitPane.setDividerLocation(0.3);
                 splitPane.setOneTouchExpandable(true);
 
                 subcategoryContentPanel.add(splitPane, BorderLayout.CENTER);
 
-                // Load passage and corresponding questions from DB each time we switch
-                currentTextPassagePanel.getClass().getMethod("loadPassage").invoke(currentTextPassagePanel);
-                int idx = (Integer) panelClass.getMethod("getCurrentIndex").invoke(currentTextPassagePanel);
-                loadQuestionsForPassageIndex(idx);
+                // Load passage and corresponding questions from DB
+                if (currentTextPassagePanel instanceof ui.textverstaendnis.ProfessionalTextPassagePanel) {
+                    ui.textverstaendnis.ProfessionalTextPassagePanel profPanel = 
+                        (ui.textverstaendnis.ProfessionalTextPassagePanel) currentTextPassagePanel;
+                    profPanel.loadPassage();
+                    int idx = profPanel.getCurrentIndex();
+                    loadQuestionsForPassageIndex(idx);
+                }
+                
             } catch (Exception e) {
-                debugLog("UI", LogLevel.ERROR, "Failed to load TextPassagePanel: " + e.getMessage());
+                debugLog("UI", LogLevel.ERROR, "Failed to load ProfessionalTextPassagePanel: " + e.getMessage());
+                // Fallback to normal table view
                 subcategoryContentPanel.add(subScrollPane, BorderLayout.CENTER);
             }
         } else {
@@ -2828,14 +2844,38 @@ public class MedatoninDB extends JFrame {
                         return;
                     }
 
-                    Object passage = currentTextPassagePanel.getClass().getMethod("getCurrentPassage").invoke(currentTextPassagePanel);
-                    if (passage == null) {
+                    // Handle both old TextPassagePanel and new ProfessionalTextPassagePanel
+                    Object passage = null;
+                    String passageText = null;
+                    int idx = 1;
+                    
+                    if (currentTextPassagePanel instanceof ui.textverstaendnis.ProfessionalTextPassagePanel) {
+                        // New professional panel
+                        ui.textverstaendnis.ProfessionalTextPassagePanel profPanel = 
+                            (ui.textverstaendnis.ProfessionalTextPassagePanel) currentTextPassagePanel;
+                        passage = profPanel.getCurrentPassage();
+                        passageText = profPanel.getPassageText();
+                        idx = profPanel.getCurrentIndex();
+                    } else {
+                        // Fallback for old panel using reflection
+                        passage = currentTextPassagePanel.getClass().getMethod("getCurrentPassage").invoke(currentTextPassagePanel);
+                        if (passage != null) {
+                            passageText = (String) passage.getClass().getMethod("text").invoke(passage);
+                        }
+                        idx = (Integer) currentTextPassagePanel.getClass().getMethod("getCurrentIndex").invoke(currentTextPassagePanel);
+                    }
+                    
+                    if (passage == null && (passageText == null || passageText.trim().isEmpty())) {
                         showToast("No passage selected. Please select or create a passage first.", NotificationType.WARNING);
                         return;
                     }
-
-                    int passageId = (Integer) passage.getClass().getMethod("id").invoke(passage);
-                    String passageText = (String) passage.getClass().getMethod("text").invoke(passage);
+                    
+                    // Use the passage text directly if we have it
+                    if (passageText == null || passageText.trim().isEmpty()) {
+                        if (passage != null) {
+                            passageText = (String) passage.getClass().getMethod("text").invoke(passage);
+                        }
+                    }
 
                     generator.TextverstaendnisGenerator gen = new generator.TextverstaendnisGenerator(
                             conn, currentCategory, currentSubcategory, selectedSimulationId);
@@ -2844,7 +2884,6 @@ public class MedatoninDB extends JFrame {
                     gen.execute(passageText, questionCount);
                     showToast("Successfully generated " + questionCount + " questions!", NotificationType.SUCCESS);
 
-                    int idx = (Integer) currentTextPassagePanel.getClass().getMethod("getCurrentIndex").invoke(currentTextPassagePanel);
                     loadQuestionsForPassageIndex(idx);
                 } catch (Exception ex) {
                     ex.printStackTrace();
