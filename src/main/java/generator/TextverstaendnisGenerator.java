@@ -503,6 +503,10 @@ public class TextverstaendnisGenerator {
     }
 
     private String createOutOfScopeDistractor(TextAnalysis analysis) {
+        if (!analysis.propositions.isEmpty()) {
+            Proposition p = analysis.propositions.get(random.nextInt(analysis.propositions.size()));
+            return p.subj + " " + p.pred + " " + p.obj + " in einem anderen Kontext";
+        }
         return "Eine plausible, aber nicht im Text erwähnte Aussage";
     }
 
@@ -531,10 +535,21 @@ public class TextverstaendnisGenerator {
     }
 
     private String createContradictionOption(TextAnalysis analysis) {
+        if (!analysis.propositions.isEmpty()) {
+            Proposition prop = analysis.propositions.get(random.nextInt(analysis.propositions.size()));
+            if (prop.pred.contains("nicht")) {
+                return prop.subj + " " + prop.pred.replace("nicht", "") + " " + prop.obj;
+            }
+            return prop.subj + " nicht " + prop.pred + " " + prop.obj;
+        }
         return "Eine Aussage, die dem Text widerspricht";
     }
 
     private String createNotMentionedOption(TextAnalysis analysis) {
+        if (!analysis.propositions.isEmpty()) {
+            Proposition p = analysis.propositions.get(random.nextInt(analysis.propositions.size()));
+            return p.subj + " " + p.pred + " " + p.obj + " unter besonderen Bedingungen";
+        }
         return "Eine plausible, aber nicht erwähnte Information";
     }
 
@@ -547,33 +562,51 @@ public class TextverstaendnisGenerator {
     }
 
     private String extractCoreStatement(TextAnalysis analysis) {
+        if (!analysis.propositions.isEmpty()) {
+            Proposition p = analysis.propositions.get(0);
+            return paraphraseSentence(p.toString());
+        }
         return "Die Hauptaussage des Textes";
     }
 
     private String createDetailDistractor(TextAnalysis analysis) {
+        if (analysis.sentences.size() > 1) {
+            return paraphraseSentence(analysis.sentences.get(1).toString());
+        }
         return "Ein spezifisches Detail aus dem Text";
     }
 
     private String createOvergeneralizationDistractor(TextAnalysis analysis) {
+        if (!analysis.propositions.isEmpty()) {
+            String s = paraphraseSentence(analysis.propositions.get(0).toString());
+            return s.replace("einige", "alle").replace("manche", "alle");
+        }
         return "Eine zu allgemeine Verallgemeinerung";
     }
 
     private String createUndergeneralizationDistractor(TextAnalysis analysis) {
+        if (!analysis.propositions.isEmpty()) {
+            String s = paraphraseSentence(analysis.propositions.get(0).toString());
+            return s.replace("alle", "einige").replace("immer", "manchmal");
+        }
         return "Eine zu spezifische Einschränkung";
     }
 
     private String createTangentialDistractor(TextAnalysis analysis) {
-        return "Ein tangentialer Aspekt des Textes";
+        return "Ein Aspekt, der im Text nicht behandelt wird";
     }
 
     private String identifyRhetoricalFunction(TextAnalysis analysis) {
+        if (!analysis.sentences.isEmpty()) {
+            return "Dient als Darstellung eines zentralen Gedankens";
+        }
         return "Dient als Einleitung des Hauptarguments";
     }
 
     private String paraphraseSentence(String sentence) {
-        return sentence.replace("ist", "stellt dar")
-                      .replace("wird", "erfolgt")
-                      .replace("kann", "ist in der Lage zu");
+        return sentence.replace(" ist ", " stellt ")
+                      .replace(" wird ", " erfolgt ")
+                      .replace(" kann ", " besitzt die Fähigkeit zu ");
     }
 
     /**

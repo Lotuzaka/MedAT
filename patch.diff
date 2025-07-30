@@ -1,6 +1,6 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
 diff --git a/src/main/java/generator/TextverstaendnisGenerator.java b/src/main/java/generator/TextverstaendnisGenerator.java
-index a9ea4260bd937dd38519f2d5a696ebd35f1a5292..c1b5924fa982ec4a7bd3c3f36bb9b2ed7f58dacc 100644
+index a9ea4260bd937dd38519f2d5a696ebd35f1a5292..e1b0e54a3ed2af7b3b8d19f1092c075ac1657581 100644
 --- a/src/main/java/generator/TextverstaendnisGenerator.java
 +++ b/src/main/java/generator/TextverstaendnisGenerator.java
 @@ -8,127 +8,160 @@ import edu.stanford.nlp.naturalli.NaturalLogicAnnotations;
@@ -180,7 +180,7 @@ index a9ea4260bd937dd38519f2d5a696ebd35f1a5292..c1b5924fa982ec4a7bd3c3f36bb9b2ed
                          Annotation sentAnnotation = new Annotation(sent.trim());
                          sentences.add(sentAnnotation);
 diff --git a/src/main/java/generator/TextverstaendnisGenerator.java b/src/main/java/generator/TextverstaendnisGenerator.java
-index a9ea4260bd937dd38519f2d5a696ebd35f1a5292..c1b5924fa982ec4a7bd3c3f36bb9b2ed7f58dacc 100644
+index a9ea4260bd937dd38519f2d5a696ebd35f1a5292..e1b0e54a3ed2af7b3b8d19f1092c075ac1657581 100644
 --- a/src/main/java/generator/TextverstaendnisGenerator.java
 +++ b/src/main/java/generator/TextverstaendnisGenerator.java
 @@ -325,52 +358,52 @@ public class TextverstaendnisGenerator {
@@ -239,10 +239,13 @@ index a9ea4260bd937dd38519f2d5a696ebd35f1a5292..c1b5924fa982ec4a7bd3c3f36bb9b2ed
          Collections.shuffle(options);
          int correctIndex = options.indexOf(correctOption);
 diff --git a/src/main/java/generator/TextverstaendnisGenerator.java b/src/main/java/generator/TextverstaendnisGenerator.java
-index a9ea4260bd937dd38519f2d5a696ebd35f1a5292..c1b5924fa982ec4a7bd3c3f36bb9b2ed7f58dacc 100644
+index a9ea4260bd937dd38519f2d5a696ebd35f1a5292..e1b0e54a3ed2af7b3b8d19f1092c075ac1657581 100644
 --- a/src/main/java/generator/TextverstaendnisGenerator.java
 +++ b/src/main/java/generator/TextverstaendnisGenerator.java
-@@ -451,50 +484,63 @@ public class TextverstaendnisGenerator {
+@@ -448,108 +481,154 @@ public class TextverstaendnisGenerator {
+     private String createNegationDistractor(String original) {
+         if (original.contains("ist")) {
+             return original.replace("ist", "ist nicht");
          }
          if (original.contains("kann")) {
              return original.replace("kann", "kann nicht");
@@ -265,6 +268,10 @@ index a9ea4260bd937dd38519f2d5a696ebd35f1a5292..c1b5924fa982ec4a7bd3c3f36bb9b2ed
      }
  
      private String createOutOfScopeDistractor(TextAnalysis analysis) {
++        if (!analysis.propositions.isEmpty()) {
++            Proposition p = analysis.propositions.get(random.nextInt(analysis.propositions.size()));
++            return p.subj + " " + p.pred + " " + p.obj + " in einem anderen Kontext";
++        }
          return "Eine plausible, aber nicht im Text erwähnte Aussage";
      }
  
@@ -293,10 +300,21 @@ index a9ea4260bd937dd38519f2d5a696ebd35f1a5292..c1b5924fa982ec4a7bd3c3f36bb9b2ed
      }
  
      private String createContradictionOption(TextAnalysis analysis) {
++        if (!analysis.propositions.isEmpty()) {
++            Proposition prop = analysis.propositions.get(random.nextInt(analysis.propositions.size()));
++            if (prop.pred.contains("nicht")) {
++                return prop.subj + " " + prop.pred.replace("nicht", "") + " " + prop.obj;
++            }
++            return prop.subj + " nicht " + prop.pred + " " + prop.obj;
++        }
          return "Eine Aussage, die dem Text widerspricht";
      }
  
      private String createNotMentionedOption(TextAnalysis analysis) {
++        if (!analysis.propositions.isEmpty()) {
++            Proposition p = analysis.propositions.get(random.nextInt(analysis.propositions.size()));
++            return p.subj + " " + p.pred + " " + p.obj + " unter besonderen Bedingungen";
++        }
          return "Eine plausible, aber nicht erwähnte Information";
      }
  
@@ -306,11 +324,88 @@ index a9ea4260bd937dd38519f2d5a696ebd35f1a5292..c1b5924fa982ec4a7bd3c3f36bb9b2ed
              return "Daraus folgt: " + prop.subj + " " + prop.pred + " " + prop.obj;
          }
          return "Eine logische Schlussfolgerung aus dem Text";
+     }
+ 
+     private String extractCoreStatement(TextAnalysis analysis) {
++        if (!analysis.propositions.isEmpty()) {
++            Proposition p = analysis.propositions.get(0);
++            return paraphraseSentence(p.toString());
++        }
+         return "Die Hauptaussage des Textes";
+     }
+ 
+     private String createDetailDistractor(TextAnalysis analysis) {
++        if (analysis.sentences.size() > 1) {
++            return paraphraseSentence(analysis.sentences.get(1).toString());
++        }
+         return "Ein spezifisches Detail aus dem Text";
+     }
+ 
+     private String createOvergeneralizationDistractor(TextAnalysis analysis) {
++        if (!analysis.propositions.isEmpty()) {
++            String s = paraphraseSentence(analysis.propositions.get(0).toString());
++            return s.replace("einige", "alle").replace("manche", "alle");
++        }
+         return "Eine zu allgemeine Verallgemeinerung";
+     }
+ 
+     private String createUndergeneralizationDistractor(TextAnalysis analysis) {
++        if (!analysis.propositions.isEmpty()) {
++            String s = paraphraseSentence(analysis.propositions.get(0).toString());
++            return s.replace("alle", "einige").replace("immer", "manchmal");
++        }
+         return "Eine zu spezifische Einschränkung";
+     }
+ 
+     private String createTangentialDistractor(TextAnalysis analysis) {
+-        return "Ein tangentialer Aspekt des Textes";
++        return "Ein Aspekt, der im Text nicht behandelt wird";
+     }
+ 
+     private String identifyRhetoricalFunction(TextAnalysis analysis) {
++        if (!analysis.sentences.isEmpty()) {
++            return "Dient als Darstellung eines zentralen Gedankens";
++        }
+         return "Dient als Einleitung des Hauptarguments";
+     }
+ 
+     private String paraphraseSentence(String sentence) {
+-        return sentence.replace("ist", "stellt dar")
+-                      .replace("wird", "erfolgt")
+-                      .replace("kann", "ist in der Lage zu");
++        return sentence.replace(" ist ", " stellt ")
++                      .replace(" wird ", " erfolgt ")
++                      .replace(" kann ", " besitzt die Fähigkeit zu ");
+     }
+ 
+     /**
+      * Loads question templates from templates.json.
+      */
+     private Map<String, List<String>> loadTemplates() {
+         Map<String, List<String>> templates = new HashMap<>();
+         
+         try {
+             InputStream is = getClass().getResourceAsStream("/templates.json");
+             if (is == null) {
+                 File file = new File("src/main/resources/templates.json");
+                 if (file.exists()) {
+                     is = new FileInputStream(file);
+                 }
+             }
+             
+             if (is != null) {
+                 ObjectMapper mapper = new ObjectMapper();
+                 JsonNode root = mapper.readTree(is);
+                 JsonNode textverstaendnis = root.get("textverstaendnis");
+                 
+                 if (textverstaendnis != null) {
+                     textverstaendnis.fields().forEachRemaining(entry -> {
+                         String key = entry.getKey();
 diff --git a/src/main/java/generator/TextverstaendnisGenerator.java b/src/main/java/generator/TextverstaendnisGenerator.java
-index a9ea4260bd937dd38519f2d5a696ebd35f1a5292..c1b5924fa982ec4a7bd3c3f36bb9b2ed7f58dacc 100644
+index a9ea4260bd937dd38519f2d5a696ebd35f1a5292..e1b0e54a3ed2af7b3b8d19f1092c075ac1657581 100644
 --- a/src/main/java/generator/TextverstaendnisGenerator.java
 +++ b/src/main/java/generator/TextverstaendnisGenerator.java
-@@ -670,50 +716,163 @@ public class TextverstaendnisGenerator {
+@@ -670,50 +749,163 @@ public class TextverstaendnisGenerator {
              stmt.setInt(6, passageId);
              stmt.executeUpdate();
              try (ResultSet rs = stmt.getGeneratedKeys()) {
@@ -475,10 +570,10 @@ index a9ea4260bd937dd38519f2d5a696ebd35f1a5292..c1b5924fa982ec4a7bd3c3f36bb9b2ed
              this.document = document;
          }
 diff --git a/src/main/java/generator/TextverstaendnisGenerator.java b/src/main/java/generator/TextverstaendnisGenerator.java
-index a9ea4260bd937dd38519f2d5a696ebd35f1a5292..c1b5924fa982ec4a7bd3c3f36bb9b2ed7f58dacc 100644
+index a9ea4260bd937dd38519f2d5a696ebd35f1a5292..e1b0e54a3ed2af7b3b8d19f1092c075ac1657581 100644
 --- a/src/main/java/generator/TextverstaendnisGenerator.java
 +++ b/src/main/java/generator/TextverstaendnisGenerator.java
-@@ -729,26 +888,61 @@ public class TextverstaendnisGenerator {
+@@ -729,26 +921,61 @@ public class TextverstaendnisGenerator {
          Proposition(String id, String subj, String pred, String obj, List<String> modifiers) {
              this.id = id;
              this.subj = subj;

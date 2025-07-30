@@ -1,0 +1,12 @@
+-------------------------------------------------------------------------------
+Test set: generator.MerkfaehigkeitGeneratorIT
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 0.208 s <<< FAILURE! - in generator.MerkfaehigkeitGeneratorIT
+generator.MerkfaehigkeitGeneratorIT.saveWithMissingDataShowsError  Time elapsed: 0.159 s  <<< ERROR!
+java.lang.NullPointerException
+	at java.base/java.util.Objects.requireNonNull(Objects.java:233)
+	at generator.MerkfaehigkeitGeneratorIT.saveWithMissingDataShowsError(MerkfaehigkeitGeneratorIT.java:18)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
