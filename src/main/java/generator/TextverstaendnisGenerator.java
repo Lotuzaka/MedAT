@@ -30,23 +30,29 @@ public class TextverstaendnisGenerator {
     private final Integer simulationId;
     private final StanfordCoreNLP pipeline;
     private final Map<String, List<String>> templates;
-    private final Random random = new Random();
-    
-    // Question type weights according to AGENTS.md
-    private final Map<String, Double> questionTypeWeights = Map.of(
+    private Random random = new Random();
+
+    // Default weights according to AGENTS.md
+    private static final Map<String, Double> DEFAULT_QUESTION_TYPE_WEIGHTS = Map.of(
         "entailment", 0.4,
-        "widerspruch", 0.2, 
+        "widerspruch", 0.2,
         "nicht_erwaehnt", 0.15,
         "kernaussage", 0.15,
         "struktur", 0.1
     );
-    
-    // Difficulty distribution
-    private final Map<String, Double> difficultyWeights = Map.of(
+
+    private static final Map<String, Double> DEFAULT_DIFFICULTY_WEIGHTS = Map.of(
         "leicht", 0.3,
         "mittel", 0.5,
         "schwer", 0.2
     );
+
+    private Map<String, Double> questionTypeWeights = new HashMap<>(DEFAULT_QUESTION_TYPE_WEIGHTS);
+    private Map<String, Double> difficultyWeights = new HashMap<>(DEFAULT_DIFFICULTY_WEIGHTS);
+
+    private final List<QuestionRecord> generatedQuestions = new ArrayList<>();
+    private List<Proposition> lastPropositions = new ArrayList<>();
+    private final List<String> metaWarnings = new ArrayList<>();
 
     /**
      * Constructs the generator with DB connection and context.
@@ -81,14 +87,37 @@ public class TextverstaendnisGenerator {
      * Main execution method following AGENTS.md specifications.
      */
     public void execute(String passageText, int questionCount) throws SQLException {
+        execute(passageText, questionCount, null);
+    }
+
+    /**
+     * Execution method with parameter map for weight overrides.
+     */
+    public String execute(String passageText, int questionCount, Map<String, Object> params) throws SQLException {
+        generatedQuestions.clear();
+        lastPropositions = new ArrayList<>();
+        metaWarnings.clear();
+
+        applyParams(params);
+
+        if (params != null && params.get("anzahl_fragen_total") instanceof Number n) {
+            questionCount = n.intValue();
+        }
+
+        if (passageText.split("\\s+").length < 120) {
+            metaWarnings.add("Passage kürzer als 120 Wörter");
+            questionCount = Math.min(questionCount, 3);
+        }
+
         System.out.println("Generating " + questionCount + " questions using AGENTS.md methodology...");
-        
+
         // Comprehensive text analysis
         TextAnalysis analysis = analyzeText(passageText);
-        
+        lastPropositions = analysis.propositions;
+
         // Distribute questions across types and difficulties
         List<QuestionSpec> questionSpecs = distributeQuestions(questionCount);
-        
+
         // Generate questions systematically
         for (int i = 0; i < questionSpecs.size(); i++) {
             QuestionSpec spec = questionSpecs.get(i);
@@ -96,17 +125,21 @@ public class TextverstaendnisGenerator {
                 QuestionData questionData = generateQuestion(spec, analysis);
                 
                 // Insert into database
-                int questionId = insertQuestion(questionData.text, i + 1, getPassageId(passageText));
+                int passageId = getPassageId(passageText);
+                int questionId = insertQuestion(questionData.text, i + 1, passageId);
                 insertAnswerOptions(questionId, questionData.options, questionData.correctIndex);
-                
+
+                storeQuestionRecord("Q" + (i + 1), spec, questionData, analysis);
                 System.out.println("Generated " + spec.type + " question (" + spec.difficulty + ")");
-                
+
             } catch (Exception e) {
                 System.err.println("Failed to generate question of type " + spec.type + ": " + e.getMessage());
             }
         }
-        
+
         System.out.println("Question generation completed successfully!");
+        int passageId = getPassageId(passageText);
+        return toJson(passageId);
     }
 
     /**
@@ -347,8 +380,8 @@ public class TextverstaendnisGenerator {
         // Generate 4 distractors using systematic transformations
         options.add(createNegationDistractor(correctOption));
         options.add(createQuantifierFlipDistractor(correctOption));
-        options.add(createEntitySwapDistractor(analysis));
-        options.add(createOutOfScopeDistractor(analysis));
+        options.add(createConditionDropDistractor(correctOption));
+        options.add(createTemporalFlipDistractor(correctOption));
         
         Collections.shuffle(options);
         int correctIndex = options.indexOf(correctOption);
@@ -471,6 +504,19 @@ public class TextverstaendnisGenerator {
 
     private String createOutOfScopeDistractor(TextAnalysis analysis) {
         return "Eine plausible, aber nicht im Text erwähnte Aussage";
+    }
+
+    private String createConditionDropDistractor(String original) {
+        if (original.contains("wenn")) {
+            return original.replaceAll("nur\\s+wenn", "").replace("wenn", "").trim();
+        }
+        return original + " ohne Bedingung";
+    }
+
+    private String createTemporalFlipDistractor(String original) {
+        return original.replace("zunächst", "abschließend")
+                       .replace("erst", "zuletzt")
+                       .replace("später", "früher");
     }
 
     private String createTrueStatement(TextAnalysis analysis) {
@@ -692,6 +738,119 @@ public class TextverstaendnisGenerator {
         }
     }
 
+    // Parameter handling
+    private void applyParams(Map<String, Object> params) {
+        if (params == null) {
+            return;
+        }
+
+        if (params.get("frage_typen_gewichtung") instanceof Map<?, ?> map) {
+            Map<String, Double> newWeights = new HashMap<>();
+            for (Map.Entry<?, ?> e : map.entrySet()) {
+                if (e.getValue() instanceof Number n) {
+                    newWeights.put(e.getKey().toString(), n.doubleValue());
+                }
+            }
+            if (!newWeights.isEmpty()) {
+                questionTypeWeights = newWeights;
+            }
+        }
+
+        if (params.get("schwierigkeitsverteilung") instanceof Map<?, ?> map) {
+            Map<String, Double> newDiff = new HashMap<>();
+            for (Map.Entry<?, ?> e : map.entrySet()) {
+                if (e.getValue() instanceof Number n) {
+                    newDiff.put(e.getKey().toString(), n.doubleValue());
+                }
+            }
+            if (!newDiff.isEmpty()) {
+                difficultyWeights = newDiff;
+            }
+        }
+
+        if (params.get("seed") instanceof Number n) {
+            random = new Random(n.longValue());
+        }
+    }
+
+    private void storeQuestionRecord(String frageId, QuestionSpec spec, QuestionData data, TextAnalysis analysis) {
+        List<Option> optionList = new ArrayList<>();
+        Map<String, List<String>> trans = new LinkedHashMap<>();
+        for (int i = 0; i < data.options.size(); i++) {
+            String label = String.valueOf((char)('A' + i));
+            optionList.add(new Option(label, data.options.get(i)));
+            if (i != data.correctIndex) {
+                // Simple heuristic: mark by order of transformation methods used
+                List<String> t = new ArrayList<>();
+                switch (i) {
+                    case 0 -> t.add("negation");
+                    case 1 -> t.add("quantifier_flip");
+                    case 2 -> t.add("condition_drop");
+                    case 3 -> t.add("temporal_flip");
+                }
+                trans.put(label, t);
+            }
+        }
+
+        String korrektLabel = String.valueOf((char)('A' + data.correctIndex));
+        List<String> evidence = analysis.propositions.isEmpty() ? new ArrayList<>() : List.of(analysis.propositions.get(0).id);
+
+        generatedQuestions.add(new QuestionRecord(frageId, spec.type, spec.difficulty,
+                data.text, optionList, korrektLabel, evidence, trans));
+    }
+
+    public String toJson(int passageId) {
+        Map<String, Object> root = new LinkedHashMap<>();
+        root.put("text_id", String.valueOf(passageId));
+
+        List<Map<String, Object>> qList = new ArrayList<>();
+        for (QuestionRecord q : generatedQuestions) {
+            Map<String, Object> qMap = new LinkedHashMap<>();
+            qMap.put("frage_id", q.frageId);
+            qMap.put("typ", q.typ);
+            qMap.put("schwierigkeitsgrad", q.schwierigkeitsgrad);
+            qMap.put("stem", q.stem);
+
+            List<Map<String, String>> opts = new ArrayList<>();
+            for (Option o : q.optionen) {
+                Map<String, String> om = new LinkedHashMap<>();
+                om.put("label", o.label);
+                om.put("text", o.text);
+                opts.add(om);
+            }
+            qMap.put("optionen", opts);
+            qMap.put("korrekt", q.korrekt);
+            qMap.put("evidence_props", q.evidenceProps);
+            qMap.put("transformations_distraktoren", q.transformationsDistraktoren);
+
+            qList.add(qMap);
+        }
+        root.put("fragen", qList);
+
+        List<Map<String, Object>> propList = new ArrayList<>();
+        for (Proposition p : lastPropositions) {
+            Map<String, Object> pm = new LinkedHashMap<>();
+            pm.put("id", p.id);
+            pm.put("subj", p.subj);
+            pm.put("pred", p.pred);
+            pm.put("obj", p.obj);
+            pm.put("mods", p.modifiers);
+            propList.add(pm);
+        }
+        root.put("propositionen", propList);
+
+        if (!metaWarnings.isEmpty()) {
+            root.put("meta_warnungen", metaWarnings);
+        }
+
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(root);
+        } catch (Exception e) {
+            return "{}";
+        }
+    }
+
     // Helper classes
     
     private static class QuestionSpec {
@@ -749,6 +908,41 @@ public class TextverstaendnisGenerator {
             this.text = text;
             this.options = new ArrayList<>(options);
             this.correctIndex = correctIndex;
+        }
+    }
+
+    private static class Option {
+        String label;
+        String text;
+
+        Option(String label, String text) {
+            this.label = label;
+            this.text = text;
+        }
+    }
+
+    private static class QuestionRecord {
+        String frageId;
+        String typ;
+        String schwierigkeitsgrad;
+        String stem;
+        List<Option> optionen;
+        String korrekt;
+        List<String> evidenceProps;
+        Map<String, List<String>> transformationsDistraktoren;
+
+        QuestionRecord(String frageId, String typ, String schwierigkeitsgrad,
+                       String stem, List<Option> optionen, String korrekt,
+                       List<String> evidenceProps,
+                       Map<String, List<String>> transformationsDistraktoren) {
+            this.frageId = frageId;
+            this.typ = typ;
+            this.schwierigkeitsgrad = schwierigkeitsgrad;
+            this.stem = stem;
+            this.optionen = optionen;
+            this.korrekt = korrekt;
+            this.evidenceProps = evidenceProps;
+            this.transformationsDistraktoren = transformationsDistraktoren;
         }
     }
 }

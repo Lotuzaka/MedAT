@@ -1,312 +1,545 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
-diff --git a/AGENTS.md b/AGENTS.md
-new file mode 100644
-index 0000000000000000000000000000000000000000..ae0e15cb57168681bb0091dfa318a5b8aa1d5739
---- /dev/null
-+++ b/AGENTS.md
-@@ -0,0 +1,195 @@
-+# Repository Instructions
-+
-+## Testing
-+- Run `mvn -q test` after modifying code.
-+- If Maven fails because dependencies cannot be downloaded, mention this in the PR summary.
-+
-+## Textverständnis Question Generation
-+- The UI contains a **Generate** button for the "Textverständnis" subcategory. It calls `generator.TextverstaendnisGenerator` with the current passage and desired question count.
-+- The following prompt describes the expected behaviour of the automated question authoring system used in this project.
-+
-+Ziel: Erzeuge aus einem gegebenen deutschen Fließtext hochwertige Multiple-Choice-Fragen (Single Choice, 5 Optionen, genau 1 richtig) im Stil des MedAT-Untertests „Textverständnis“. Der Fokus liegt auf inhaltlich-logischer Prüfung (Entailment, Widerspruch, Nicht erwähnt, Kernaussage, Struktur) und dem Abbilden komplexer Verknüpfungen innerhalb des Textes. Keine Code-Erklärungen oder Implementierungsdetails ausgeben – liefere ausschließlich die spezifizierten Outputs.
-+
-+1. Rollen- und Arbeitsdefinition
-+
-+Deine Rolle: Ein strikt regelgeleitetes Item-Authoring-System für Textverständnis-Aufgaben.
-+
-+Deine Aufgabe: Analysiere den Input-Text semantisch, extrahiere Propositionen und Relationen, wähle Frageziele, formuliere Frage-Stems, generiere eine korrekte Option und vier Distraktoren, validiere logisch und liefere das Ergebnis im geforderten Format.
-+
-+Keine Meta-Kommentare: Gib weder Erklärungen über dein Vorgehen noch Code oder Pseudocode aus. Nur das Endergebnis laut Output-Spezifikation.
-+
-+2. Eingaben (vom Benutzer bereitgestellt)
-+
-+TEXT: Ein deutscher Fließtext (kann mehrere Absätze enthalten). Enthält alle für die Fragen relevanten Informationen; kein externes Vorwissen voraussetzen.
-+
-+PARAMETER (optional):
-+
-+anzahl_fragen_total (Integer, Standard: 12)
-+
-+fragen_pro_text (Integer-Range, Standard: 2–3)
-+
-+schwierigkeitsverteilung (z. B. {"leicht":0.3,"mittel":0.5,"schwer":0.2})
-+
-+frage_typen_gewichtung (z. B. {"entailment":0.4,"widerspruch":0.2,"nicht_erwaehnt":0.15,"kernaussage":0.15,"struktur":0.1})
-+
-+seed (für Reproduzierbarkeit der Randomisierung)
-+
-+Wenn keine Parameter geliefert werden, verwende die Standardwerte.
-+
-+3. Interne Repräsentation (Pflicht, jedoch nicht im Output anzeigen)
-+
-+Segmentiere den Text in Sätze/Absätze.
-+
-+Führe Coreference Resolution durch (Pronomen → Referenten).
-+
-+Extrahiere Propositionen als Tripel/Statements mit Modifikatoren:
-+
-+Struktur: {id, subj, pred, obj, modifikatoren[]}
-+
-+Modifikatoren umfassen: Konditionen („nur wenn…“), Quantoren („häufig“, „selten“), Kontrastmarker („jedoch“), Zeitbezüge („zunächst“, „anschließend“), Vergleich („im Gegensatz zu“).
-+
-+Baue einen Wissensgraphen aus den Propositionen (für Inferenzbildung).
-+
-+4. Fragetypen & Logik (Auswahl nach Gewichtung)
-+
-+Entailment / Ableitung: Eine Aussage, die logisch aus dem Text folgt (explizit oder implizit).
-+
-+Operation: identity/inference.
-+
-+Widerspruch / Falsch laut Text: Aussage, die dem Text widerspricht.
-+
-+Operation: negation/reversal/quantifier flip.
-+
-+Nicht erwähnt / Neutral: Aussage, die weder bestätigt noch widerlegt wird.
-+
-+Operation: out-of-scope plausible.
-+
-+Kernaussage / Zusammenfassung: Abstraktion mehrerer Kernpropositionen zu einer Meta-Aussage.
-+
-+Operation: synthesis/abstraction.
-+
-+Struktur-/Funktion-Frage: Rolle eines Absatzes/Satzes im Text (Definition, Beispiel, Gegenargument, Einschränkung etc.).
-+
-+Operation: rhetorical role mapping.
-+
-+Jede Frage basiert auf klar referenzierbaren Propositionen oder Kombinationen davon.
-+
-+5. Antwortoptionen – Konstruktionsregeln
-+
-+Anzahl: 5 Optionen (A–E). Genau eine ist korrekt.
-+
-+Korrekte Option:
-+
-+Paraphrasiert oder fasst die relevanten Propositionen korrekt zusammen.
-+
-+Erhält alle Quantoren, Bedingungen, Richtungen (Ursache → Wirkung) und zeitlichen/kontrastiven Marker korrekt bei.
-+
-+Distraktoren (4 Stück): Generiere sie nach folgenden systematischen Transformationen (mindestens zwei verschiedene Typen nutzen):
-+
-+Negation/Umkehr: Relation invertieren (X verursacht Y → Y verursacht X) oder verneinen.
-+
-+Quantifier Flip: „manchmal/teilweise“ ↔ „immer“, „selten“ ↔ „häufig“.
-+
-+Condition Drop/Add: Weglassen oder Erfinden eines kritischen Konditionals („nur wenn…“ wird ignoriert oder falsche Bedingung ergänzt).
-+
-+Entity Swap: Subjekt/Objekt/Entität vertauschen oder falsch zuordnen (Pronomen-Fehler, Synonym-Missbrauch).
-+
-+Temporal Flip: Reihenfolge oder Kausalität zeitlich verdrehen („zunächst“ ↔ „anschließend“).
-+
-+Out-of-Scope but Plausible: Inhaltsnahe, aber nicht textgestützte Information hinzufügen.
-+
-+Over-/Undergeneralization: Teil-Ganzes, Ausnahme vs. Regel vertauschen.
-+
-+Sprachliche Balance: Alle Optionen grammatisch korrekt, ähnliche Länge und syntaktische Komplexität. Keine verräterischen Formulierungen („laut Text“) nur in der richtigen Option.
-+
-+Keine logische Äquivalenz zwischen Distraktoren: Jeder Distraktor muss sich inhaltlich klar von den anderen unterscheiden.
-+
-+6. Validierung & Qualitätskontrolle (intern, nicht ausgeben)
-+
-+NLI-Check: Stelle sicher, dass der Text die korrekte Option entailt (Entailment) und dass Distraktoren entweder widersprochen (Contradiction) oder neutral (Not-mentioned) sind.
-+
-+Redundanzprüfung: Semantische Ähnlichkeit zwischen Distraktoren unter Schwellwert halten.
-+
-+Bias-Check: Position der richtigen Antwort zufällig (A–E), Längenausgleich, keine stilistischen Auffälligkeiten.
-+
-+Schwierigkeit steuern:
-+
-+Leicht: 1 Proposition, keine Modifikatoren.
-+
-+Mittel: 2–3 Propositionen, einfache Konditionen.
-+
-+Schwer: Mehrere Propositionen + Konditionen/Kontraste; implizite Inferenz erforderlich.
-+
-+7. Ausgabespezifikation (verpflichtend einzuhalten)
-+
-+Gesamtstruktur: JSON-ähnliches Objekt (ohne Code-Kommentare), UTF-8, Deutsch.
-+
-+Felder:
-+
-+{
-+  "text_id": "<string>",
-+  "fragen": [
-+    {
-+      "frage_id": "<string>",
-+      "typ": "entailment" | "widerspruch" | "nicht_erwaehnt" | "kernaussage" | "struktur",
-+      "schwierigkeitsgrad": "leicht" | "mittel" | "schwer",
-+      "stem": "<Fragetext>",
-+      "optionen": [
-+        {"label":"A","text":"<Option A>"},
-+        {"label":"B","text":"<Option B>"},
-+        {"label":"C","text":"<Option C>"},
-+        {"label":"D","text":"<Option D>"},
-+        {"label":"E","text":"<Option E>"}
-+      ],
-+      "korrekt": "<Label der richtigen Option>",
-+      "evidence_props": ["p1","p4", ...],
-+      "transformations_distraktoren": {
-+        "A": ["negation"],
-+        "B": ["condition_drop","quantifier_flip"],
-+        ...
-+      }
-+    }
-+  ],
-+  "propositionen": [
-+    {"id":"p1","subj":"…","pred":"…","obj":"…","mods":["…"]},
-+    {"id":"p2", ...}
-+  ]
-+}
-+
-+Reihenfolge: Zuerst das Feld text_id, dann fragen, zum Schluss optional propositionen (zur Transparenz). Keine anderen Felder hinzufügen.
-+
-+Keine Erklärtexte: Keine zusätzlichen Erläuterungen, Analysen oder Debug-Infos außerhalb der Spezifikation.
-+
-+8. Formatierungs- und Stilregeln
-+
-+Sprache: Deutsch, sachlich, präzise.
-+
-+Keine Zitate aus dem Text > 15 Wörter am Stück (Paraphrasieren!).
-+
-+Keine Automatismen preisgeben: Weder intern genutzte Modelle, Scores noch Zwischenschritte offenlegen.
-+
-+Antwortlabel: genau „A“, „B", „C", „D", „E" (Großbuchstaben).
-+
-+IDs: Eindeutig und konsistent (z. B. Q01, p1).
-+
-+9. Fehlerfälle & Fallbacks
-+
-+Zu kurzer Text (< 120 Wörter): Erzeuge weniger Fragen und gib im Feld meta_warnungen einen Hinweis (ohne Prozessdetails).
-+
-+Unklare/mehrdeutige Textpassagen: Wähle andere passagen; keine spekulativen Items.
-+
-+Wenn keine Struktur-/Funktion-Frage möglich ist: Setze den Anteil dieser Frageart auf 0 und verteile deren Gewicht auf andere Typen.
-+
-+10. Abschlussbedingungen
-+
-+Gib nur das finale JSON-Objekt gemäß Abschnitt 7 aus.
-+
-+Keine Vor- oder Nachbemerkungen, kein Fließtext außerhalb des JSON.
-+
-+Prüfe vor Ausgabe interne Konsistenz (eine richtige Option pro Item, IDs valide, alle referenzierten Propositionen existieren).
-+
-+Platzhalter für den Nutzer-Input
-+
-+{{TEXT}} – wird vom Nutzer ersetzt.
-+
-+Optional: {{PARAMETER_JSON}} – wenn der Nutzer Parametereinstellungen mitgibt.
-diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
-index 8d6ac479503a632bd59879d13a815c99848b9d4e..a638524e1eb5a052331dd3c363a6dd78698c7fdc 100644
---- a/src/main/java/MedatoninDB.java
-+++ b/src/main/java/MedatoninDB.java
-@@ -2778,50 +2778,102 @@ public class MedatoninDB extends JFrame {
+diff --git a/src/main/java/generator/TextverstaendnisGenerator.java b/src/main/java/generator/TextverstaendnisGenerator.java
+index a9ea4260bd937dd38519f2d5a696ebd35f1a5292..c1b5924fa982ec4a7bd3c3f36bb9b2ed7f58dacc 100644
+--- a/src/main/java/generator/TextverstaendnisGenerator.java
++++ b/src/main/java/generator/TextverstaendnisGenerator.java
+@@ -8,127 +8,160 @@ import edu.stanford.nlp.naturalli.NaturalLogicAnnotations;
+ import edu.stanford.nlp.pipeline.Annotation;
+ import edu.stanford.nlp.pipeline.StanfordCoreNLP;
+ import edu.stanford.nlp.util.CoreMap;
  
-             generateButton.addActionListener(e -> {
-                 try {
-                     String input = questionCountField.getText().trim();
-                     int questionCount;
-                     try {
-                         questionCount = Integer.parseInt(input);
-                     } catch (NumberFormatException ex) {
-                         showToast("Please enter a valid number", NotificationType.ERROR);
-                         return;
-                     }
-                     WortfluessigkeitGenerator generator = new WortfluessigkeitGenerator(conn, currentCategory, currentSubcategory, selectedSimulationId);
-                     generator.execute(questionCount);
-                     loadQuestionsFromDatabase(currentCategory, categoryModels.get(currentCategory), selectedSimulationId);
-                     switchSubcategory(currentCategory, currentSubcategory);
-                 } catch (SQLException | IOException ex) {
-                     ex.printStackTrace();
-                     showToast("Fehler bei der Generierung: " + ex.getMessage(), NotificationType.ERROR);
-                 }
-             });
+ import java.io.*;
+ import java.sql.Connection;
+ import java.sql.PreparedStatement;
+ import java.sql.ResultSet;
+ import java.sql.SQLException;
+ import java.sql.Statement;
+ import java.util.*;
  
-             buttonPanel.add(generateButton);
-             buttonPanel.add(questionCountField);
+ /**
+  * Enhanced Textverständnis Generator following AGENTS.md specifications.
+  * Implements sophisticated question generation with advanced NLP processing,
+  * systematic distractor creation, and difficulty grading.
+  */
+ public class TextverstaendnisGenerator {
+ 
+     private final Connection conn;
+     private final String category;
+     private final String subcategory;
+     private final Integer simulationId;
+     private final StanfordCoreNLP pipeline;
+     private final Map<String, List<String>> templates;
+-    private final Random random = new Random();
+-    
+-    // Question type weights according to AGENTS.md
+-    private final Map<String, Double> questionTypeWeights = Map.of(
++    private Random random = new Random();
++
++    // Default weights according to AGENTS.md
++    private static final Map<String, Double> DEFAULT_QUESTION_TYPE_WEIGHTS = Map.of(
+         "entailment", 0.4,
+-        "widerspruch", 0.2, 
++        "widerspruch", 0.2,
+         "nicht_erwaehnt", 0.15,
+         "kernaussage", 0.15,
+         "struktur", 0.1
+     );
+-    
+-    // Difficulty distribution
+-    private final Map<String, Double> difficultyWeights = Map.of(
++
++    private static final Map<String, Double> DEFAULT_DIFFICULTY_WEIGHTS = Map.of(
+         "leicht", 0.3,
+         "mittel", 0.5,
+         "schwer", 0.2
+     );
+ 
++    private Map<String, Double> questionTypeWeights = new HashMap<>(DEFAULT_QUESTION_TYPE_WEIGHTS);
++    private Map<String, Double> difficultyWeights = new HashMap<>(DEFAULT_DIFFICULTY_WEIGHTS);
++
++    private final List<QuestionRecord> generatedQuestions = new ArrayList<>();
++    private List<Proposition> lastPropositions = new ArrayList<>();
++    private final List<String> metaWarnings = new ArrayList<>();
++
+     /**
+      * Constructs the generator with DB connection and context.
+      * Uses a lightweight approach that doesn't require Stanford CoreNLP models.
+      */
+     public TextverstaendnisGenerator(Connection conn, String category, String subcategory, Integer simulationId) {
+         this.conn = conn;
+         this.category = category;
+         this.subcategory = subcategory;
+         this.simulationId = simulationId;
+ 
+         // Load question templates
+         this.templates = loadTemplates();
+ 
+         // Use a minimal pipeline that doesn't require external model files
+         StanfordCoreNLP tempPipeline;
+         try {
+             Properties props = new Properties();
+             props.setProperty("annotators", "tokenize,ssplit");
+             props.setProperty("tokenize.language", "de"); // German tokenization
+             props.setProperty("ssplit.newlineIsSentenceBreak", "always");
+             tempPipeline = new StanfordCoreNLP(props);
+             System.out.println("TextverstaendnisGenerator: Initialized with lightweight NLP pipeline");
+         } catch (Exception e) {
+             System.err.println("Warning: Could not initialize NLP pipeline, using fallback text processing: " + e.getMessage());
+             tempPipeline = null;
          }
+         this.pipeline = tempPipeline;
+     }
  
-+        // Add Generate button and number box for Textverständnis subcategory
-+        if ("Textverständnis".equals(currentSubcategory)) {
-+            JButton generateButton = createModernButton("Generate");
-+            generateButton.setBackground(new Color(52, 199, 89));
-+            generateButton.setForeground(Color.WHITE);
-+            generateButton.setFont(new Font("SansSerif", Font.BOLD, 14));
-+            generateButton.setFocusPainted(false);
-+            generateButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
-+            generateButton.putClientProperty("isNavigationButton", true);
+     /**
+      * Main execution method following AGENTS.md specifications.
+      */
+     public void execute(String passageText, int questionCount) throws SQLException {
++        execute(passageText, questionCount, null);
++    }
 +
-+            JTextField questionCountField = createStyledTextField("0", 40, new Color(52, 199, 89), Color.WHITE);
++    /**
++     * Execution method with parameter map for weight overrides.
++     */
++    public String execute(String passageText, int questionCount, Map<String, Object> params) throws SQLException {
++        generatedQuestions.clear();
++        lastPropositions = new ArrayList<>();
++        metaWarnings.clear();
 +
-+            generateButton.addActionListener(e -> {
-+                try {
-+                    String input = questionCountField.getText().trim();
-+                    int questionCount;
-+                    try {
-+                        questionCount = Integer.parseInt(input);
-+                    } catch (NumberFormatException ex) {
-+                        showToast("Please enter a valid number", NotificationType.ERROR);
-+                        return;
-+                    }
++        applyParams(params);
 +
-+                    if (currentTextPassagePanel == null) {
-+                        showToast("No passage selected. Please select or create a passage first.", NotificationType.WARNING);
-+                        return;
-+                    }
-+
-+                    Object passage = currentTextPassagePanel.getClass().getMethod("getCurrentPassage").invoke(currentTextPassagePanel);
-+                    if (passage == null) {
-+                        showToast("No passage selected. Please select or create a passage first.", NotificationType.WARNING);
-+                        return;
-+                    }
-+
-+                    int passageId = (Integer) passage.getClass().getMethod("id").invoke(passage);
-+
-+                    generator.TextverstaendnisGenerator gen = new generator.TextverstaendnisGenerator(
-+                            conn, currentCategory, currentSubcategory, selectedSimulationId);
-+                    gen.execute(questionCount, passageId);
-+
-+                    int idx = (Integer) currentTextPassagePanel.getClass().getMethod("getCurrentIndex").invoke(currentTextPassagePanel);
-+                    loadQuestionsForPassageIndex(idx);
-+                } catch (Exception ex) {
-+                    ex.printStackTrace();
-+                    showToast("Fehler bei der Generierung: " + ex.getMessage(), NotificationType.ERROR);
-+                }
-+            });
-+
-+            buttonPanel.add(generateButton);
-+            buttonPanel.add(questionCountField);
++        if (params != null && params.get("anzahl_fragen_total") instanceof Number n) {
++            questionCount = n.intValue();
 +        }
 +
-         // Buttons for deleting questions
-         JButton deleteMarkedButton = createModernButton("Delete Marked");
-         deleteMarkedButton.setBackground(new Color(255, 59, 48)); // Modern red
-         deleteMarkedButton.setForeground(Color.WHITE);
-         deleteMarkedButton.addActionListener(e -> deleteSelectedQuestions());
- 
-         JButton deleteAllButton = createModernButton("Delete All");
-         deleteAllButton.setBackground(new Color(255, 59, 48)); // Modern red
-         deleteAllButton.setForeground(Color.WHITE);
-         deleteAllButton.addActionListener(e -> {
-             int res = JOptionPane.showConfirmDialog(this,
-                     "Delete all questions in this subcategory?", "Confirm Delete",
-                     JOptionPane.YES_NO_OPTION);
-             if (res == JOptionPane.YES_OPTION) {
-                 deleteAllQuestions();
-             }
-         });
- 
-         buttonPanel.add(deleteMarkedButton);
-         buttonPanel.add(deleteAllButton);
-         
-         // Add "Generate ID" button for Merkfähigkeiten at the far right
-         if ("Merkfähigkeiten".equals(currentSubcategory)) {
++        if (passageText.split("\\s+").length < 120) {
++            metaWarnings.add("Passage kürzer als 120 Wörter");
++            questionCount = Math.min(questionCount, 3);
++        }
++
+         System.out.println("Generating " + questionCount + " questions using AGENTS.md methodology...");
+-        
++
+         // Comprehensive text analysis
+         TextAnalysis analysis = analyzeText(passageText);
+-        
++        lastPropositions = analysis.propositions;
++
+         // Distribute questions across types and difficulties
+         List<QuestionSpec> questionSpecs = distributeQuestions(questionCount);
+-        
++
+         // Generate questions systematically
+         for (int i = 0; i < questionSpecs.size(); i++) {
+             QuestionSpec spec = questionSpecs.get(i);
              try {
-                 // Find the allergy card grid panel from the split pane
+                 QuestionData questionData = generateQuestion(spec, analysis);
+                 
+                 // Insert into database
+-                int questionId = insertQuestion(questionData.text, i + 1, getPassageId(passageText));
++                int passageId = getPassageId(passageText);
++                int questionId = insertQuestion(questionData.text, i + 1, passageId);
+                 insertAnswerOptions(questionId, questionData.options, questionData.correctIndex);
+-                
++
++                storeQuestionRecord("Q" + (i + 1), spec, questionData, analysis);
+                 System.out.println("Generated " + spec.type + " question (" + spec.difficulty + ")");
+-                
++
+             } catch (Exception e) {
+                 System.err.println("Failed to generate question of type " + spec.type + ": " + e.getMessage());
+             }
+         }
+-        
++
+         System.out.println("Question generation completed successfully!");
++        int passageId = getPassageId(passageText);
++        return toJson(passageId);
+     }
+ 
+     /**
+      * Analyzes text using available NLP capabilities with fallback for missing models.
+      */
+     private TextAnalysis analyzeText(String text) {
+         try {
+             List<CoreMap> sentences = new ArrayList<>();
+             List<RelationTriple> relations = new ArrayList<>();
+             List<Proposition> propositions = new ArrayList<>();
+             
+             if (pipeline != null) {
+                 // Use Stanford CoreNLP if available
+                 Annotation document = new Annotation(text);
+                 pipeline.annotate(document);
+                 sentences = document.get(CoreAnnotations.SentencesAnnotation.class);
+                 System.out.println("TextverstaendnisGenerator: Processed " + sentences.size() + " sentences with CoreNLP");
+             } else {
+                 // Fallback: simple sentence splitting
+                 String[] sentenceArray = text.split("[.!?]+");
+                 for (String sent : sentenceArray) {
+                     if (sent.trim().length() > 0) {
+                         // Create a simple CoreMap-like object
+                         Annotation sentAnnotation = new Annotation(sent.trim());
+                         sentences.add(sentAnnotation);
+diff --git a/src/main/java/generator/TextverstaendnisGenerator.java b/src/main/java/generator/TextverstaendnisGenerator.java
+index a9ea4260bd937dd38519f2d5a696ebd35f1a5292..c1b5924fa982ec4a7bd3c3f36bb9b2ed7f58dacc 100644
+--- a/src/main/java/generator/TextverstaendnisGenerator.java
++++ b/src/main/java/generator/TextverstaendnisGenerator.java
+@@ -325,52 +358,52 @@ public class TextverstaendnisGenerator {
+                 return generateContradictionQuestion(stem, analysis, spec.difficulty);
+             case "nicht_erwaehnt":
+                 return generateNotMentionedQuestion(stem, analysis, spec.difficulty);
+             case "kernaussage":
+                 return generateCoreStatementQuestion(stem, analysis, spec.difficulty);
+             case "struktur":
+                 return generateStructureQuestion(stem, analysis, spec.difficulty);
+             default:
+                 return generateEntailmentQuestion(stem, analysis, spec.difficulty);
+         }
+     }
+ 
+     /**
+      * Generate entailment question (logical inference from text).
+      */
+     private QuestionData generateEntailmentQuestion(String stem, TextAnalysis analysis, String difficulty) {
+         List<String> options = new ArrayList<>();
+         
+         // Correct option: valid inference from text
+         String correctOption = createEntailmentOption(analysis);
+         options.add(correctOption);
+         
+         // Generate 4 distractors using systematic transformations
+         options.add(createNegationDistractor(correctOption));
+         options.add(createQuantifierFlipDistractor(correctOption));
+-        options.add(createEntitySwapDistractor(analysis));
+-        options.add(createOutOfScopeDistractor(analysis));
++        options.add(createConditionDropDistractor(correctOption));
++        options.add(createTemporalFlipDistractor(correctOption));
+         
+         Collections.shuffle(options);
+         int correctIndex = options.indexOf(correctOption);
+         
+         return new QuestionData(stem, options, correctIndex);
+     }
+ 
+     /**
+      * Generate contradiction question.
+      */
+     private QuestionData generateContradictionQuestion(String stem, TextAnalysis analysis, String difficulty) {
+         List<String> options = new ArrayList<>();
+         
+         // Select a statement that contradicts the text
+         String correctOption = createContradictionOption(analysis);
+         options.add(correctOption);
+         
+         // Generate 4 distractors (statements that are true or neutral)
+         options.add(createTrueStatement(analysis));
+         options.add(createNeutralStatement(analysis));
+         options.add(createTrueStatement(analysis));
+         options.add(createNeutralStatement(analysis));
+         
+         Collections.shuffle(options);
+         int correctIndex = options.indexOf(correctOption);
+diff --git a/src/main/java/generator/TextverstaendnisGenerator.java b/src/main/java/generator/TextverstaendnisGenerator.java
+index a9ea4260bd937dd38519f2d5a696ebd35f1a5292..c1b5924fa982ec4a7bd3c3f36bb9b2ed7f58dacc 100644
+--- a/src/main/java/generator/TextverstaendnisGenerator.java
++++ b/src/main/java/generator/TextverstaendnisGenerator.java
+@@ -451,50 +484,63 @@ public class TextverstaendnisGenerator {
+         }
+         if (original.contains("kann")) {
+             return original.replace("kann", "kann nicht");
+         }
+         return "Nicht: " + original;
+     }
+ 
+     private String createQuantifierFlipDistractor(String original) {
+         return original.replace("manchmal", "immer")
+                      .replace("selten", "häufig")
+                      .replace("teilweise", "vollständig");
+     }
+ 
+     private String createEntitySwapDistractor(TextAnalysis analysis) {
+         if (!analysis.propositions.isEmpty()) {
+             Proposition prop = analysis.propositions.get(random.nextInt(analysis.propositions.size()));
+             return prop.obj + " " + prop.pred + " " + prop.subj; // swap subject/object
+         }
+         return "Verwechselte Entitäten aus dem Text";
+     }
+ 
+     private String createOutOfScopeDistractor(TextAnalysis analysis) {
+         return "Eine plausible, aber nicht im Text erwähnte Aussage";
+     }
+ 
++    private String createConditionDropDistractor(String original) {
++        if (original.contains("wenn")) {
++            return original.replaceAll("nur\\s+wenn", "").replace("wenn", "").trim();
++        }
++        return original + " ohne Bedingung";
++    }
++
++    private String createTemporalFlipDistractor(String original) {
++        return original.replace("zunächst", "abschließend")
++                       .replace("erst", "zuletzt")
++                       .replace("später", "früher");
++    }
++
+     private String createTrueStatement(TextAnalysis analysis) {
+         if (!analysis.sentences.isEmpty()) {
+             return paraphraseSentence(analysis.sentences.get(random.nextInt(analysis.sentences.size())).toString());
+         }
+         return "Eine wahre Aussage aus dem Text";
+     }
+ 
+     private String createNeutralStatement(TextAnalysis analysis) {
+         return "Eine neutrale Aussage, die weder bestätigt noch widerlegt wird";
+     }
+ 
+     private String createContradictionOption(TextAnalysis analysis) {
+         return "Eine Aussage, die dem Text widerspricht";
+     }
+ 
+     private String createNotMentionedOption(TextAnalysis analysis) {
+         return "Eine plausible, aber nicht erwähnte Information";
+     }
+ 
+     private String createEntailmentOption(TextAnalysis analysis) {
+         if (!analysis.propositions.isEmpty()) {
+             Proposition prop = analysis.propositions.get(random.nextInt(analysis.propositions.size()));
+             return "Daraus folgt: " + prop.subj + " " + prop.pred + " " + prop.obj;
+         }
+         return "Eine logische Schlussfolgerung aus dem Text";
+diff --git a/src/main/java/generator/TextverstaendnisGenerator.java b/src/main/java/generator/TextverstaendnisGenerator.java
+index a9ea4260bd937dd38519f2d5a696ebd35f1a5292..c1b5924fa982ec4a7bd3c3f36bb9b2ed7f58dacc 100644
+--- a/src/main/java/generator/TextverstaendnisGenerator.java
++++ b/src/main/java/generator/TextverstaendnisGenerator.java
+@@ -670,50 +716,163 @@ public class TextverstaendnisGenerator {
+             stmt.setInt(6, passageId);
+             stmt.executeUpdate();
+             try (ResultSet rs = stmt.getGeneratedKeys()) {
+                 if (rs.next()) {
+                     return rs.getInt(1);
+                 }
+             }
+         }
+         throw new SQLException("Failed to insert question");
+     }
+ 
+     private void insertAnswerOptions(int questionId, List<String> options, int correctIndex) throws SQLException {
+         String sql = "INSERT INTO options (question_id, label, text, is_correct) VALUES (?, ?, ?, ?)";
+         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+             for (int i = 0; i < options.size(); i++) {
+                 stmt.setInt(1, questionId);
+                 stmt.setString(2, String.valueOf((char)('A' + i))); // Generate labels A, B, C, D, E
+                 stmt.setString(3, options.get(i));
+                 stmt.setBoolean(4, i == correctIndex);
+                 stmt.addBatch();
+             }
+             stmt.executeBatch();
+         }
+     }
+ 
++    // Parameter handling
++    private void applyParams(Map<String, Object> params) {
++        if (params == null) {
++            return;
++        }
++
++        if (params.get("frage_typen_gewichtung") instanceof Map<?, ?> map) {
++            Map<String, Double> newWeights = new HashMap<>();
++            for (Map.Entry<?, ?> e : map.entrySet()) {
++                if (e.getValue() instanceof Number n) {
++                    newWeights.put(e.getKey().toString(), n.doubleValue());
++                }
++            }
++            if (!newWeights.isEmpty()) {
++                questionTypeWeights = newWeights;
++            }
++        }
++
++        if (params.get("schwierigkeitsverteilung") instanceof Map<?, ?> map) {
++            Map<String, Double> newDiff = new HashMap<>();
++            for (Map.Entry<?, ?> e : map.entrySet()) {
++                if (e.getValue() instanceof Number n) {
++                    newDiff.put(e.getKey().toString(), n.doubleValue());
++                }
++            }
++            if (!newDiff.isEmpty()) {
++                difficultyWeights = newDiff;
++            }
++        }
++
++        if (params.get("seed") instanceof Number n) {
++            random = new Random(n.longValue());
++        }
++    }
++
++    private void storeQuestionRecord(String frageId, QuestionSpec spec, QuestionData data, TextAnalysis analysis) {
++        List<Option> optionList = new ArrayList<>();
++        Map<String, List<String>> trans = new LinkedHashMap<>();
++        for (int i = 0; i < data.options.size(); i++) {
++            String label = String.valueOf((char)('A' + i));
++            optionList.add(new Option(label, data.options.get(i)));
++            if (i != data.correctIndex) {
++                // Simple heuristic: mark by order of transformation methods used
++                List<String> t = new ArrayList<>();
++                switch (i) {
++                    case 0 -> t.add("negation");
++                    case 1 -> t.add("quantifier_flip");
++                    case 2 -> t.add("condition_drop");
++                    case 3 -> t.add("temporal_flip");
++                }
++                trans.put(label, t);
++            }
++        }
++
++        String korrektLabel = String.valueOf((char)('A' + data.correctIndex));
++        List<String> evidence = analysis.propositions.isEmpty() ? new ArrayList<>() : List.of(analysis.propositions.get(0).id);
++
++        generatedQuestions.add(new QuestionRecord(frageId, spec.type, spec.difficulty,
++                data.text, optionList, korrektLabel, evidence, trans));
++    }
++
++    public String toJson(int passageId) {
++        Map<String, Object> root = new LinkedHashMap<>();
++        root.put("text_id", String.valueOf(passageId));
++
++        List<Map<String, Object>> qList = new ArrayList<>();
++        for (QuestionRecord q : generatedQuestions) {
++            Map<String, Object> qMap = new LinkedHashMap<>();
++            qMap.put("frage_id", q.frageId);
++            qMap.put("typ", q.typ);
++            qMap.put("schwierigkeitsgrad", q.schwierigkeitsgrad);
++            qMap.put("stem", q.stem);
++
++            List<Map<String, String>> opts = new ArrayList<>();
++            for (Option o : q.optionen) {
++                Map<String, String> om = new LinkedHashMap<>();
++                om.put("label", o.label);
++                om.put("text", o.text);
++                opts.add(om);
++            }
++            qMap.put("optionen", opts);
++            qMap.put("korrekt", q.korrekt);
++            qMap.put("evidence_props", q.evidenceProps);
++            qMap.put("transformations_distraktoren", q.transformationsDistraktoren);
++
++            qList.add(qMap);
++        }
++        root.put("fragen", qList);
++
++        List<Map<String, Object>> propList = new ArrayList<>();
++        for (Proposition p : lastPropositions) {
++            Map<String, Object> pm = new LinkedHashMap<>();
++            pm.put("id", p.id);
++            pm.put("subj", p.subj);
++            pm.put("pred", p.pred);
++            pm.put("obj", p.obj);
++            pm.put("mods", p.modifiers);
++            propList.add(pm);
++        }
++        root.put("propositionen", propList);
++
++        if (!metaWarnings.isEmpty()) {
++            root.put("meta_warnungen", metaWarnings);
++        }
++
++        try {
++            ObjectMapper mapper = new ObjectMapper();
++            return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(root);
++        } catch (Exception e) {
++            return "{}";
++        }
++    }
++
+     // Helper classes
+     
+     private static class QuestionSpec {
+         String type;
+         String difficulty;
+         
+         QuestionSpec(String type, String difficulty) {
+             this.type = type;
+             this.difficulty = difficulty;
+         }
+     }
+     
+     private static class TextAnalysis {
+         List<CoreMap> sentences;
+         List<RelationTriple> relations;
+         List<Proposition> propositions;
+         Annotation document;
+         
+         TextAnalysis(List<CoreMap> sentences, List<RelationTriple> relations, 
+                     List<Proposition> propositions, Annotation document) {
+             this.sentences = sentences;
+             this.relations = relations;
+             this.propositions = propositions;
+             this.document = document;
+         }
+diff --git a/src/main/java/generator/TextverstaendnisGenerator.java b/src/main/java/generator/TextverstaendnisGenerator.java
+index a9ea4260bd937dd38519f2d5a696ebd35f1a5292..c1b5924fa982ec4a7bd3c3f36bb9b2ed7f58dacc 100644
+--- a/src/main/java/generator/TextverstaendnisGenerator.java
++++ b/src/main/java/generator/TextverstaendnisGenerator.java
+@@ -729,26 +888,61 @@ public class TextverstaendnisGenerator {
+         Proposition(String id, String subj, String pred, String obj, List<String> modifiers) {
+             this.id = id;
+             this.subj = subj;
+             this.pred = pred;
+             this.obj = obj;
+             this.modifiers = modifiers;
+         }
+         
+         @Override
+         public String toString() {
+             return subj + " " + pred + " " + obj;
+         }
+     }
+ 
+     private static class QuestionData {
+         String text;
+         List<String> options;
+         int correctIndex;
+         
+         QuestionData(String text, List<String> options, int correctIndex) {
+             this.text = text;
+             this.options = new ArrayList<>(options);
+             this.correctIndex = correctIndex;
+         }
+     }
++
++    private static class Option {
++        String label;
++        String text;
++
++        Option(String label, String text) {
++            this.label = label;
++            this.text = text;
++        }
++    }
++
++    private static class QuestionRecord {
++        String frageId;
++        String typ;
++        String schwierigkeitsgrad;
++        String stem;
++        List<Option> optionen;
++        String korrekt;
++        List<String> evidenceProps;
++        Map<String, List<String>> transformationsDistraktoren;
++
++        QuestionRecord(String frageId, String typ, String schwierigkeitsgrad,
++                       String stem, List<Option> optionen, String korrekt,
++                       List<String> evidenceProps,
++                       Map<String, List<String>> transformationsDistraktoren) {
++            this.frageId = frageId;
++            this.typ = typ;
++            this.schwierigkeitsgrad = schwierigkeitsgrad;
++            this.stem = stem;
++            this.optionen = optionen;
++            this.korrekt = korrekt;
++            this.evidenceProps = evidenceProps;
++            this.transformationsDistraktoren = transformationsDistraktoren;
++        }
++    }
+ }
  
 EOF
 )
