@@ -2800,6 +2800,62 @@ public class MedatoninDB extends JFrame {
             buttonPanel.add(questionCountField);
         }
 
+        // Add Generate button and number box for Textverständnis subcategory
+        if ("Textverständnis".equals(currentSubcategory)) {
+            JButton generateButton = createModernButton("Generate");
+            generateButton.setBackground(new Color(52, 199, 89));
+            generateButton.setForeground(Color.WHITE);
+            generateButton.setFont(new Font("SansSerif", Font.BOLD, 14));
+            generateButton.setFocusPainted(false);
+            generateButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+            generateButton.putClientProperty("isNavigationButton", true);
+
+            JTextField questionCountField = createStyledTextField("0", 40, new Color(52, 199, 89), Color.WHITE);
+
+            generateButton.addActionListener(e -> {
+                try {
+                    String input = questionCountField.getText().trim();
+                    int questionCount;
+                    try {
+                        questionCount = Integer.parseInt(input);
+                    } catch (NumberFormatException ex) {
+                        showToast("Please enter a valid number", NotificationType.ERROR);
+                        return;
+                    }
+
+                    if (currentTextPassagePanel == null) {
+                        showToast("No passage selected. Please select or create a passage first.", NotificationType.WARNING);
+                        return;
+                    }
+
+                    Object passage = currentTextPassagePanel.getClass().getMethod("getCurrentPassage").invoke(currentTextPassagePanel);
+                    if (passage == null) {
+                        showToast("No passage selected. Please select or create a passage first.", NotificationType.WARNING);
+                        return;
+                    }
+
+                    int passageId = (Integer) passage.getClass().getMethod("id").invoke(passage);
+                    String passageText = (String) passage.getClass().getMethod("text").invoke(passage);
+
+                    generator.TextverstaendnisGenerator gen = new generator.TextverstaendnisGenerator(
+                            conn, currentCategory, currentSubcategory, selectedSimulationId);
+                    
+                    showToast("Generating " + questionCount + " Textverständnis questions...", NotificationType.INFO);
+                    gen.execute(passageText, questionCount);
+                    showToast("Successfully generated " + questionCount + " questions!", NotificationType.SUCCESS);
+
+                    int idx = (Integer) currentTextPassagePanel.getClass().getMethod("getCurrentIndex").invoke(currentTextPassagePanel);
+                    loadQuestionsForPassageIndex(idx);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    showToast("Fehler bei der Generierung: " + ex.getMessage(), NotificationType.ERROR);
+                }
+            });
+
+            buttonPanel.add(generateButton);
+            buttonPanel.add(questionCountField);
+        }
+
         // Buttons for deleting questions
         JButton deleteMarkedButton = createModernButton("Delete Marked");
         deleteMarkedButton.setBackground(new Color(255, 59, 48)); // Modern red

@@ -1,17 +1,27 @@
 {
-  "Ableitung": [
-    "Welche Schlussfolgerung kann aus dem Satz '{SENTENCE}' gezogen werden?"
+  "entailment": [
+    "Welche Aussage folgt logisch aus dem Text?",
+    "Was kann aus den gegebenen Informationen geschlossen werden?",
+    "Welche Schlussfolgerung lässt sich ableiten?"
   ],
-  "Widerspruch": [
-    "Welche Aussage steht im Widerspruch zu '{SENTENCE}'?"
+  "widerspruch": [
+    "Welche Aussage widerspricht dem Text?",
+    "Was steht im Gegensatz zu den Informationen im Text?",
+    "Welche Behauptung ist laut Text falsch?"
   ],
-  "Nicht erwähnt": [
-    "Welche der folgenden Aussagen wird im Text nicht erwähnt?"
+  "nicht_erwaehnt": [
+    "Welche der folgenden Aussagen wird im Text nicht erwähnt?",
+    "Was ist im Text nicht aufgeführt?",
+    "Welche Information fehlt im Text?"
   ],
-  "Kernaussage": [
-    "Was ist die Kernaussage des Textes?"
+  "kernaussage": [
+    "Was ist die Hauptaussage des Textes?",
+    "Welche Kernbotschaft vermittelt der Text?",
+    "Was ist das zentrale Thema des Abschnitts?"
   ],
-  "Ursache-Wirkung": [
-    "Welche Ursache führt zu folgendem Ereignis: '{SENTENCE}'?"
+  "struktur": [
+    "Welche Funktion hat der erste Absatz im Text?",
+    "Wie ist der Text strukturiert?",
+    "Welche Rolle spielt der Satz '{SENTENCE}' im Argumentationsaufbau?"
   ]
 }

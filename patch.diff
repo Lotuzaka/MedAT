@@ -1,495 +1,312 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
+diff --git a/AGENTS.md b/AGENTS.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..ae0e15cb57168681bb0091dfa318a5b8aa1d5739
+--- /dev/null
++++ b/AGENTS.md
+@@ -0,0 +1,195 @@
++# Repository Instructions
++
++## Testing
++- Run `mvn -q test` after modifying code.
++- If Maven fails because dependencies cannot be downloaded, mention this in the PR summary.
++
++## Textverständnis Question Generation
++- The UI contains a **Generate** button for the "Textverständnis" subcategory. It calls `generator.TextverstaendnisGenerator` with the current passage and desired question count.
++- The following prompt describes the expected behaviour of the automated question authoring system used in this project.
++
++Ziel: Erzeuge aus einem gegebenen deutschen Fließtext hochwertige Multiple-Choice-Fragen (Single Choice, 5 Optionen, genau 1 richtig) im Stil des MedAT-Untertests „Textverständnis“. Der Fokus liegt auf inhaltlich-logischer Prüfung (Entailment, Widerspruch, Nicht erwähnt, Kernaussage, Struktur) und dem Abbilden komplexer Verknüpfungen innerhalb des Textes. Keine Code-Erklärungen oder Implementierungsdetails ausgeben – liefere ausschließlich die spezifizierten Outputs.
++
++1. Rollen- und Arbeitsdefinition
++
++Deine Rolle: Ein strikt regelgeleitetes Item-Authoring-System für Textverständnis-Aufgaben.
++
++Deine Aufgabe: Analysiere den Input-Text semantisch, extrahiere Propositionen und Relationen, wähle Frageziele, formuliere Frage-Stems, generiere eine korrekte Option und vier Distraktoren, validiere logisch und liefere das Ergebnis im geforderten Format.
++
++Keine Meta-Kommentare: Gib weder Erklärungen über dein Vorgehen noch Code oder Pseudocode aus. Nur das Endergebnis laut Output-Spezifikation.
++
++2. Eingaben (vom Benutzer bereitgestellt)
++
++TEXT: Ein deutscher Fließtext (kann mehrere Absätze enthalten). Enthält alle für die Fragen relevanten Informationen; kein externes Vorwissen voraussetzen.
++
++PARAMETER (optional):
++
++anzahl_fragen_total (Integer, Standard: 12)
++
++fragen_pro_text (Integer-Range, Standard: 2–3)
++
++schwierigkeitsverteilung (z. B. {"leicht":0.3,"mittel":0.5,"schwer":0.2})
++
++frage_typen_gewichtung (z. B. {"entailment":0.4,"widerspruch":0.2,"nicht_erwaehnt":0.15,"kernaussage":0.15,"struktur":0.1})
++
++seed (für Reproduzierbarkeit der Randomisierung)
++
++Wenn keine Parameter geliefert werden, verwende die Standardwerte.
++
++3. Interne Repräsentation (Pflicht, jedoch nicht im Output anzeigen)
++
++Segmentiere den Text in Sätze/Absätze.
++
++Führe Coreference Resolution durch (Pronomen → Referenten).
++
++Extrahiere Propositionen als Tripel/Statements mit Modifikatoren:
++
++Struktur: {id, subj, pred, obj, modifikatoren[]}
++
++Modifikatoren umfassen: Konditionen („nur wenn…“), Quantoren („häufig“, „selten“), Kontrastmarker („jedoch“), Zeitbezüge („zunächst“, „anschließend“), Vergleich („im Gegensatz zu“).
++
++Baue einen Wissensgraphen aus den Propositionen (für Inferenzbildung).
++
++4. Fragetypen & Logik (Auswahl nach Gewichtung)
++
++Entailment / Ableitung: Eine Aussage, die logisch aus dem Text folgt (explizit oder implizit).
++
++Operation: identity/inference.
++
++Widerspruch / Falsch laut Text: Aussage, die dem Text widerspricht.
++
++Operation: negation/reversal/quantifier flip.
++
++Nicht erwähnt / Neutral: Aussage, die weder bestätigt noch widerlegt wird.
++
++Operation: out-of-scope plausible.
++
++Kernaussage / Zusammenfassung: Abstraktion mehrerer Kernpropositionen zu einer Meta-Aussage.
++
++Operation: synthesis/abstraction.
++
++Struktur-/Funktion-Frage: Rolle eines Absatzes/Satzes im Text (Definition, Beispiel, Gegenargument, Einschränkung etc.).
++
++Operation: rhetorical role mapping.
++
++Jede Frage basiert auf klar referenzierbaren Propositionen oder Kombinationen davon.
++
++5. Antwortoptionen – Konstruktionsregeln
++
++Anzahl: 5 Optionen (A–E). Genau eine ist korrekt.
++
++Korrekte Option:
++
++Paraphrasiert oder fasst die relevanten Propositionen korrekt zusammen.
++
++Erhält alle Quantoren, Bedingungen, Richtungen (Ursache → Wirkung) und zeitlichen/kontrastiven Marker korrekt bei.
++
++Distraktoren (4 Stück): Generiere sie nach folgenden systematischen Transformationen (mindestens zwei verschiedene Typen nutzen):
++
++Negation/Umkehr: Relation invertieren (X verursacht Y → Y verursacht X) oder verneinen.
++
++Quantifier Flip: „manchmal/teilweise“ ↔ „immer“, „selten“ ↔ „häufig“.
++
++Condition Drop/Add: Weglassen oder Erfinden eines kritischen Konditionals („nur wenn…“ wird ignoriert oder falsche Bedingung ergänzt).
++
++Entity Swap: Subjekt/Objekt/Entität vertauschen oder falsch zuordnen (Pronomen-Fehler, Synonym-Missbrauch).
++
++Temporal Flip: Reihenfolge oder Kausalität zeitlich verdrehen („zunächst“ ↔ „anschließend“).
++
++Out-of-Scope but Plausible: Inhaltsnahe, aber nicht textgestützte Information hinzufügen.
++
++Over-/Undergeneralization: Teil-Ganzes, Ausnahme vs. Regel vertauschen.
++
++Sprachliche Balance: Alle Optionen grammatisch korrekt, ähnliche Länge und syntaktische Komplexität. Keine verräterischen Formulierungen („laut Text“) nur in der richtigen Option.
++
++Keine logische Äquivalenz zwischen Distraktoren: Jeder Distraktor muss sich inhaltlich klar von den anderen unterscheiden.
++
++6. Validierung & Qualitätskontrolle (intern, nicht ausgeben)
++
++NLI-Check: Stelle sicher, dass der Text die korrekte Option entailt (Entailment) und dass Distraktoren entweder widersprochen (Contradiction) oder neutral (Not-mentioned) sind.
++
++Redundanzprüfung: Semantische Ähnlichkeit zwischen Distraktoren unter Schwellwert halten.
++
++Bias-Check: Position der richtigen Antwort zufällig (A–E), Längenausgleich, keine stilistischen Auffälligkeiten.
++
++Schwierigkeit steuern:
++
++Leicht: 1 Proposition, keine Modifikatoren.
++
++Mittel: 2–3 Propositionen, einfache Konditionen.
++
++Schwer: Mehrere Propositionen + Konditionen/Kontraste; implizite Inferenz erforderlich.
++
++7. Ausgabespezifikation (verpflichtend einzuhalten)
++
++Gesamtstruktur: JSON-ähnliches Objekt (ohne Code-Kommentare), UTF-8, Deutsch.
++
++Felder:
++
++{
++  "text_id": "<string>",
++  "fragen": [
++    {
++      "frage_id": "<string>",
++      "typ": "entailment" | "widerspruch" | "nicht_erwaehnt" | "kernaussage" | "struktur",
++      "schwierigkeitsgrad": "leicht" | "mittel" | "schwer",
++      "stem": "<Fragetext>",
++      "optionen": [
++        {"label":"A","text":"<Option A>"},
++        {"label":"B","text":"<Option B>"},
++        {"label":"C","text":"<Option C>"},
++        {"label":"D","text":"<Option D>"},
++        {"label":"E","text":"<Option E>"}
++      ],
++      "korrekt": "<Label der richtigen Option>",
++      "evidence_props": ["p1","p4", ...],
++      "transformations_distraktoren": {
++        "A": ["negation"],
++        "B": ["condition_drop","quantifier_flip"],
++        ...
++      }
++    }
++  ],
++  "propositionen": [
++    {"id":"p1","subj":"…","pred":"…","obj":"…","mods":["…"]},
++    {"id":"p2", ...}
++  ]
++}
++
++Reihenfolge: Zuerst das Feld text_id, dann fragen, zum Schluss optional propositionen (zur Transparenz). Keine anderen Felder hinzufügen.
++
++Keine Erklärtexte: Keine zusätzlichen Erläuterungen, Analysen oder Debug-Infos außerhalb der Spezifikation.
++
++8. Formatierungs- und Stilregeln
++
++Sprache: Deutsch, sachlich, präzise.
++
++Keine Zitate aus dem Text > 15 Wörter am Stück (Paraphrasieren!).
++
++Keine Automatismen preisgeben: Weder intern genutzte Modelle, Scores noch Zwischenschritte offenlegen.
++
++Antwortlabel: genau „A“, „B", „C", „D", „E" (Großbuchstaben).
++
++IDs: Eindeutig und konsistent (z. B. Q01, p1).
++
++9. Fehlerfälle & Fallbacks
++
++Zu kurzer Text (< 120 Wörter): Erzeuge weniger Fragen und gib im Feld meta_warnungen einen Hinweis (ohne Prozessdetails).
++
++Unklare/mehrdeutige Textpassagen: Wähle andere passagen; keine spekulativen Items.
++
++Wenn keine Struktur-/Funktion-Frage möglich ist: Setze den Anteil dieser Frageart auf 0 und verteile deren Gewicht auf andere Typen.
++
++10. Abschlussbedingungen
++
++Gib nur das finale JSON-Objekt gemäß Abschnitt 7 aus.
++
++Keine Vor- oder Nachbemerkungen, kein Fließtext außerhalb des JSON.
++
++Prüfe vor Ausgabe interne Konsistenz (eine richtige Option pro Item, IDs valide, alle referenzierten Propositionen existieren).
++
++Platzhalter für den Nutzer-Input
++
++{{TEXT}} – wird vom Nutzer ersetzt.
++
++Optional: {{PARAMETER_JSON}} – wenn der Nutzer Parametereinstellungen mitgibt.
 diff --git a/src/main/java/MedatoninDB.java b/src/main/java/MedatoninDB.java
-index 4c55f74e29626c4a5f97e1bf794305c670739f05..338859ed8c6c3a1b267344b84ba4f3f0da4727e0 100644
+index 8d6ac479503a632bd59879d13a815c99848b9d4e..a638524e1eb5a052331dd3c363a6dd78698c7fdc 100644
 --- a/src/main/java/MedatoninDB.java
 +++ b/src/main/java/MedatoninDB.java
-@@ -1,49 +1,50 @@
- import dao.AllergyCardDAO;
- import dao.PassageDAO;
- import model.AllergyCardData;
- import org.apache.poi.xwpf.usermodel.*;
- import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTSectPr;
- import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPageMar;
- import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPPr;
- import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTSpacing;
- import org.openxmlformats.schemas.wordprocessingml.x2006.main.STLineSpacingRule;
- import org.locationtech.jts.geom.Geometry;
- import org.locationtech.jts.geom.Envelope;
- // import org.locationtech.jts.io.ParseException;
- import org.locationtech.jts.io.WKTReader;
- import org.locationtech.jts.io.WKTWriter;
- import org.locationtech.jts.awt.ShapeWriter;
- import com.zaxxer.hikari.HikariConfig;
- import com.zaxxer.hikari.HikariDataSource;
- import javax.swing.*;
- import javax.swing.event.*;
- import javax.swing.plaf.basic.*;
- import javax.swing.table.*;
- import javax.swing.Timer;
- import java.awt.*;
- import java.awt.event.*;
-+import java.util.function.Consumer;
- import java.awt.geom.AffineTransform;
- import java.awt.image.BufferedImage;
- import javax.imageio.ImageIO;
- import java.io.ByteArrayInputStream;
- import java.io.ByteArrayOutputStream;
- import java.io.File;
- import java.io.FileInputStream;
- import java.io.IOException;
- import java.io.InputStream;
- import java.net.URL;
- import java.sql.*;
- import java.util.*;
- import java.util.List;
- import java.math.BigInteger;
+@@ -2778,50 +2778,102 @@ public class MedatoninDB extends JFrame {
  
- // import java.io.BufferedWriter; // No longer needed
- // import java.io.OutputStreamWriter; // No longer needed
- 
- public class MedatoninDB extends JFrame {
- 
-     /**
-      * Ensures the JVM is running with UTF-8 as the default encoding.
-      * Logs a warning if not.
-      */
-     static {
-@@ -2448,64 +2449,71 @@ public class MedatoninDB extends JFrame {
-                             debugLog("UI", LogLevel.WARN, "No simulation selected - allergy card data not saved to database");
-                         }
-                     } catch (Exception ex) {
-                         debugLog("UI", LogLevel.ERROR, "Failed to generate/save random data: " + ex.getMessage());
-                         ex.printStackTrace();
+             generateButton.addActionListener(e -> {
+                 try {
+                     String input = questionCountField.getText().trim();
+                     int questionCount;
+                     try {
+                         questionCount = Integer.parseInt(input);
+                     } catch (NumberFormatException ex) {
+                         showToast("Please enter a valid number", NotificationType.ERROR);
+                         return;
                      }
-                 });
-                 
-                 debugLog("UI", "Added AllergyCardGridPanel for Merkfähigkeiten subcategory");
-             } catch (Exception e) {
-                 debugLog("UI", LogLevel.ERROR, "Failed to load AllergyCardGridPanel: " + e.getMessage());
-                 // Fallback to normal table view
-                 subcategoryContentPanel.add(subScrollPane, BorderLayout.CENTER);
-             }
-         } else if ("Textverständnis".equals(currentSubcategory)) {
-             // Split pane with table on left and text passage editor on right
-             JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-             splitPane.setLeftComponent(subScrollPane);
- 
-             try {
-                 Class<?> panelClass = Class.forName("ui.textverstaendnis.TextPassagePanel");
-                 if (currentTextPassagePanel == null) {
-                     int subId = getSubcategoryId(currentCategory, currentSubcategory);
-                     currentTextPassagePanel = (JPanel) panelClass.getDeclaredConstructor(PassageDAO.class, int.class, Integer.class)
-                             .newInstance(new PassageDAO(conn), subId, selectedSimulationId);
-+                    // Register callback for passage switching
-+                    panelClass.getMethod("setOnIndexChange", java.util.function.Consumer.class)
-+                            .invoke(currentTextPassagePanel, (Consumer<Integer>) this::loadQuestionsForPassageIndex);
-                 } else {
-                     panelClass.getMethod("setSimulationId", Integer.class).invoke(currentTextPassagePanel, selectedSimulationId);
-+                    panelClass.getMethod("setOnIndexChange", java.util.function.Consumer.class)
-+                            .invoke(currentTextPassagePanel, (Consumer<Integer>) this::loadQuestionsForPassageIndex);
+                     WortfluessigkeitGenerator generator = new WortfluessigkeitGenerator(conn, currentCategory, currentSubcategory, selectedSimulationId);
+                     generator.execute(questionCount);
+                     loadQuestionsFromDatabase(currentCategory, categoryModels.get(currentCategory), selectedSimulationId);
+                     switchSubcategory(currentCategory, currentSubcategory);
+                 } catch (SQLException | IOException ex) {
+                     ex.printStackTrace();
+                     showToast("Fehler bei der Generierung: " + ex.getMessage(), NotificationType.ERROR);
                  }
-                 JScrollPane passageScroll = new JScrollPane(currentTextPassagePanel);
-                 passageScroll.setPreferredSize(new Dimension(500, 380));
-                 splitPane.setRightComponent(passageScroll);
-                 splitPane.setResizeWeight(1.0);
-                 splitPane.setDividerLocation(0.6);
-                 splitPane.setOneTouchExpandable(true);
+             });
  
-                 subcategoryContentPanel.add(splitPane, BorderLayout.CENTER);
- 
--                // Load passage from DB each time we switch
-+                // Load passage and corresponding questions from DB each time we switch
-                 currentTextPassagePanel.getClass().getMethod("loadPassage").invoke(currentTextPassagePanel);
-+                int idx = (Integer) panelClass.getMethod("getCurrentIndex").invoke(currentTextPassagePanel);
-+                loadQuestionsForPassageIndex(idx);
-             } catch (Exception e) {
-                 debugLog("UI", LogLevel.ERROR, "Failed to load TextPassagePanel: " + e.getMessage());
-                 subcategoryContentPanel.add(subScrollPane, BorderLayout.CENTER);
-             }
-         } else {
-             // Add components to subcategoryContentPanel for normal subcategories
-             subcategoryContentPanel.add(subScrollPane, BorderLayout.CENTER);
+             buttonPanel.add(generateButton);
+             buttonPanel.add(questionCountField);
          }
  
-         // For other categories and subcategories, only add "Add Question" button
-         JButton addQuestionButton = createModernButton("Add Question");
-         addQuestionButton.setBackground(new Color(52, 199, 89)); // Modern green background
-         addQuestionButton.setForeground(Color.WHITE);
-         addQuestionButton.setFont(new Font("SansSerif", Font.BOLD, 14));
-         addQuestionButton.setFocusPainted(false);
-         addQuestionButton.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // Button padding
-         addQuestionButton.setAlignmentX(Component.LEFT_ALIGNMENT);
-         // Mark as navigation button for proper hover effects
-         addQuestionButton.putClientProperty("isNavigationButton", true);
- 
-         // Adjust button width
-         addQuestionButton.setPreferredSize(new Dimension(150, addQuestionButton.getPreferredSize().height));
- 
-         // Create buttons according to category and subcategory
-         // Add "Add Question" button for ALL categories and subcategories
-@@ -5593,50 +5601,87 @@ public class MedatoninDB extends JFrame {
-                     questions = questionDAO.getQuestionsBySubcategoryAndSimulation(subcategoryId, simulationId);
-                     debugLog("DB", "Number of questions loaded: " + questions.size());
- 
-                     model.setRowCount(0); // Clear existing rows
-                     for (QuestionDAO question : questions) {
-                         if ("Figuren".equals(subcategoryName)) {
-                             // Handle "Figuren" subcategory differently
-                             loadFigurenQuestionIntoModel(model, question, optionDAO);
-                         } else {
-                             // Handle other subcategories
-                             loadStandardQuestionIntoModel(model, question, optionDAO);
-                         }
-                     }
-                     debugLog("DB", "Added " + questions.size() + " questions with options to the model for "
-                             + subcategoryName);
-                 } else {
-                     debugLog("DB", "Failed to get subcategory ID for: " + subcategoryName);
-                 }
-             }
-         } catch (SQLException e) {
-             debugLog("DB", "Error loading questions and options: " + e.getMessage());
-             e.printStackTrace();
-         }
-     }
- 
-+    /**
-+     * Load questions for the given passage index of the current Textverständnis subcategory.
-+     */
-+    private void loadQuestionsForPassageIndex(int passageIndex) {
-+        try {
-+            int subId = getSubcategoryId(currentCategory, currentSubcategory);
-+            PassageDAO passageDAO = new PassageDAO(conn);
-+            PassageDAO.Passage passage;
-+            if (selectedSimulationId != null) {
-+                passage = passageDAO.findBySubcategorySimulationAndIndex(subId, selectedSimulationId, passageIndex);
-+            } else {
-+                passage = passageDAO.findBySubcategoryAndIndex(subId, passageIndex);
-+            }
++        // Add Generate button and number box for Textverständnis subcategory
++        if ("Textverständnis".equals(currentSubcategory)) {
++            JButton generateButton = createModernButton("Generate");
++            generateButton.setBackground(new Color(52, 199, 89));
++            generateButton.setForeground(Color.WHITE);
++            generateButton.setFont(new Font("SansSerif", Font.BOLD, 14));
++            generateButton.setFocusPainted(false);
++            generateButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
++            generateButton.putClientProperty("isNavigationButton", true);
 +
-+            DefaultTableModel model = categoryModels.get(currentCategory).get(currentSubcategory);
-+            model.setRowCount(0);
-+            if (passage != null) {
-+                QuestionDAO qDao = new QuestionDAO(conn);
-+                OptionDAO oDao = new OptionDAO(conn);
-+                List<QuestionDAO> qs = qDao.getQuestionsByPassage(passage.id());
-+                for (QuestionDAO q : qs) {
-+                    if ("Figuren".equals(currentSubcategory)) {
-+                        loadFigurenQuestionIntoModel(model, q, oDao);
-+                    } else {
-+                        loadStandardQuestionIntoModel(model, q, oDao);
++            JTextField questionCountField = createStyledTextField("0", 40, new Color(52, 199, 89), Color.WHITE);
++
++            generateButton.addActionListener(e -> {
++                try {
++                    String input = questionCountField.getText().trim();
++                    int questionCount;
++                    try {
++                        questionCount = Integer.parseInt(input);
++                    } catch (NumberFormatException ex) {
++                        showToast("Please enter a valid number", NotificationType.ERROR);
++                        return;
 +                    }
-+                }
-+            }
-+            if (questionTable != null) {
-+                questionTable.revalidate();
-+                questionTable.repaint();
-+            }
-+        } catch (Exception ex) {
-+            debugLog("DB", "Failed to load questions for passage index " + passageIndex + ": " + ex.getMessage());
-+        }
-+    }
 +
-     private void loadStandardQuestionIntoModel(DefaultTableModel model, QuestionDAO question, OptionDAO optionDAO) {
-         // Zahlenfolgen: Solution column must always show the correct two numbers from the correct OptionDAO
-         String solutionText = question.getShapeData();
-         if ("Zahlenfolgen".equals(currentSubcategory)) {
++                    if (currentTextPassagePanel == null) {
++                        showToast("No passage selected. Please select or create a passage first.", NotificationType.WARNING);
++                        return;
++                    }
++
++                    Object passage = currentTextPassagePanel.getClass().getMethod("getCurrentPassage").invoke(currentTextPassagePanel);
++                    if (passage == null) {
++                        showToast("No passage selected. Please select or create a passage first.", NotificationType.WARNING);
++                        return;
++                    }
++
++                    int passageId = (Integer) passage.getClass().getMethod("id").invoke(passage);
++
++                    generator.TextverstaendnisGenerator gen = new generator.TextverstaendnisGenerator(
++                            conn, currentCategory, currentSubcategory, selectedSimulationId);
++                    gen.execute(questionCount, passageId);
++
++                    int idx = (Integer) currentTextPassagePanel.getClass().getMethod("getCurrentIndex").invoke(currentTextPassagePanel);
++                    loadQuestionsForPassageIndex(idx);
++                } catch (Exception ex) {
++                    ex.printStackTrace();
++                    showToast("Fehler bei der Generierung: " + ex.getMessage(), NotificationType.ERROR);
++                }
++            });
++
++            buttonPanel.add(generateButton);
++            buttonPanel.add(questionCountField);
++        }
++
+         // Buttons for deleting questions
+         JButton deleteMarkedButton = createModernButton("Delete Marked");
+         deleteMarkedButton.setBackground(new Color(255, 59, 48)); // Modern red
+         deleteMarkedButton.setForeground(Color.WHITE);
+         deleteMarkedButton.addActionListener(e -> deleteSelectedQuestions());
+ 
+         JButton deleteAllButton = createModernButton("Delete All");
+         deleteAllButton.setBackground(new Color(255, 59, 48)); // Modern red
+         deleteAllButton.setForeground(Color.WHITE);
+         deleteAllButton.addActionListener(e -> {
+             int res = JOptionPane.showConfirmDialog(this,
+                     "Delete all questions in this subcategory?", "Confirm Delete",
+                     JOptionPane.YES_NO_OPTION);
+             if (res == JOptionPane.YES_OPTION) {
+                 deleteAllQuestions();
+             }
+         });
+ 
+         buttonPanel.add(deleteMarkedButton);
+         buttonPanel.add(deleteAllButton);
+         
+         // Add "Generate ID" button for Merkfähigkeiten at the far right
+         if ("Merkfähigkeiten".equals(currentSubcategory)) {
              try {
-                 List<OptionDAO> options = optionDAO.getOptionsForQuestion(question.getId());
-                 boolean found = false;
-                 for (OptionDAO option : options) {
-                     if (option.isCorrect() && !"E".equals(option.getLabel())) {
-                         solutionText = option.getText();
-                         found = true;
-                         break;
-                     }
-                 }
-                 // If no correct option except E, fallback to first option with '/' in text
-                 if (!found) {
-                     for (OptionDAO option : options) {
-                         if (option.getText() != null && option.getText().contains("/")) {
-                             solutionText = option.getText();
-                             break;
-                         }
-                     }
-                 }
-             } catch (SQLException e) {
-                 debugLog("DB", "Error loading Zahlenfolgen solution: " + e.getMessage());
-diff --git a/src/main/java/QuestionDAO.java b/src/main/java/QuestionDAO.java
-index 5aec95d2133c24c40b591267373a42999f06e4ed..7ea0dde2c1199d087b02e15f52eef3f00f11f913 100644
---- a/src/main/java/QuestionDAO.java
-+++ b/src/main/java/QuestionDAO.java
-@@ -515,26 +515,56 @@ public class QuestionDAO {
-                         question.setQuestionNumber(rs.getInt("row_num")); // Use row_num for Haupt-Datenbank
-                     } else {
-                         question.setQuestionNumber(rs.getInt("question_number")); // Use question_number for simulations
-                     }
-                     question.setShapeData(rs.getString("shape_data"));
-                     question.setShapeType(rs.getString("shape_type"));
-                     question.setDissectedPiecesData(rs.getString("dissected_pieces_data"));
-                     question.setAssembledPiecesData(rs.getString("assembled_pieces_data"));
-                     questions.add(question);
-                 }
-             }
-         }
-         return questions;
-     }
- 
-     // Insert new question for a specific simulation
-     public void addQuestionForSimulation(String questionText, int simulationId, int subcategoryId) throws SQLException {
-         String query = "INSERT INTO questions (question_text, test_simulation_id, subcategory_id) VALUES (?, ?, ?)";
-         PreparedStatement stmt = conn.prepareStatement(query);
-         stmt.setString(1, questionText);
-         stmt.setInt(2, simulationId);
-         stmt.setInt(3, subcategoryId);
-         stmt.executeUpdate();
-     }
- 
-+    /**
-+     * Retrieve all questions linked to a specific passage.
-+     */
-+    public List<QuestionDAO> getQuestionsByPassage(int passageId) throws SQLException {
-+        List<QuestionDAO> questions = new ArrayList<>();
-+        String sql = "SELECT id, subcategory_id, question_number, text, format, test_simulation_id, " +
-+                "difficulty, shape_data, shape_type, dissected_pieces_data, assembled_pieces_data " +
-+                "FROM questions WHERE passage_id = ? ORDER BY question_number";
-+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-+            stmt.setInt(1, passageId);
-+            try (ResultSet rs = stmt.executeQuery()) {
-+                while (rs.next()) {
-+                    QuestionDAO q = new QuestionDAO(conn);
-+                    q.setId(rs.getInt("id"));
-+                    q.setSubcategoryId(rs.getInt("subcategory_id"));
-+                    q.setQuestionNumber(rs.getInt("question_number"));
-+                    q.setText(rs.getString("text"));
-+                    q.setFormat(rs.getString("format"));
-+                    q.setDifficulty(rs.getString("difficulty"));
-+                    q.setShapeData(rs.getString("shape_data"));
-+                    q.setShapeType(rs.getString("shape_type"));
-+                    q.setDissectedPiecesData(rs.getString("dissected_pieces_data"));
-+                    q.setAssembledPiecesData(rs.getString("assembled_pieces_data"));
-+                    questions.add(q);
-+                }
-+            }
-+        }
-+        return questions;
-+    }
-+
- }
-diff --git a/src/main/java/dao/PassageDAO.java b/src/main/java/dao/PassageDAO.java
-index e32cfedcce19f22bf4acbb381f3e2275cb973c66..9ff2e9b30bb0d46fbc6a12ffb12b66c810443502 100644
---- a/src/main/java/dao/PassageDAO.java
-+++ b/src/main/java/dao/PassageDAO.java
-@@ -174,28 +174,51 @@ public class PassageDAO {
- 
-     /**
-      * Finds a single passage by subcategory, simulation and index.
-      */
-     public Passage findBySubcategorySimulationAndIndex(int subcategoryId, int simulationId, int passageIndex) throws SQLException {
-         String sql = "SELECT id, subcategory_id, test_simulation_id, passage_index, text, source FROM passages WHERE subcategory_id = ? AND test_simulation_id = ? AND passage_index = ?";
-         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-             ps.setInt(1, subcategoryId);
-             ps.setInt(2, simulationId);
-             ps.setInt(3, passageIndex);
-             try (ResultSet rs = ps.executeQuery()) {
-                 if (rs.next()) {
-                     return new Passage(
-                             rs.getInt("id"),
-                             rs.getInt("subcategory_id"),
-                             rs.getObject("test_simulation_id", Integer.class),
-                             rs.getInt("passage_index"),
-                             rs.getString("text"),
-                             rs.getString("source"));
-                 }
-             }
-         }
-         return null;
-     }
- 
-+    /**
-+     * Finds a single passage by subcategory and index (main question pool).
-+     */
-+    public Passage findBySubcategoryAndIndex(int subcategoryId, int passageIndex) throws SQLException {
-+        String sql = "SELECT id, subcategory_id, test_simulation_id, passage_index, text, source FROM passages WHERE subcategory_id = ? AND test_simulation_id IS NULL AND passage_index = ?";
-+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-+            ps.setInt(1, subcategoryId);
-+            ps.setInt(2, passageIndex);
-+            try (ResultSet rs = ps.executeQuery()) {
-+                if (rs.next()) {
-+                    return new Passage(
-+                            rs.getInt("id"),
-+                            rs.getInt("subcategory_id"),
-+                            rs.getObject("test_simulation_id", Integer.class),
-+                            rs.getInt("passage_index"),
-+                            rs.getString("text"),
-+                            rs.getString("source"));
-+                }
-+            }
-+        }
-+        return null;
-+    }
-+
-     /** Simple record representing a passage. */
-     public record Passage(int id, int subcategoryId, Integer testSimulationId, int passageIndex, String text, String source) {}
- }
-diff --git a/src/main/java/ui/textverstaendnis/TextPassagePanel.java b/src/main/java/ui/textverstaendnis/TextPassagePanel.java
-index bd5b4cea7ca704888e33edd31f7e9db68e41813d..ee627af4cdaafeccd090a8a382ceeff9545167cf 100644
---- a/src/main/java/ui/textverstaendnis/TextPassagePanel.java
-+++ b/src/main/java/ui/textverstaendnis/TextPassagePanel.java
-@@ -1,47 +1,49 @@
- package ui.textverstaendnis;
- 
- import dao.PassageDAO;
- 
- import javax.swing.*;
- import javax.swing.text.StyledEditorKit;
- import java.awt.*;
- import java.awt.event.ActionEvent;
- import java.sql.SQLException;
-+import java.util.function.Consumer;
- 
- /**
-  * Simple editor panel for Textverständnis passages.
-  */
- public class TextPassagePanel extends JPanel {
-     private final JTextPane textPane = new JTextPane();
-     private final JTextField sourceField = new JTextField();
- 
-     private final PassageDAO dao;
-     private final int subcategoryId;
-     private Integer simulationId;
-     private int currentIndex = 1;
-     private PassageDAO.Passage currentPassage;
-+    private Consumer<Integer> onIndexChange;
- 
-     public TextPassagePanel(PassageDAO dao, int subcategoryId) {
-         this(dao, subcategoryId, null);
-     }
- 
-     public TextPassagePanel(PassageDAO dao, int subcategoryId, Integer simulationId) {
-         this.dao = dao;
-         this.subcategoryId = subcategoryId;
-         this.simulationId = simulationId;
-         setLayout(new BorderLayout());
-         buildToolbar();
-         add(new JScrollPane(textPane), BorderLayout.CENTER);
-         JPanel south = new JPanel(new BorderLayout());
-         south.add(new JLabel("Quelle:"), BorderLayout.WEST);
-         south.add(sourceField, BorderLayout.CENTER);
-         add(south, BorderLayout.SOUTH);
-     }
- 
-     private final JToggleButton[] passageButtons = new JToggleButton[5];
-     private void buildToolbar() {
-         JPanel toolbarPanel = new JPanel();
-         toolbarPanel.setLayout(new BorderLayout());
- 
-         JToolBar navBar = new JToolBar();
-         navBar.setFloatable(false);
-@@ -86,89 +88,103 @@ public class TextPassagePanel extends JPanel {
-         JButton saveBtn = new JButton("Save");
-         saveBtn.addActionListener(e -> savePassage());
-         bar.add(saveBtn);
- 
-         toolbarPanel.add(bar, BorderLayout.EAST);
-         add(toolbarPanel, BorderLayout.NORTH);
-     }
- 
-     public void loadPassage() {
-         try {
-             if (simulationId != null) {
-                 currentPassage = dao.findBySubcategorySimulationAndIndex(subcategoryId, simulationId, currentIndex);
-             } else {
-                 currentPassage = dao.findBySubcategoryId(subcategoryId);
-             }
-             if (currentPassage != null) {
-                 textPane.setText(currentPassage.text());
-                 sourceField.setText(currentPassage.source() == null ? "" : currentPassage.source());
-             } else {
-                 textPane.setText("");
-                 sourceField.setText("");
-             }
-             if (currentIndex >= 1 && currentIndex <= passageButtons.length) {
-                 passageButtons[currentIndex - 1].setSelected(true);
-             }
-+            if (onIndexChange != null) {
-+                onIndexChange.accept(currentIndex);
-+            }
-         } catch (SQLException ex) {
-             JOptionPane.showMessageDialog(this, "Fehler beim Laden: " + ex.getMessage(),
-                     "Load", JOptionPane.ERROR_MESSAGE);
-         }
-     }
- 
-     public void savePassage() {
-         try {
-             String text = textPane.getText();
-             String src = sourceField.getText().trim();
-             if (currentPassage == null) {
-                 if (!text.trim().isEmpty()) {
-                     int id;
-                     if (simulationId != null) {
-                         id = dao.insert(subcategoryId, simulationId, currentIndex, text, src.isEmpty() ? null : src);
-                     } else {
-                         id = dao.insert(subcategoryId, text, src.isEmpty() ? null : src);
-                     }
-                     currentPassage = new PassageDAO.Passage(id, subcategoryId, simulationId, currentIndex, text, src.isEmpty() ? null : src);
-                 }
-             } else {
-                 if (simulationId != null) {
-                     dao.update(currentPassage.id(), simulationId, currentIndex, text, src.isEmpty() ? null : src);
-                 } else {
-                     dao.update(currentPassage.id(), text, src.isEmpty() ? null : src);
-                 }
-                 currentPassage = new PassageDAO.Passage(currentPassage.id(), subcategoryId, simulationId, currentIndex, text, src.isEmpty() ? null : src);
-             }
-         } catch (SQLException ex) {
-             JOptionPane.showMessageDialog(this, "Fehler beim Speichern: " + ex.getMessage(),
-                     "Save", JOptionPane.ERROR_MESSAGE);
-         }
-     }
- 
-     private void switchPassage(int index) {
-         savePassage();
-         currentIndex = index;
-         loadPassage();
-+        if (onIndexChange != null) {
-+            onIndexChange.accept(currentIndex);
-+        }
-     }
- 
-     private void createNewPassage() {
-         for (int i = 1; i <= passageButtons.length; i++) {
-             try {
-                 if (simulationId != null && dao.findBySubcategorySimulationAndIndex(subcategoryId, simulationId, i) == null) {
-                     passageButtons[i - 1].setSelected(true);
-                     currentIndex = i;
-                     textPane.setText("");
-                     sourceField.setText("");
-                     currentPassage = null;
-                     return;
-                 }
-             } catch (SQLException ignored) {
-             }
-         }
-     }
- 
-     public void setSimulationId(Integer simulationId) {
-         savePassage();
-         this.simulationId = simulationId;
-         currentIndex = 1;
-         currentPassage = null;
-         loadPassage();
-     }
-+
-+    public void setOnIndexChange(Consumer<Integer> listener) {
-+        this.onIndexChange = listener;
-+    }
-+
-+    public int getCurrentIndex() {
-+        return currentIndex;
-+    }
- }
+                 // Find the allergy card grid panel from the split pane
  
 EOF
 )
